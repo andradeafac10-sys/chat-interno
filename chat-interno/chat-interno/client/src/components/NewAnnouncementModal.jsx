@@ -12,6 +12,12 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Só é possível anexar uma imagem (foto) no comunicado.");
+      e.target.value = "";
+      return;
+    }
+    setError("");
     setImage(file);
     setImagePreview(URL.createObjectURL(file));
   };
