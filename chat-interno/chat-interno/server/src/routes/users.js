@@ -13,6 +13,14 @@ router.get("/", requireAuth, requireAdmin, async (req, res) => {
   res.json({ users: rows });
 });
 
+// GET /api/users/manage -> lista TODOS os usuários (admins + operadores) para a tela de gestão de acessos
+router.get("/manage", requireAuth, requireAdmin, async (req, res) => {
+  const { rows } = await pool.query(
+    "SELECT id, name, username, role, color, active, created_at FROM users ORDER BY role DESC, name"
+  );
+  res.json({ users: rows });
+});
+
 // POST /api/users -> ADM cria um novo usuário (operador ou outro admin)
 router.post("/", requireAuth, requireAdmin, async (req, res) => {
   const { name, username, password, role, color } = req.body || {};
@@ -35,10 +43,24 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/users/:id -> ativar/desativar usuário
+// PATCH /api/users/:id/active -> ativar/desativar usuário
 router.patch("/:id/active", requireAuth, requireAdmin, async (req, res) => {
   const { active } = req.body || {};
+  if (Number(req.params.id) === req.user.id && !active) {
+    return res.status(400).json({ error: "Você não pode desativar a si mesmo." });
+  }
   await pool.query("UPDATE users SET active = $1 WHERE id = $2", [!!active, req.params.id]);
+  res.json({ ok: true });
+});
+
+// PATCH /api/users/:id/reset-password -> ADM define uma nova senha para qualquer usuário (não precisa saber a antiga)
+router.patch("/:id/reset-password", requireAuth, requireAdmin, async (req, res) => {
+  const { newPassword } = req.body || {};
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: "A nova senha precisa ter pelo menos 6 caracteres." });
+  }
+  const password_hash = await bcrypt.hash(newPassword, 10);
+  await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [password_hash, req.params.id]);
   res.json({ ok: true });
 });
 
