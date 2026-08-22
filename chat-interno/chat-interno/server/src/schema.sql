@@ -14,9 +14,13 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS groups (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
+  avatar_url TEXT,
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Garante a coluna em bancos que já existiam antes dessa versão
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 CREATE TABLE IF NOT EXISTS group_members (
   group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
