@@ -15,12 +15,25 @@ CREATE TABLE IF NOT EXISTS groups (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   avatar_url TEXT,
+  description TEXT,
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Garante a coluna em bancos que já existiam antes dessa versão
+-- Garante as colunas em bancos que já existiam antes dessa versão
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS description TEXT;
+
+CREATE TABLE IF NOT EXISTS group_attachments (
+  id SERIAL PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  file_url TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_size INTEGER,
+  kind TEXT NOT NULL DEFAULT 'file' CHECK (kind IN ('file','image')),
+  uploaded_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS group_members (
   group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
@@ -43,6 +56,34 @@ CREATE TABLE IF NOT EXISTS messages (
   pinned BOOLEAN NOT NULL DEFAULT false,
   pinned_by INTEGER REFERENCES users(id),
   pinned_at TIMESTAMPTZ,
+  reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+  edited BOOLEAN NOT NULL DEFAULT false,
+  edited_at TIMESTAMPTZ,
+  deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Garante as colunas em bancos que já existiam antes dessa versão
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS message_reactions (
+  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL CHECK (emoji IN ('👍','❌')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (message_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  message TEXT NOT NULL,
+  image_url TEXT,
+  created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
