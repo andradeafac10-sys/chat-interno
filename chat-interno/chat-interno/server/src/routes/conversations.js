@@ -83,37 +83,56 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
 
   const before = req.query.before ? new Date(req.query.before) : new Date();
   const { rows } = await pool.query(
-    `SELECT m.*, u.name AS sender_name, u.color AS sender_color
-     FROM messages m JOIN users u ON u.id = m.sender_id
+    `SELECT m.*, u.name AS sender_name, u.color AS sender_color,
+            r.id AS reply_id, r.type AS reply_type, r.content AS reply_content,
+            r.deleted AS reply_deleted, ru.name AS reply_sender_name
+     FROM messages m
+     JOIN users u ON u.id = m.sender_id
+     LEFT JOIN messages r ON r.id = m.reply_to_id
+     LEFT JOIN users ru ON ru.id = r.sender_id
      WHERE m.conversation_id = $1 AND m.created_at < $2
      ORDER BY m.created_at DESC LIMIT 50`,
     [conversationId, before]
   );
 
-  res.json({ messages: rows.reverse() });
+  const ids = rows.map((r) => r.id);
+  let reactionsByMessage = {};
+  if (ids.length > 0) {
+    const { rows: reactions } = await pool.query(
+      `SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id = ANY($1::int[])`,
+      [ids]
+    );
+    reactionsByMessage = reactions.reduce((acc, r) => {
+      (acc[r.message_id] ||= []).push({ userId: r.user_id, emoji: r.emoji });
+      return acc;
+    }, {});
+  }
+
+  const messages = rows.map((r) => ({ ...r, reactions: reactionsByMessage[r.id] || [] }));
+  res.json({ messages: messages.reverse() });
 });
 
-// POST /api/conversations/:id/messages -> envia mensagem de texto
+// POST /api/conversations/:id/messages -> envia mensagem de texto (opcionalmente respondendo outra)
 router.post("/:id/messages", requireAuth, async (req, res) => {
   const conversationId = req.params.id;
-  const { text } = req.body || {};
+  const { text, replyToId } = req.body || {};
   if (!(await canAccessConversation(req.user, conversationId))) {
     return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
   }
   if (!text || !text.trim()) return res.status(400).json({ error: "Mensagem vazia." });
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, type, content)
-     VALUES ($1, $2, 'text', $3) RETURNING *`,
-    [conversationId, req.user.id, text.trim()]
+    `INSERT INTO messages (conversation_id, sender_id, type, content, reply_to_id)
+     VALUES ($1, $2, 'text', $3, $4) RETURNING *`,
+    [conversationId, req.user.id, text.trim(), replyToId || null]
   );
-  const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color };
+  const message = await hydrateNewMessage(rows[0], req.user);
 
   broadcast(req, conversationId, "message:new", message);
   res.status(201).json({ message });
 });
 
-// POST /api/conversations/:id/upload -> envia foto, arquivo ou áudio
+// POST /api/conversations/:id/upload -> envia foto, arquivo ou áudio (opcionalmente respondendo outra)
 router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) => {
   const conversationId = req.params.id;
   if (!(await canAccessConversation(req.user, conversationId))) {
@@ -126,14 +145,87 @@ router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) 
   const fileUrl = `/uploads/${req.file.filename}`;
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, type, file_url, file_name, file_size, audio_seconds)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [conversationId, req.user.id, kind, fileUrl, req.file.originalname, req.file.size, req.body.seconds ? Number(req.body.seconds) : null]
+    `INSERT INTO messages (conversation_id, sender_id, type, file_url, file_name, file_size, audio_seconds, reply_to_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [conversationId, req.user.id, kind, fileUrl, req.file.originalname, req.file.size, req.body.seconds ? Number(req.body.seconds) : null, req.body.replyToId || null]
   );
-  const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color };
+  const message = await hydrateNewMessage(rows[0], req.user);
 
   broadcast(req, conversationId, "message:new", message);
   res.status(201).json({ message });
+});
+
+// PATCH /api/conversations/:id/messages/:msgId -> editar o texto da própria mensagem
+router.patch("/:id/messages/:msgId", requireAuth, async (req, res) => {
+  const conversationId = req.params.id;
+  const { text } = req.body || {};
+  if (!text || !text.trim()) return res.status(400).json({ error: "Mensagem vazia." });
+
+  const { rows: existing } = await pool.query("SELECT * FROM messages WHERE id = $1 AND conversation_id = $2", [req.params.msgId, conversationId]);
+  const original = existing[0];
+  if (!original) return res.status(404).json({ error: "Mensagem não encontrada." });
+  if (original.sender_id !== req.user.id) return res.status(403).json({ error: "Você só pode editar suas próprias mensagens." });
+  if (original.type !== "text") return res.status(400).json({ error: "Só é possível editar mensagens de texto." });
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET content = $1, edited = true, edited_at = now() WHERE id = $2 RETURNING *`,
+    [text.trim(), req.params.msgId]
+  );
+  const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color };
+
+  broadcast(req, conversationId, "message:edited", message);
+  res.json({ message });
+});
+
+// DELETE /api/conversations/:id/messages/:msgId -> apaga (o próprio dono ou qualquer ADM)
+router.delete("/:id/messages/:msgId", requireAuth, async (req, res) => {
+  const conversationId = req.params.id;
+  const { rows: existing } = await pool.query("SELECT * FROM messages WHERE id = $1 AND conversation_id = $2", [req.params.msgId, conversationId]);
+  const original = existing[0];
+  if (!original) return res.status(404).json({ error: "Mensagem não encontrada." });
+  if (original.sender_id !== req.user.id && req.user.role !== "admin") {
+    return res.status(403).json({ error: "Você não pode apagar essa mensagem." });
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET deleted = true, deleted_at = now(), content = NULL, file_url = NULL, file_name = NULL
+     WHERE id = $1 RETURNING *`,
+    [req.params.msgId]
+  );
+  const message = { ...rows[0], sender_name: original.sender_id === req.user.id ? req.user.name : undefined };
+
+  broadcast(req, conversationId, "message:deleted", { id: rows[0].id, conversation_id: conversationId });
+  res.json({ ok: true });
+});
+
+// POST /api/conversations/:id/messages/:msgId/reactions -> reagir (👍 ou ❌); clicar de novo no mesmo remove
+router.post("/:id/messages/:msgId/reactions", requireAuth, async (req, res) => {
+  const { emoji } = req.body || {};
+  if (!["👍", "❌"].includes(emoji)) return res.status(400).json({ error: "Reação inválida." });
+
+  const { rows: existing } = await pool.query(
+    "SELECT emoji FROM message_reactions WHERE message_id = $1 AND user_id = $2",
+    [req.params.msgId, req.user.id]
+  );
+
+  if (existing[0] && existing[0].emoji === emoji) {
+    await pool.query("DELETE FROM message_reactions WHERE message_id = $1 AND user_id = $2", [req.params.msgId, req.user.id]);
+  } else {
+    await pool.query(
+      `INSERT INTO message_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)
+       ON CONFLICT (message_id, user_id) DO UPDATE SET emoji = $3`,
+      [req.params.msgId, req.user.id, emoji]
+    );
+  }
+
+  const { rows: reactions } = await pool.query(
+    "SELECT user_id, emoji FROM message_reactions WHERE message_id = $1",
+    [req.params.msgId]
+  );
+
+  const payload = { messageId: Number(req.params.msgId), conversationId: req.params.id, reactions: reactions.map((r) => ({ userId: r.user_id, emoji: r.emoji })) };
+  broadcast(req, req.params.id, "message:reaction", payload);
+  res.json(payload);
 });
 
 // PATCH /api/conversations/:id/messages/:msgId/pin -> fixar/desafixar (só ADM)
@@ -161,6 +253,20 @@ router.patch("/:id/messages/:msgId/pin", requireAuth, requireAdmin, async (req, 
 function broadcast(req, conversationId, event, payload) {
   const io = req.app.get("io");
   io.to(`conv-${conversationId}`).emit(event, payload);
+}
+
+// Monta a mensagem recém-criada já com o preview de "respondendo a" (se houver) e reações vazias
+async function hydrateNewMessage(row, sender) {
+  let reply = {};
+  if (row.reply_to_id) {
+    const { rows } = await pool.query(
+      `SELECT r.id AS reply_id, r.type AS reply_type, r.content AS reply_content, r.deleted AS reply_deleted, ru.name AS reply_sender_name
+       FROM messages r JOIN users ru ON ru.id = r.sender_id WHERE r.id = $1`,
+      [row.reply_to_id]
+    );
+    if (rows[0]) reply = rows[0];
+  }
+  return { ...row, sender_name: sender.name, sender_color: sender.color, reactions: [], ...reply };
 }
 
 module.exports = router;
