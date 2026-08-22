@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { X, Users, Camera, ShieldCheck, Paperclip, Trash2, Download, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
+import ImageViewer from "./ImageViewer";
 
 const fmtSize = (bytes) => {
   if (!bytes) return "";
@@ -20,6 +21,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
   const fileInputRef = useRef(null);
   const attachmentInputRef = useRef(null);
 
@@ -172,9 +174,9 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
             {(group.attachments || []).map((att) => (
               <div key={att.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-50">
                 {att.kind === "image" ? (
-                  <a href={fileUrl(att.file_url)} target="_blank" rel="noreferrer" className="shrink-0">
-                    <img src={fileUrl(att.file_url)} alt={att.file_name} className="w-9 h-9 rounded object-cover" />
-                  </a>
+                  <button onClick={() => setViewingImage({ url: att.file_url, name: att.file_name })} className="shrink-0">
+                    <img src={fileUrl(att.file_url)} alt={att.file_name} className="w-9 h-9 rounded object-cover cursor-zoom-in" />
+                  </button>
                 ) : (
                   <FileIcon size={14} className="text-slate-400 shrink-0" />
                 )}
@@ -223,6 +225,8 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
           )}
         </div>
       </div>
+
+      <ImageViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </div>
   );
 }
