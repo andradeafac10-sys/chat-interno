@@ -168,10 +168,16 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
             )}
             {isAdm && <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentPick} />}
           </div>
-          <div className="flex flex-col gap-1 mb-5 max-h-40 overflow-y-auto">
+          <div className="flex flex-col gap-1 mb-5 max-h-52 overflow-y-auto">
             {(group.attachments || []).map((att) => (
               <div key={att.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-50">
-                {att.kind === "image" ? <ImageIcon size={14} className="text-slate-400 shrink-0" /> : <FileIcon size={14} className="text-slate-400 shrink-0" />}
+                {att.kind === "image" ? (
+                  <a href={fileUrl(att.file_url)} target="_blank" rel="noreferrer" className="shrink-0">
+                    <img src={fileUrl(att.file_url)} alt={att.file_name} className="w-9 h-9 rounded object-cover" />
+                  </a>
+                ) : (
+                  <FileIcon size={14} className="text-slate-400 shrink-0" />
+                )}
                 <span className="text-[12px] text-slate-700 truncate flex-1">{att.file_name}</span>
                 <span className="text-[10px] text-slate-400 shrink-0">{fmtSize(att.file_size)}</span>
                 <a href={fileUrl(att.file_url)} download={att.file_name} className="text-slate-400 hover:text-[#25D366] shrink-0"><Download size={13} /></a>
