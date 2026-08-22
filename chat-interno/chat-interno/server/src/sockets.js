@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { pool } = require("../src/db");
-const { dmId, groupConvId, adminDmId } = require("./utils/permissions");
+const { pairDmId, groupConvId } = require("./utils/permissions");
 
 /**
  * Cada usuário, ao conectar, entra automaticamente nas "salas" (rooms)
@@ -22,7 +22,7 @@ function setupSockets(io) {
       if (!token) return next(new Error("Sem token"));
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       const { rows } = await pool.query(
-        "SELECT id, name, username, role, color, active FROM users WHERE id = $1",
+        "SELECT id, name, username, role, color, active, avatar_url FROM users WHERE id = $1",
         [payload.sub]
       );
       const user = rows[0];
@@ -40,13 +40,14 @@ function setupSockets(io) {
 
     if (user.role === "admin") {
       const { rows: operators } = await pool.query("SELECT id FROM users WHERE role = 'operator'");
-      operators.forEach((op) => socket.join(`conv-${dmId(op.id)}`));
+      operators.forEach((op) => socket.join(`conv-${pairDmId(user.id, op.id)}`));
       const { rows: otherAdmins } = await pool.query("SELECT id FROM users WHERE role = 'admin' AND id != $1", [user.id]);
-      otherAdmins.forEach((adm) => socket.join(`conv-${adminDmId(user.id, adm.id)}`));
+      otherAdmins.forEach((adm) => socket.join(`conv-${pairDmId(user.id, adm.id)}`));
       const { rows: groups } = await pool.query("SELECT id FROM groups");
       groups.forEach((g) => socket.join(`conv-${groupConvId(g.id)}`));
     } else {
-      socket.join(`conv-${dmId(user.id)}`);
+      const { rows: admins } = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+      admins.forEach((adm) => socket.join(`conv-${pairDmId(user.id, adm.id)}`));
       const { rows: groups } = await pool.query(
         "SELECT group_id FROM group_members WHERE user_id = $1",
         [user.id]
