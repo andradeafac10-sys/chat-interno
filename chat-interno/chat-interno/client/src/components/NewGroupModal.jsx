@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, ShieldCheck } from "lucide-react";
 import { api } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 export default function NewGroupModal({ onClose, onCreated }) {
+  const { user: currentUser } = useAuth();
   const [operators, setOperators] = useState([]);
   const [name, setName] = useState("");
   const [memberIds, setMemberIds] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get("/users").then(({ data }) => setOperators(data.users));
-  }, []);
+    api.get("/users/manage").then(({ data }) => setOperators(data.users.filter((u) => u.id !== currentUser.id)));
+  }, [currentUser.id]);
 
   const toggle = (id) =>
     setMemberIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -39,28 +41,31 @@ export default function NewGroupModal({ onClose, onCreated }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ex: Equipe Carteira X"
-          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]"
+          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
         />
 
-        <label className="text-xs font-medium text-slate-500 mb-1.5 block">Membros (operadores)</label>
+        <label className="text-xs font-medium text-slate-500 mb-1.5 block">Membros</label>
         <div className="flex flex-col gap-1 mb-5 max-h-40 overflow-y-auto">
           {operators.map((op) => (
             <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
-              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2F6FED]" />
+              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#25D366]" />
               <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
                 {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
               </div>
-              <span className="text-sm text-slate-700">{op.name}</span>
+              <span className="text-sm text-slate-700 flex items-center gap-1">
+                {op.name}
+                {op.role === "admin" && <ShieldCheck size={12} className="text-[#25D366]" />}
+              </span>
             </label>
           ))}
-          {operators.length === 0 && <span className="text-xs text-slate-400">Nenhum operador cadastrado ainda.</span>}
+          {operators.length === 0 && <span className="text-xs text-slate-400">Nenhuma outra pessoa cadastrada ainda.</span>}
         </div>
 
         <button
           onClick={create}
           disabled={!name.trim() || memberIds.length === 0 || saving}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-          style={{ background: "#2F6FED" }}
+          style={{ background: "#25D366" }}
         >
           {saving ? "Criando..." : "Criar grupo"}
         </button>
