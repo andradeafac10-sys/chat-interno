@@ -38,8 +38,12 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
   return (
     <div className="w-[320px] flex flex-col border-r" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
       <div className="flex items-center gap-2.5 px-3 py-3.5">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style={{ background: user.color }}>
-          {user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden" style={{ background: user.color }}>
+          {user.avatar_url ? (
+            <img src={fileUrl(user.avatar_url)} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{user.name}</div>
@@ -143,8 +147,10 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
-                {c.type === "group" ? (
-                  c.avatarUrl ? <img src={fileUrl(c.avatarUrl)} alt={c.title} className="w-full h-full object-cover" /> : <Users size={16} />
+                {c.avatarUrl ? (
+                  <img src={fileUrl(c.avatarUrl)} alt={c.title} className="w-full h-full object-cover" />
+                ) : c.type === "group" ? (
+                  <Users size={16} />
                 ) : (
                   c.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
                 )}
