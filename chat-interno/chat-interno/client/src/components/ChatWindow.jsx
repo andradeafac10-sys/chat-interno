@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
+import ImageViewer from "./ImageViewer";
 
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
@@ -24,6 +25,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [playingId, setPlayingId] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
 
@@ -222,6 +224,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             onEdit={startEdit}
             onDelete={deleteMessage}
             onReact={reactToMessage}
+            onOpenImage={setViewingImage}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
@@ -294,6 +297,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           </div>
         )}
       </div>
+
+      <ImageViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </div>
   );
 }
