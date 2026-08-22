@@ -13,12 +13,18 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onlineUsers }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onlineUsers, flashIds }) {
   const { user, logout } = useAuth();
   const [filter, setFilter] = useState("");
   const isAdm = user.role === "admin";
 
-  const filtered = conversations.filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = conversations
+    .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => {
+      const at = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
+      const bt = b.lastMessage?.created_at ? new Date(b.lastMessage.created_at).getTime() : 0;
+      return bt - at;
+    });
 
   return (
     <div className="w-[320px] flex flex-col border-r border-slate-800" style={{ background: "#111B21" }}>
@@ -90,7 +96,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             <button
               key={c.id}
               onClick={() => setActiveConvId(c.id)}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left"
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
               style={{ background: active ? "#2A3942" : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
