@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
 
@@ -15,6 +16,7 @@ const replyPreviewText = (type, content, deleted) => {
 
 export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const isAdm = user.role === "admin";
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
@@ -143,11 +145,11 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#EFEAE2" }}>
+    <div className="flex-1 flex flex-col" style={{ background: colors.chatBg }}>
       <button
         onClick={() => conversation.type === "group" && setShowGroupSettings(true)}
-        className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0 text-left"
-        style={{ cursor: conversation.type === "group" ? "pointer" : "default" }}
+        className="h-16 flex items-center gap-3 px-4 border-b shrink-0 text-left"
+        style={{ cursor: conversation.type === "group" ? "pointer" : "default", background: colors.headerBg, borderColor: colors.headerBorder }}
       >
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#25D366" }}>
           {conversation.type === "group" ? (
@@ -156,19 +158,19 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             conversation.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
           )}
           {conversation.type === "dm" && isOnline && (
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#25D366] border-2 border-white" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#25D366]" style={{ border: `2px solid ${colors.headerBg}` }} />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-slate-800 text-sm font-semibold truncate">{conversation.title}</div>
+          <div className="text-sm font-semibold truncate" style={{ color: colors.textPrimary }}>{conversation.title}</div>
           {conversation.type === "group" ? (
-            <div className="text-[11px] text-slate-500">{conversation.memberCount} membro(s)</div>
+            <div className="text-[11px]" style={{ color: colors.textSecondary }}>{conversation.memberCount} membro(s)</div>
           ) : (
-            <div className="text-[11px] text-slate-500">{isOnline ? "online" : ""}</div>
+            <div className="text-[11px]" style={{ color: colors.textSecondary }}>{isOnline ? "online" : ""}</div>
           )}
         </div>
         {conversation.type === "group" && (
-          <span className="text-slate-400 p-1.5" title="Ver informações do grupo">
+          <span className="p-1.5" style={{ color: colors.textSecondary }} title="Ver informações do grupo">
             <Settings size={18} />
           </span>
         )}
@@ -187,14 +189,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       )}
 
       {pinned && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#F0F2F5] border-b border-[#D1D7DB] text-xs">
+        <div className="flex items-center gap-2 px-4 py-2 border-b text-xs" style={{ background: colors.inputFieldBg, borderColor: colors.headerBorder }}>
           <Pin size={13} className="text-[#25D366] shrink-0" />
-          <span className="text-slate-500 shrink-0 font-medium">Fixado:</span>
-          <span className="text-slate-700 truncate flex-1">
+          <span className="shrink-0 font-medium" style={{ color: colors.textSecondary }}>Fixado:</span>
+          <span className="truncate flex-1" style={{ color: colors.textPrimary }}>
             {pinned.type === "text" ? pinned.content : pinned.type === "image" ? "Foto" : pinned.type === "audio" ? "Mensagem de áudio" : pinned.file_name}
           </span>
           {isAdm && (
-            <button onClick={() => onTogglePin(pinned, false)} className="text-slate-400 hover:text-slate-600 shrink-0">
+            <button onClick={() => onTogglePin(pinned, false)} className="shrink-0" style={{ color: colors.textSecondary }}>
               <X size={14} />
             </button>
           )}
@@ -203,7 +205,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1.5">
         {!loadingHistory && (messages || []).length === 0 && (
-          <div className="m-auto text-slate-400 text-sm">Nenhuma mensagem ainda. Diga oi 👋</div>
+          <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
         {(messages || []).map((m) => (
           <MessageBubble
@@ -225,36 +227,36 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         ))}
       </div>
 
-      <div className="border-t border-[#D1D7DB] bg-white px-3 py-3 shrink-0">
+      <div className="border-t px-3 py-3 shrink-0" style={{ background: colors.inputBarBg, borderColor: colors.headerBorder }}>
         {(replyingTo || editingMessage) && (
-          <div className="flex items-center gap-2 mb-2 bg-[#F0F2F5] rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
             {editingMessage ? <Pencil size={14} className="text-[#25D366] shrink-0" /> : <Reply size={14} className="text-[#25D366] shrink-0" />}
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-medium text-[#25D366]">{editingMessage ? "Editando mensagem" : `Respondendo ${replyingTo.sender_name?.split(" ")[0]}`}</div>
-              <div className="text-[12px] text-slate-500 truncate">
+              <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>
                 {editingMessage ? editingMessage.content : replyPreviewText(replyingTo.type, replyingTo.content, replyingTo.deleted)}
               </div>
             </div>
-            <button onClick={cancelComposeExtra} className="text-slate-400 hover:text-slate-600 shrink-0">
+            <button onClick={cancelComposeExtra} className="shrink-0" style={{ color: colors.textSecondary }}>
               <X size={16} />
             </button>
           </div>
         )}
 
         {recording ? (
-          <div className="flex items-center gap-3 bg-[#EFEAE2] rounded-full px-4 py-2.5">
+          <div className="flex items-center gap-3 rounded-full px-4 py-2.5" style={{ background: colors.inputFieldBg }}>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span className="text-sm text-slate-600 font-mono flex-1">Gravando áudio — 0:{String(seconds).padStart(2, "0")}</span>
+            <span className="text-sm font-mono flex-1" style={{ color: colors.textPrimary }}>Gravando áudio — 0:{String(seconds).padStart(2, "0")}</span>
             <button onClick={stopRecording} className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#25D366" }}>
               <Square size={13} fill="white" />
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
+            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#25D366] shrink-0" style={{ color: colors.textSecondary }}>
               <ImageIcon size={19} />
             </button>
-            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
+            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#25D366] shrink-0" style={{ color: colors.textSecondary }}>
               <Paperclip size={19} />
             </button>
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, "image")} />
@@ -274,7 +276,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                 }
               }}
               placeholder="Escreva uma mensagem"
-              className="flex-1 bg-[#F0F2F5] rounded-full px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#25D366] placeholder:text-slate-400"
+              className="flex-1 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+              style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
             />
 
             {draft.trim() ? (
@@ -282,7 +285,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                 <Send size={16} />
               </button>
             ) : (
-              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
+              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#25D366] shrink-0" style={{ color: colors.textSecondary }}>
                 <Mic size={19} />
               </button>
             )}
