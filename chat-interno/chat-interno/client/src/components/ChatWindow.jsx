@@ -152,8 +152,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         style={{ cursor: conversation.type === "group" ? "pointer" : "default", background: colors.headerBg, borderColor: colors.headerBorder }}
       >
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#25D366" }}>
-          {conversation.type === "group" ? (
-            conversation.avatarUrl ? <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" /> : <Users size={15} />
+          {conversation.avatarUrl ? (
+            <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" />
+          ) : conversation.type === "group" ? (
+            <Users size={15} />
           ) : (
             conversation.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
           )}
