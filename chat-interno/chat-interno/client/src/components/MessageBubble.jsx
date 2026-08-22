@@ -21,7 +21,7 @@ const replyPreviewText = (type, content, deleted) => {
 
 export default function MessageBubble({
   message, mine, isGroup, isAdm, currentUserId,
-  onTogglePin, onReply, onEdit, onDelete, onReact,
+  onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage,
   playingId, setPlayingId, audioRefs,
 }) {
   const { colors } = useTheme();
@@ -80,9 +80,9 @@ export default function MessageBubble({
             {m.type === "text" && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
 
             {m.type === "image" && (
-              <a href={fileUrl(m.file_url)} target="_blank" rel="noreferrer">
-                <img src={fileUrl(m.file_url)} alt={m.file_name} className="rounded-lg max-w-[220px] max-h-[220px] object-cover" />
-              </a>
+              <button onClick={() => onOpenImage?.({ url: m.file_url, name: m.file_name })} className="block">
+                <img src={fileUrl(m.file_url)} alt={m.file_name} className="rounded-lg max-w-[220px] max-h-[220px] object-cover cursor-zoom-in" />
+              </button>
             )}
 
             {m.type === "file" && (
