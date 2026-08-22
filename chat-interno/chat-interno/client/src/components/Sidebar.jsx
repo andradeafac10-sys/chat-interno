@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -12,7 +12,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers }) {
   const { user, logout } = useAuth();
   const [filter, setFilter] = useState("");
   const isAdm = user.role === "admin";
@@ -32,10 +32,24 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             {isAdm ? "ADMINISTRADOR" : "OPERADOR"}
           </div>
         </div>
+        <button onClick={onOpenAccount} title="Minha conta" className="text-slate-500 hover:text-slate-300 shrink-0">
+          <Settings size={16} />
+        </button>
         <button onClick={logout} title="Sair" className="text-slate-500 hover:text-slate-300 shrink-0">
           <LogOut size={16} />
         </button>
       </div>
+
+      {isAdm && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={onOpenUsers}
+            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-slate-200 border border-slate-700 hover:bg-[#16243A]"
+          >
+            <UserCog size={15} /> Usuários da equipe
+          </button>
+        </div>
+      )}
 
       <div className="px-3 pb-2">
         <div className="relative">
