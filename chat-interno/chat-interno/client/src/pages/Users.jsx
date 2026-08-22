@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil } from "lucide-react";
 import { api } from "../api";
 
 const COLORS = ["#2F6FED", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
@@ -9,6 +9,7 @@ export default function Users({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -60,6 +61,13 @@ export default function Users({ onBack }) {
                   <div className="text-[12px] text-slate-500">{u.username} · {u.role === "admin" ? "Administrador" : "Operador"}</div>
                 </div>
                 <button
+                  onClick={() => setEditTarget(u)}
+                  title="Editar nome"
+                  className="text-slate-400 hover:text-[#2F6FED] p-1.5"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
                   onClick={() => setResetTarget(u)}
                   title="Definir nova senha"
                   className="text-slate-400 hover:text-[#2F6FED] p-1.5"
@@ -81,6 +89,52 @@ export default function Users({ onBack }) {
 
       {showNew && <NewUserModal onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); load(); }} />}
       {resetTarget && <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />}
+      {editTarget && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); load(); }} />}
+    </div>
+  );
+}
+
+function EditUserModal({ user, onClose, onSaved }) {
+  const [name, setName] = useState(user.name);
+  const [username, setUsername] = useState(user.username);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    try {
+      await api.patch(`/users/${user.id}`, { name, username });
+      onSaved();
+    } catch (err) {
+      setError(err.response?.data?.error || "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl w-[340px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Editar usuário</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Nome completo</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]" required />
+
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
+
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#2F6FED" }}>
+            {saving ? "Salvando..." : "Salvar alterações"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
