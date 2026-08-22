@@ -1,6 +1,7 @@
 import React from "react";
 import { File as FileIcon, Download, Pin, PinOff, Play, Pause, CheckCheck, Reply, Pencil, Trash2, ThumbsUp, X as XIcon } from "lucide-react";
 import { fileUrl } from "../api";
+import { useTheme } from "../context/ThemeContext";
 
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const fmtSize = (bytes) => {
@@ -23,12 +24,13 @@ export default function MessageBubble({
   onTogglePin, onReply, onEdit, onDelete, onReact,
   playingId, setPlayingId, audioRefs,
 }) {
+  const { colors } = useTheme();
   const m = message;
 
   if (m.deleted) {
     return (
       <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-        <div className="max-w-[70%] rounded-2xl px-3.5 py-2 text-sm italic text-slate-400 bg-white/60 border border-slate-200">
+        <div className="max-w-[70%] rounded-2xl px-3.5 py-2 text-sm italic border" style={{ color: colors.textSecondary, background: colors.incomingBubbleBg, borderColor: colors.border }}>
           Mensagem apagada
         </div>
       </div>
@@ -56,8 +58,8 @@ export default function MessageBubble({
           <div
             className="rounded-2xl px-3.5 py-2 text-sm leading-snug shadow-sm"
             style={{
-              background: mine ? "#D9FDD3" : "#FFFFFF",
-              color: "#111B21",
+              background: mine ? colors.ownBubbleBg : colors.incomingBubbleBg,
+              color: mine ? colors.ownBubbleText : colors.incomingBubbleText,
               borderTopRightRadius: mine ? 4 : undefined,
               borderTopLeftRadius: !mine ? 4 : undefined,
             }}
@@ -81,7 +83,7 @@ export default function MessageBubble({
 
             {m.type === "file" && (
               <a href={fileUrl(m.file_url)} download={m.file_name} className="flex items-center gap-2.5 min-w-[180px]">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: mine ? "rgba(0,0,0,0.06)" : "#EFEAE2" }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: mine ? "rgba(0,0,0,0.15)" : colors.inputFieldBg }}>
                   <FileIcon size={16} color="#25D366" />
                 </div>
                 <div className="min-w-0">
@@ -102,7 +104,7 @@ export default function MessageBubble({
                     else { Object.values(audioRefs.current).forEach((a) => a?.pause()); el.currentTime = 0; el.play(); setPlayingId(m.id); }
                   }}
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: mine ? "rgba(0,0,0,0.08)" : "#EFEAE2" }}
+                  style={{ background: mine ? "rgba(0,0,0,0.18)" : colors.inputFieldBg }}
                 >
                   {playingId === m.id ? <Pause size={14} color="#25D366" /> : <Play size={14} color="#25D366" />}
                 </button>
@@ -128,8 +130,8 @@ export default function MessageBubble({
                 <button
                   key={emoji}
                   onClick={() => onReact(m, emoji)}
-                  className="text-[11px] rounded-full px-1.5 py-0.5 bg-white border border-slate-200 shadow-sm"
-                  style={{ borderColor: myReaction === emoji ? "#25D366" : undefined }}
+                  className="text-[11px] rounded-full px-1.5 py-0.5 shadow-sm border"
+                  style={{ background: colors.incomingBubbleBg, borderColor: myReaction === emoji ? "#25D366" : colors.border }}
                 >
                   {emoji} {count}
                 </button>
