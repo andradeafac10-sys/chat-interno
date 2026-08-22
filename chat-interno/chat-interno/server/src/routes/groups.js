@@ -1,9 +1,28 @@
 const express = require("express");
+const fs = require("fs");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { groupConvId } = require("../utils/permissions");
+const { upload } = require("../middleware/upload");
 
 const router = express.Router();
+
+// GET /api/groups/:id -> detalhes completos pra tela de edição (só ADM)
+router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
+  const groupId = Number(req.params.id);
+  const { rows } = await pool.query(
+    "SELECT id, name, avatar_url, created_by FROM groups WHERE id = $1",
+    [groupId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Grupo não encontrado." });
+
+  const { rows: members } = await pool.query(
+    "SELECT user_id FROM group_members WHERE group_id = $1",
+    [groupId]
+  );
+
+  res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url, memberIds: members.map((m) => m.user_id) } });
+});
 
 // POST /api/groups  { name, memberIds: [operatorId, ...] } -> só ADM cria
 router.post("/", requireAuth, requireAdmin, async (req, res) => {
@@ -72,6 +91,43 @@ router.patch("/:id/members", requireAuth, requireAdmin, async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// PATCH /api/groups/:id  { name } -> renomear grupo (só ADM)
+router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { name } = req.body || {};
+  if (!name || !name.trim()) return res.status(400).json({ error: "O nome não pode ficar vazio." });
+
+  const { rows } = await pool.query(
+    "UPDATE groups SET name = $1 WHERE id = $2 RETURNING id, name, avatar_url",
+    [name.trim(), req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Grupo não encontrado." });
+
+  const io = req.app.get("io");
+  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id), name: rows[0].name });
+
+  res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url } });
+});
+
+// POST /api/groups/:id/avatar -> trocar a foto do grupo (só ADM)
+router.post("/:id/avatar", requireAuth, requireAdmin, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Nenhuma imagem enviada." });
+
+  const avatarUrl = `/uploads/${req.file.filename}`;
+  const { rows } = await pool.query(
+    "UPDATE groups SET avatar_url = $1 WHERE id = $2 RETURNING id, name, avatar_url",
+    [avatarUrl, req.params.id]
+  );
+  if (!rows[0]) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  const io = req.app.get("io");
+  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id), avatarUrl });
+
+  res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url } });
 });
 
 module.exports = router;
