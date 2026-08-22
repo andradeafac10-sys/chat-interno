@@ -7,7 +7,7 @@ function Gate() {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center text-slate-400 text-sm" style={{ background: "#0F1B2D" }}>
+      <div className="w-screen h-screen flex items-center justify-center text-slate-400 text-sm" style={{ background: "#111B21" }}>
         Carregando...
       </div>
     );
