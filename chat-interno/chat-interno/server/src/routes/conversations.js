@@ -1,7 +1,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
-const { canAccessConversation, dmId, groupConvId, adminDmId } = require("../utils/permissions");
+const { canAccessConversation, pairDmId, groupConvId } = require("../utils/permissions");
 const { upload } = require("../middleware/upload");
 const fs = require("fs");
 
@@ -14,23 +14,24 @@ router.get("/", requireAuth, async (req, res) => {
 
   if (user.role === "admin") {
     const { rows: operators } = await pool.query(
-      "SELECT id, name, color FROM users WHERE role = 'operator' AND active = true ORDER BY name"
+      "SELECT id, name, color, avatar_url FROM users WHERE role = 'operator' AND active = true ORDER BY name"
     );
     operators.forEach((op) =>
-      conversations.push({ id: dmId(op.id), type: "dm", title: op.name, color: op.color, otherUserId: op.id })
+      conversations.push({ id: pairDmId(user.id, op.id), type: "dm", title: op.name, color: op.color, avatarUrl: op.avatar_url, otherUserId: op.id })
     );
 
     // Conversas privadas com os outros ADMs
     const { rows: otherAdmins } = await pool.query(
-      "SELECT id, name, color FROM users WHERE role = 'admin' AND active = true AND id != $1 ORDER BY name",
+      "SELECT id, name, color, avatar_url FROM users WHERE role = 'admin' AND active = true AND id != $1 ORDER BY name",
       [user.id]
     );
     otherAdmins.forEach((adm) =>
       conversations.push({
-        id: adminDmId(user.id, adm.id),
+        id: pairDmId(user.id, adm.id),
         type: "dm",
         title: adm.name,
         color: adm.color,
+        avatarUrl: adm.avatar_url,
         otherUserId: adm.id,
         isAdmin: true,
       })
@@ -45,9 +46,21 @@ router.get("/", requireAuth, async (req, res) => {
       conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
     );
   } else {
-    const { rows: admins } = await pool.query("SELECT id, name, color FROM users WHERE role = 'admin' LIMIT 1");
-    const admin = admins[0];
-    conversations.push({ id: dmId(user.id), type: "dm", title: admin ? admin.name : "Administração", color: admin?.color });
+    // Conversas privadas com CADA ADM ativo
+    const { rows: admins } = await pool.query(
+      "SELECT id, name, color, avatar_url FROM users WHERE role = 'admin' AND active = true ORDER BY name"
+    );
+    admins.forEach((adm) =>
+      conversations.push({
+        id: pairDmId(user.id, adm.id),
+        type: "dm",
+        title: adm.name,
+        color: adm.color,
+        avatarUrl: adm.avatar_url,
+        otherUserId: adm.id,
+        isAdmin: true,
+      })
+    );
 
     const { rows: groups } = await pool.query(
       `SELECT g.id, g.name, g.avatar_url, COUNT(gm2.user_id)::int AS member_count
@@ -83,7 +96,7 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
 
   const before = req.query.before ? new Date(req.query.before) : new Date();
   const { rows } = await pool.query(
-    `SELECT m.*, u.name AS sender_name, u.color AS sender_color,
+    `SELECT m.*, u.name AS sender_name, u.color AS sender_color, u.avatar_url AS sender_avatar_url,
             r.id AS reply_id, r.type AS reply_type, r.content AS reply_content,
             r.deleted AS reply_deleted, ru.name AS reply_sender_name
      FROM messages m
@@ -171,7 +184,7 @@ router.patch("/:id/messages/:msgId", requireAuth, async (req, res) => {
     `UPDATE messages SET content = $1, edited = true, edited_at = now() WHERE id = $2 RETURNING *`,
     [text.trim(), req.params.msgId]
   );
-  const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color };
+  const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color, sender_avatar_url: req.user.avatar_url };
 
   broadcast(req, conversationId, "message:edited", message);
   res.json({ message });
@@ -266,7 +279,7 @@ async function hydrateNewMessage(row, sender) {
     );
     if (rows[0]) reply = rows[0];
   }
-  return { ...row, sender_name: sender.name, sender_color: sender.color, reactions: [], ...reply };
+  return { ...row, sender_name: sender.name, sender_color: sender.color, sender_avatar_url: sender.avatar_url, reactions: [], ...reply };
 }
 
 module.exports = router;
