@@ -1,5 +1,6 @@
 import React from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import Login from "./pages/Login";
 import Chat from "./pages/Chat";
 
@@ -18,7 +19,9 @@ function Gate() {
 export default function App() {
   return (
     <AuthProvider>
-      <Gate />
+      <ThemeProvider>
+        <Gate />
+      </ThemeProvider>
     </AuthProvider>
   );
 }
