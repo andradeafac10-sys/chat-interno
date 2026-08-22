@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +8,8 @@ import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import UsersPage from "./Users";
 
+const ORIGINAL_TITLE = "Chat Interno";
+
 export default function Chat() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
@@ -16,6 +18,36 @@ export default function Chat() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(() => new Set());
+
+  const blinkTimerRef = useRef(null);
+  const activeConvIdRef = useRef(activeConvId);
+  useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
+
+  const startBlink = useCallback(() => {
+    if (blinkTimerRef.current) return; // já piscando
+    let flipped = false;
+    blinkTimerRef.current = setInterval(() => {
+      document.title = flipped ? ORIGINAL_TITLE : "💬 Nova mensagem!";
+      flipped = !flipped;
+    }, 900);
+  }, []);
+
+  const stopBlink = useCallback(() => {
+    if (blinkTimerRef.current) {
+      clearInterval(blinkTimerRef.current);
+      blinkTimerRef.current = null;
+    }
+    document.title = ORIGINAL_TITLE;
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("focus", stopBlink);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") stopBlink();
+    });
+    return () => window.removeEventListener("focus", stopBlink);
+  }, [stopBlink]);
 
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
@@ -39,6 +71,10 @@ export default function Chat() {
       setConversations((prev) =>
         prev.map((c) => (c.id === message.conversation_id ? { ...c, lastMessage: message } : c))
       );
+
+      const isMine = message.sender_id === user.id;
+      const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
+      if (!isMine && !isViewingIt) startBlink();
     };
 
     const onPinned = (message) => {
@@ -60,18 +96,37 @@ export default function Chat() {
     };
     const onGroupRemoved = () => loadConversations();
 
+    const onGroupUpdatedEvent = () => loadConversations();
+
+    const onPresenceList = ({ userIds }) => setOnlineUsers(new Set(userIds));
+    const onPresenceOnline = ({ userId }) => setOnlineUsers((prev) => new Set(prev).add(userId));
+    const onPresenceOffline = ({ userId }) =>
+      setOnlineUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+
     socket.on("message:new", onNewMessage);
     socket.on("message:pinned", onPinned);
     socket.on("group:created", onGroupCreated);
     socket.on("group:removed", onGroupRemoved);
+    socket.on("group:updated", onGroupUpdatedEvent);
+    socket.on("presence:list", onPresenceList);
+    socket.on("presence:online", onPresenceOnline);
+    socket.on("presence:offline", onPresenceOffline);
 
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("message:pinned", onPinned);
       socket.off("group:created", onGroupCreated);
       socket.off("group:removed", onGroupRemoved);
+      socket.off("group:updated", onGroupUpdatedEvent);
+      socket.off("presence:list", onPresenceList);
+      socket.off("presence:online", onPresenceOnline);
+      socket.off("presence:offline", onPresenceOffline);
     };
-  }, [loadConversations]);
+  }, [loadConversations, user.id, startBlink]);
 
   const setMessagesForConv = (convId, msgs) => {
     setMessagesByConv((prev) => ({ ...prev, [convId]: msgs }));
@@ -81,17 +136,23 @@ export default function Chat() {
     await api.patch(`/conversations/${message.conversation_id}/messages/${message.id}/pin`, { pinned });
   };
 
+  const setActiveConvIdAndStopBlink = (id) => {
+    setActiveConvId(id);
+    stopBlink();
+  };
+
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
   return (
-    <div className="w-screen h-screen flex" style={{ background: "#0F1B2D" }}>
+    <div className="w-screen h-screen flex" style={{ background: "#111B21" }}>
       <Sidebar
         conversations={conversations}
         activeConvId={activeConvId}
-        setActiveConvId={setActiveConvId}
+        setActiveConvId={setActiveConvIdAndStopBlink}
         onNewGroup={() => setShowNewGroup(true)}
         onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
+        onlineUsers={onlineUsers}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
@@ -102,6 +163,8 @@ export default function Chat() {
           messages={messagesByConv[activeConv.id]}
           setMessagesForConv={setMessagesForConv}
           onTogglePin={togglePin}
+          onGroupUpdated={loadConversations}
+          isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
         />
       ) : (
         <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
