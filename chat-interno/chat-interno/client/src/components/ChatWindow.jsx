@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users } from "lucide-react";
-import { api } from "../api";
+import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings } from "lucide-react";
+import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 import MessageBubble from "./MessageBubble";
+import GroupSettingsModal from "./GroupSettingsModal";
 
-export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin }) {
+export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
   const { user } = useAuth();
   const isAdm = user.role === "admin";
   const [draft, setDraft] = useState("");
@@ -12,6 +13,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [seconds, setSeconds] = useState(0);
   const [playingId, setPlayingId] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
 
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -87,20 +89,47 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#EFF5FF" }}>
-      <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D9E6FB] bg-white shrink-0">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#2F6FED" }}>
-          {conversation.type === "group" ? <Users size={15} /> : conversation.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+    <div className="flex-1 flex flex-col" style={{ background: "#EFEAE2" }}>
+      <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#25D366" }}>
+          {conversation.type === "group" ? (
+            conversation.avatarUrl ? <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" /> : <Users size={15} />
+          ) : (
+            conversation.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+          )}
+          {conversation.type === "dm" && isOnline && (
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#25D366] border-2 border-white" />
+          )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-slate-800 text-sm font-semibold truncate">{conversation.title}</div>
-          {conversation.type === "group" && <div className="text-[11px] text-slate-500">{conversation.memberCount} membro(s)</div>}
+          {conversation.type === "group" ? (
+            <div className="text-[11px] text-slate-500">{conversation.memberCount} membro(s)</div>
+          ) : (
+            <div className="text-[11px] text-slate-500">{isOnline ? "online" : ""}</div>
+          )}
         </div>
+        {isAdm && conversation.type === "group" && (
+          <button onClick={() => setShowGroupSettings(true)} className="text-slate-400 hover:text-[#25D366] p-1.5" title="Editar grupo">
+            <Settings size={18} />
+          </button>
+        )}
       </div>
 
+      {showGroupSettings && (
+        <GroupSettingsModal
+          groupId={conversation.groupId}
+          onClose={() => setShowGroupSettings(false)}
+          onUpdated={() => {
+            setShowGroupSettings(false);
+            onGroupUpdated?.();
+          }}
+        />
+      )}
+
       {pinned && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#E4EDFB] border-b border-[#D9E6FB] text-xs">
-          <Pin size={13} className="text-[#2F6FED] shrink-0" />
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#F0F2F5] border-b border-[#D1D7DB] text-xs">
+          <Pin size={13} className="text-[#25D366] shrink-0" />
           <span className="text-slate-500 shrink-0 font-medium">Fixado:</span>
           <span className="text-slate-700 truncate flex-1">
             {pinned.type === "text" ? pinned.content : pinned.type === "image" ? "Foto" : pinned.type === "audio" ? "Mensagem de áudio" : pinned.file_name}
@@ -132,21 +161,21 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         ))}
       </div>
 
-      <div className="border-t border-[#D9E6FB] bg-white px-3 py-3 shrink-0">
+      <div className="border-t border-[#D1D7DB] bg-white px-3 py-3 shrink-0">
         {recording ? (
-          <div className="flex items-center gap-3 bg-[#EFF5FF] rounded-full px-4 py-2.5">
+          <div className="flex items-center gap-3 bg-[#EFEAE2] rounded-full px-4 py-2.5">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
             <span className="text-sm text-slate-600 font-mono flex-1">Gravando áudio — 0:{String(seconds).padStart(2, "0")}</span>
-            <button onClick={stopRecording} className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2F6FED" }}>
+            <button onClick={stopRecording} className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#25D366" }}>
               <Square size={13} fill="white" />
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFF5FF] hover:text-[#2F6FED] shrink-0">
+            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
               <ImageIcon size={19} />
             </button>
-            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFF5FF] hover:text-[#2F6FED] shrink-0">
+            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
               <Paperclip size={19} />
             </button>
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, "image")} />
@@ -156,16 +185,24 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendText()}
+              onPaste={(e) => {
+                const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
+                if (item) {
+                  e.preventDefault();
+                  const file = item.getAsFile();
+                  if (file) uploadFile(file, "image");
+                }
+              }}
               placeholder="Escreva uma mensagem"
-              className="flex-1 bg-[#F2F6FC] rounded-full px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2F6FED] placeholder:text-slate-400"
+              className="flex-1 bg-[#F0F2F5] rounded-full px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#25D366] placeholder:text-slate-400"
             />
 
             {draft.trim() ? (
-              <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2F6FED" }}>
+              <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#25D366" }}>
                 <Send size={16} />
               </button>
             ) : (
-              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFF5FF] hover:text-[#2F6FED] shrink-0">
+              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-[#EFEAE2] hover:text-[#25D366] shrink-0">
                 <Mic size={19} />
               </button>
             )}
