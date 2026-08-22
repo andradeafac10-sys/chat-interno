@@ -91,7 +91,12 @@ export default function Announcements({ onBack }) {
                           </div>
                           <div className="flex flex-col gap-1">
                             {acks[a.id].acked.map((u) => (
-                              <div key={u.id} className="text-xs text-slate-700">{u.name}</div>
+                              <div key={u.id} className="text-xs text-slate-700 flex items-center justify-between gap-2">
+                                <span>{u.name}</span>
+                                <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                  {new Date(u.acked_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
                             ))}
                             {acks[a.id].acked.length === 0 && <div className="text-xs text-slate-400">Ninguém ainda.</div>}
                           </div>
