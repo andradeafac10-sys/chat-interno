@@ -7,9 +7,13 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin','operator')),
   color TEXT NOT NULL DEFAULT '#2F6FED',
+  avatar_url TEXT,
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Garante a coluna em bancos que já existiam antes dessa versão
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 CREATE TABLE IF NOT EXISTS groups (
   id SERIAL PRIMARY KEY,
