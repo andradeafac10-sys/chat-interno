@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
+
+const replyPreviewText = (type, content, deleted) => {
+  if (deleted) return "Mensagem apagada";
+  if (type === "text") return content;
+  if (type === "image") return "📷 Foto";
+  if (type === "audio") return "🎤 Áudio";
+  return "📎 Arquivo";
+};
 
 export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
   const { user } = useAuth();
@@ -14,6 +22,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [playingId, setPlayingId] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
 
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -22,9 +32,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     setLoadingHistory(true);
+    setReplyingTo(null);
+    setEditingMessage(null);
+    setDraft("");
     api.get(`/conversations/${conversation.id}/messages`).then(({ data }) => {
       setMessagesForConv(conversation.id, data.messages);
       setLoadingHistory(false);
@@ -40,15 +54,27 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const sendText = async () => {
     if (!draft.trim()) return;
     const text = draft.trim();
+
+    if (editingMessage) {
+      setDraft("");
+      setEditingMessage(null);
+      await api.patch(`/conversations/${conversation.id}/messages/${editingMessage.id}`, { text });
+      return;
+    }
+
     setDraft("");
-    await api.post(`/conversations/${conversation.id}/messages`, { text });
+    const replyToId = replyingTo?.id || null;
+    setReplyingTo(null);
+    await api.post(`/conversations/${conversation.id}/messages`, { text, replyToId });
   };
 
-  const uploadFile = async (file, kind, seconds) => {
+  const uploadFile = async (file, kind, secondsArg) => {
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
-    if (seconds) form.append("seconds", String(seconds));
+    if (secondsArg) form.append("seconds", String(secondsArg));
+    if (replyingTo?.id) form.append("replyToId", String(replyingTo.id));
+    setReplyingTo(null);
     await api.post(`/conversations/${conversation.id}/upload`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -88,9 +114,41 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     setRecording(false);
   };
 
+  const startReply = (msg) => {
+    setEditingMessage(null);
+    setReplyingTo(msg);
+    inputRef.current?.focus();
+  };
+
+  const startEdit = (msg) => {
+    setReplyingTo(null);
+    setEditingMessage(msg);
+    setDraft(msg.content || "");
+    inputRef.current?.focus();
+  };
+
+  const cancelComposeExtra = () => {
+    setReplyingTo(null);
+    setEditingMessage(null);
+    setDraft("");
+  };
+
+  const deleteMessage = async (msg) => {
+    if (!window.confirm("Apagar essa mensagem?")) return;
+    await api.delete(`/conversations/${conversation.id}/messages/${msg.id}`);
+  };
+
+  const reactToMessage = async (msg, emoji) => {
+    await api.post(`/conversations/${conversation.id}/messages/${msg.id}/reactions`, { emoji });
+  };
+
   return (
     <div className="flex-1 flex flex-col" style={{ background: "#EFEAE2" }}>
-      <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0">
+      <button
+        onClick={() => conversation.type === "group" && setShowGroupSettings(true)}
+        className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0 text-left"
+        style={{ cursor: conversation.type === "group" ? "pointer" : "default" }}
+      >
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#25D366" }}>
           {conversation.type === "group" ? (
             conversation.avatarUrl ? <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" /> : <Users size={15} />
@@ -109,16 +167,17 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <div className="text-[11px] text-slate-500">{isOnline ? "online" : ""}</div>
           )}
         </div>
-        {isAdm && conversation.type === "group" && (
-          <button onClick={() => setShowGroupSettings(true)} className="text-slate-400 hover:text-[#25D366] p-1.5" title="Editar grupo">
+        {conversation.type === "group" && (
+          <span className="text-slate-400 p-1.5" title="Ver informações do grupo">
             <Settings size={18} />
-          </button>
+          </span>
         )}
-      </div>
+      </button>
 
       {showGroupSettings && (
         <GroupSettingsModal
           groupId={conversation.groupId}
+          isAdm={isAdm}
           onClose={() => setShowGroupSettings(false)}
           onUpdated={() => {
             setShowGroupSettings(false);
@@ -153,7 +212,12 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             mine={m.sender_id === user.id}
             isGroup={conversation.type === "group"}
             isAdm={isAdm}
+            currentUserId={user.id}
             onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
+            onReply={startReply}
+            onEdit={startEdit}
+            onDelete={deleteMessage}
+            onReact={reactToMessage}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
@@ -162,6 +226,21 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       </div>
 
       <div className="border-t border-[#D1D7DB] bg-white px-3 py-3 shrink-0">
+        {(replyingTo || editingMessage) && (
+          <div className="flex items-center gap-2 mb-2 bg-[#F0F2F5] rounded-lg px-3 py-2">
+            {editingMessage ? <Pencil size={14} className="text-[#25D366] shrink-0" /> : <Reply size={14} className="text-[#25D366] shrink-0" />}
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium text-[#25D366]">{editingMessage ? "Editando mensagem" : `Respondendo ${replyingTo.sender_name?.split(" ")[0]}`}</div>
+              <div className="text-[12px] text-slate-500 truncate">
+                {editingMessage ? editingMessage.content : replyPreviewText(replyingTo.type, replyingTo.content, replyingTo.deleted)}
+              </div>
+            </div>
+            <button onClick={cancelComposeExtra} className="text-slate-400 hover:text-slate-600 shrink-0">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {recording ? (
           <div className="flex items-center gap-3 bg-[#EFEAE2] rounded-full px-4 py-2.5">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
@@ -182,6 +261,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <input
+              ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendText()}
