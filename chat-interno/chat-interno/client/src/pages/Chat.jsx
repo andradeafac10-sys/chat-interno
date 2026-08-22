@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
+import AccountModal from "../components/AccountModal";
+import UsersPage from "./Users";
 
 export default function Chat() {
   const { user } = useAuth();
@@ -12,6 +14,8 @@ export default function Chat() {
   const [activeConvId, setActiveConvId] = useState(null);
   const [messagesByConv, setMessagesByConv] = useState({});
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
 
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
@@ -86,8 +90,12 @@ export default function Chat() {
         activeConvId={activeConvId}
         setActiveConvId={setActiveConvId}
         onNewGroup={() => setShowNewGroup(true)}
+        onOpenAccount={() => setShowAccount(true)}
+        onOpenUsers={() => setShowUsers(true)}
       />
-      {activeConv ? (
+      {showUsers ? (
+        <UsersPage onBack={() => setShowUsers(false)} />
+      ) : activeConv ? (
         <ChatWindow
           key={activeConv.id}
           conversation={activeConv}
@@ -110,6 +118,7 @@ export default function Chat() {
           }}
         />
       )}
+      {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
     </div>
   );
 }
