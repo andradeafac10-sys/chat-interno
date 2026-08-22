@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { fileUrl } from "../api";
 
@@ -13,7 +13,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onlineUsers, flashIds }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onlineUsers, flashIds }) {
   const { user, logout } = useAuth();
   const [filter, setFilter] = useState("");
   const isAdm = user.role === "admin";
@@ -48,12 +48,18 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
       </div>
 
       {isAdm && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 flex flex-col gap-2">
           <button
             onClick={onOpenUsers}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-slate-200 border border-slate-700 hover:bg-[#202C33]"
           >
             <UserCog size={15} /> Usuários da equipe
+          </button>
+          <button
+            onClick={onOpenAnnouncement}
+            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-slate-200 border border-slate-700 hover:bg-[#202C33]"
+          >
+            <Megaphone size={15} /> Comunicado geral
           </button>
         </div>
       )}
