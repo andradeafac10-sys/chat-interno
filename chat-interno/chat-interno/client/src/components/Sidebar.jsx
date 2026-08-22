@@ -16,10 +16,16 @@ function preview(last) {
 export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onlineUsers, flashIds }) {
   const { user, logout } = useAuth();
   const [filter, setFilter] = useState("");
+  const [tab, setTab] = useState("all"); // all | groups | unread
   const isAdm = user.role === "admin";
 
   const filtered = conversations
     .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
+    .filter((c) => {
+      if (tab === "groups") return c.type === "group";
+      if (tab === "unread") return flashIds?.has(c.id);
+      return true;
+    })
     .sort((a, b) => {
       const at = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
       const bt = b.lastMessage?.created_at ? new Date(b.lastMessage.created_at).getTime() : 0;
@@ -75,6 +81,28 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
           />
         </div>
       </div>
+
+      {isAdm && (
+        <div className="px-3 pb-2 flex gap-1.5">
+          {[
+            { id: "all", label: "Todas" },
+            { id: "groups", label: "Grupos" },
+            { id: "unread", label: "Não lidos" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="flex-1 text-[12px] font-medium rounded-full py-1.5 transition-colors"
+              style={{
+                background: tab === t.id ? "#25D366" : "#202C33",
+                color: tab === t.id ? "#0B1410" : "#94A3B8",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!isAdm && (
         <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg bg-[#202C33] border border-slate-700/70 px-2.5 py-2">
