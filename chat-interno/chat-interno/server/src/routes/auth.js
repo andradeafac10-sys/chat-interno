@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const { upload } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.post("/login", async (req, res) => {
       username: user.username,
       role: user.role,
       color: user.color,
+      avatar_url: user.avatar_url,
     },
   });
 });
@@ -59,6 +61,14 @@ router.patch("/password", requireAuth, async (req, res) => {
   const password_hash = await bcrypt.hash(newPassword, 10);
   await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [password_hash, req.user.id]);
   res.json({ ok: true });
+});
+
+// POST /api/auth/avatar -> o próprio usuário troca a foto de perfil
+router.post("/avatar", requireAuth, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Nenhuma imagem enviada." });
+  const avatarUrl = `/uploads/${req.file.filename}`;
+  await pool.query("UPDATE users SET avatar_url = $1 WHERE id = $2", [avatarUrl, req.user.id]);
+  res.json({ avatar_url: avatarUrl });
 });
 
 module.exports = router;
