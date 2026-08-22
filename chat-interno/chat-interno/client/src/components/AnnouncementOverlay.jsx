@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Megaphone, Check } from "lucide-react";
+import { Megaphone, Check } from "lucide-react";
 import { fileUrl, api } from "../api";
 
 export default function AnnouncementOverlay({ announcement, onClose }) {
@@ -22,10 +22,6 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl">
-        <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white z-10">
-          <X size={18} />
-        </button>
-
         {announcement.image_url && (
           <img src={fileUrl(announcement.image_url)} alt="Comunicado" className="w-full max-h-64 object-cover" />
         )}
