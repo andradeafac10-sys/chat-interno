@@ -7,8 +7,8 @@ import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import UsersPage from "./Users";
+import AnnouncementsPage from "./Announcements";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
-import NewAnnouncementModal from "../components/NewAnnouncementModal";
 import { playNotificationSound } from "../sound";
 
 const ORIGINAL_TITLE = "Chat Interno";
@@ -22,7 +22,7 @@ export default function Chat() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
-  const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
@@ -220,12 +220,14 @@ export default function Chat() {
         onNewGroup={() => setShowNewGroup(true)}
         onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
-        onOpenAnnouncement={() => setShowNewAnnouncement(true)}
+        onOpenAnnouncement={() => setShowAnnouncements(true)}
         onlineUsers={onlineUsers}
         flashIds={flashIds}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
+      ) : showAnnouncements ? (
+        <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : activeConv ? (
         <ChatWindow
           key={activeConv.id}
@@ -252,12 +254,6 @@ export default function Chat() {
         />
       )}
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
-      {showNewAnnouncement && (
-        <NewAnnouncementModal
-          onClose={() => setShowNewAnnouncement(false)}
-          onSent={() => setShowNewAnnouncement(false)}
-        />
-      )}
       <AnnouncementOverlay
         announcement={announcement}
         onClose={() => {
