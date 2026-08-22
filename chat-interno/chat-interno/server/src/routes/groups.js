@@ -7,11 +7,20 @@ const { upload } = require("../middleware/upload");
 
 const router = express.Router();
 
-// GET /api/groups/:id -> detalhes completos pra tela de edição (só ADM)
-router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
+// GET /api/groups/:id -> detalhes completos (ADM e membros do grupo podem ver; ADM sempre pode)
+router.get("/:id", requireAuth, async (req, res) => {
   const groupId = Number(req.params.id);
+
+  if (req.user.role !== "admin") {
+    const { rows: membership } = await pool.query(
+      "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+      [groupId, req.user.id]
+    );
+    if (membership.length === 0) return res.status(403).json({ error: "Você não faz parte desse grupo." });
+  }
+
   const { rows } = await pool.query(
-    "SELECT id, name, avatar_url, created_by FROM groups WHERE id = $1",
+    "SELECT id, name, avatar_url, description, created_by FROM groups WHERE id = $1",
     [groupId]
   );
   if (!rows[0]) return res.status(404).json({ error: "Grupo não encontrado." });
@@ -21,7 +30,21 @@ router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
     [groupId]
   );
 
-  res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url, memberIds: members.map((m) => m.user_id) } });
+  const { rows: attachments } = await pool.query(
+    `SELECT ga.id, ga.file_url, ga.file_name, ga.file_size, ga.kind, ga.created_at, u.name AS uploaded_by_name
+     FROM group_attachments ga JOIN users u ON u.id = ga.uploaded_by
+     WHERE ga.group_id = $1 ORDER BY ga.created_at DESC`,
+    [groupId]
+  );
+
+  res.json({
+    group: {
+      ...rows[0],
+      avatarUrl: rows[0].avatar_url,
+      memberIds: members.map((m) => m.user_id),
+      attachments,
+    },
+  });
 });
 
 // POST /api/groups  { name, memberIds: [operatorId, ...] } -> só ADM cria
@@ -93,19 +116,22 @@ router.patch("/:id/members", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/groups/:id  { name } -> renomear grupo (só ADM)
+// PATCH /api/groups/:id  { name, description } -> editar nome/descrição (só ADM)
 router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
-  const { name } = req.body || {};
-  if (!name || !name.trim()) return res.status(400).json({ error: "O nome não pode ficar vazio." });
+  const { name, description } = req.body || {};
+  if (name !== undefined && !name.trim()) return res.status(400).json({ error: "O nome não pode ficar vazio." });
 
   const { rows } = await pool.query(
-    "UPDATE groups SET name = $1 WHERE id = $2 RETURNING id, name, avatar_url",
-    [name.trim(), req.params.id]
+    `UPDATE groups SET
+       name = COALESCE(NULLIF($1, ''), name),
+       description = COALESCE($2, description)
+     WHERE id = $3 RETURNING id, name, avatar_url, description`,
+    [name ? name.trim() : null, description !== undefined ? description : null, req.params.id]
   );
   if (!rows[0]) return res.status(404).json({ error: "Grupo não encontrado." });
 
   const io = req.app.get("io");
-  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id), name: rows[0].name });
+  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id), name: rows[0].name, description: rows[0].description });
 
   res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url } });
 });
@@ -128,6 +154,32 @@ router.post("/:id/avatar", requireAuth, requireAdmin, upload.single("file"), asy
   io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id), avatarUrl });
 
   res.json({ group: { ...rows[0], avatarUrl: rows[0].avatar_url } });
+});
+
+// POST /api/groups/:id/attachments -> ADM anexa foto/arquivo na descrição do grupo
+router.post("/:id/attachments", requireAuth, requireAdmin, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado." });
+  const kind = req.body.kind === "image" ? "image" : "file";
+  const fileUrl = `/uploads/${req.file.filename}`;
+
+  const { rows } = await pool.query(
+    `INSERT INTO group_attachments (group_id, file_url, file_name, file_size, kind, uploaded_by)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [req.params.id, fileUrl, req.file.originalname, req.file.size, kind, req.user.id]
+  );
+
+  const io = req.app.get("io");
+  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id) });
+
+  res.status(201).json({ attachment: { ...rows[0], uploaded_by_name: req.user.name } });
+});
+
+// DELETE /api/groups/:id/attachments/:attId -> ADM remove um anexo da descrição
+router.delete("/:id/attachments/:attId", requireAuth, requireAdmin, async (req, res) => {
+  await pool.query("DELETE FROM group_attachments WHERE id = $1 AND group_id = $2", [req.params.attId, req.params.id]);
+  const io = req.app.get("io");
+  io.to(`conv-${groupConvId(req.params.id)}`).emit("group:updated", { groupId: Number(req.params.id) });
+  res.json({ ok: true });
 });
 
 module.exports = router;
