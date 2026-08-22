@@ -102,7 +102,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             <button
               key={c.id}
               onClick={() => setActiveConvId(c.id)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "animate-pulse" : ""}`}
               style={{ background: active ? "#2A3942" : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
@@ -119,6 +119,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                 <div className="flex items-center justify-between">
                   <span className="text-slate-100 text-sm font-medium truncate">{c.title}</span>
                   {c.lastMessage && <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-1">{fmtTime(c.lastMessage.created_at)}</span>}
+                  {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#25D366] shrink-0 ml-1" />}
                 </div>
                 <div className="text-[12px] text-slate-500 truncate">{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
