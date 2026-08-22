@@ -28,8 +28,8 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
           <div
             className="rounded-2xl px-3.5 py-2 text-sm leading-snug shadow-sm"
             style={{
-              background: mine ? "#2F6FED" : "#FFFFFF",
-              color: mine ? "#FFFFFF" : "#1E293B",
+              background: mine ? "#D9FDD3" : "#FFFFFF",
+              color: "#111B21",
               borderTopRightRadius: mine ? 4 : undefined,
               borderTopLeftRadius: !mine ? 4 : undefined,
             }}
@@ -44,12 +44,12 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
 
             {m.type === "file" && (
               <a href={fileUrl(m.file_url)} download={m.file_name} className="flex items-center gap-2.5 min-w-[180px]">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: mine ? "rgba(255,255,255,0.15)" : "#EFF5FF" }}>
-                  <FileIcon size={16} color={mine ? "#fff" : "#2F6FED"} />
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: mine ? "rgba(0,0,0,0.06)" : "#EFEAE2" }}>
+                  <FileIcon size={16} color="#25D366" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium truncate">{m.file_name}</div>
-                  <div className={`text-[11px] ${mine ? "text-blue-100" : "text-slate-500"}`}>{fmtSize(m.file_size)}</div>
+                  <div className={`text-[11px] ${mine ? "text-slate-500" : "text-slate-500"}`}>{fmtSize(m.file_size)}</div>
                 </div>
                 <Download size={13} className="ml-1 shrink-0 opacity-70" />
               </a>
@@ -65,13 +65,13 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
                     else { Object.values(audioRefs.current).forEach((a) => a?.pause()); el.currentTime = 0; el.play(); setPlayingId(m.id); }
                   }}
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: mine ? "rgba(255,255,255,0.2)" : "#EFF5FF" }}
+                  style={{ background: mine ? "rgba(0,0,0,0.08)" : "#EFEAE2" }}
                 >
-                  {playingId === m.id ? <Pause size={14} color={mine ? "#fff" : "#2F6FED"} /> : <Play size={14} color={mine ? "#fff" : "#2F6FED"} />}
+                  {playingId === m.id ? <Pause size={14} color="#25D366" /> : <Play size={14} color="#25D366" />}
                 </button>
                 <div className="flex items-center gap-[2px] flex-1 h-5">
                   {Array.from({ length: 22 }).map((_, i) => (
-                    <span key={i} className="w-[2px] rounded-full" style={{ height: `${6 + ((i * 37) % 14)}px`, background: mine ? "rgba(255,255,255,0.6)" : "#93B4F0" }} />
+                    <span key={i} className="w-[2px] rounded-full" style={{ height: `${6 + ((i * 37) % 14)}px`, background: mine ? "#4A9B7F" : "#8696A0" }} />
                   ))}
                 </div>
                 <span className="text-[11px] font-mono opacity-80">0:{String(m.audio_seconds || 0).padStart(2, "0")}</span>
@@ -86,7 +86,7 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
           </div>
           <div className={`flex items-center gap-1 mt-0.5 ${mine ? "justify-end" : "justify-start"} px-1`}>
             <span className="text-[10px] text-slate-400 font-mono">{fmtTime(m.created_at)}</span>
-            {mine && <CheckCheck size={12} className="text-[#2F6FED]" />}
+            {mine && <CheckCheck size={12} className="text-[#25D366]" />}
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
           <button
             onClick={() => onTogglePin(m)}
             title={m.pinned ? "Desafixar" : "Fixar mensagem"}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#2F6FED] shrink-0 mb-1"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#25D366] shrink-0 mb-1"
           >
             {m.pinned ? <PinOff size={14} /> : <Pin size={14} />}
           </button>
