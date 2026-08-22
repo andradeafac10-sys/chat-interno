@@ -19,6 +19,7 @@ export default function Chat() {
   const [showAccount, setShowAccount] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
+  const [flashIds, setFlashIds] = useState(() => new Set());
 
   const blinkTimerRef = useRef(null);
   const activeConvIdRef = useRef(activeConvId);
@@ -74,7 +75,10 @@ export default function Chat() {
 
       const isMine = message.sender_id === user.id;
       const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
-      if (!isMine && !isViewingIt) startBlink();
+      if (!isMine && !isViewingIt) {
+        startBlink();
+        setFlashIds((prev) => new Set(prev).add(message.conversation_id));
+      }
     };
 
     const onPinned = (message) => {
@@ -139,6 +143,12 @@ export default function Chat() {
   const setActiveConvIdAndStopBlink = (id) => {
     setActiveConvId(id);
     stopBlink();
+    setFlashIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
@@ -153,6 +163,7 @@ export default function Chat() {
         onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
         onlineUsers={onlineUsers}
+        flashIds={flashIds}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
