@@ -47,8 +47,12 @@ export default function MessageBubble({
     <div className={`group flex ${mine ? "justify-end" : "justify-start"}`}>
       <div className={`flex items-end gap-2 max-w-[70%] ${mine ? "flex-row-reverse" : ""}`}>
         {!mine && isGroup && (
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold shrink-0 mb-1" style={{ background: m.sender_color }}>
-            {m.sender_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold shrink-0 mb-1 overflow-hidden" style={{ background: m.sender_color }}>
+            {m.sender_avatar_url ? (
+              <img src={fileUrl(m.sender_avatar_url)} alt={m.sender_name} className="w-full h-full object-cover" />
+            ) : (
+              m.sender_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+            )}
           </div>
         )}
         <div className="relative">
