@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
 
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -15,9 +16,11 @@ function preview(last) {
 
 export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onlineUsers, flashIds }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState("all"); // all | groups | unread
   const isAdm = user.role === "admin";
+  const isDark = theme === "dark";
 
   const filtered = conversations
     .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
@@ -33,22 +36,25 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
     });
 
   return (
-    <div className="w-[320px] flex flex-col border-r border-slate-800" style={{ background: "#111B21" }}>
+    <div className="w-[320px] flex flex-col border-r" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
       <div className="flex items-center gap-2.5 px-3 py-3.5">
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style={{ background: user.color }}>
           {user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-slate-100 text-sm font-medium truncate">{user.name}</div>
-          <div className="flex items-center gap-1 text-[11px] font-mono" style={{ color: isAdm ? "#25D366" : "#94A3B8" }}>
+          <div className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{user.name}</div>
+          <div className="flex items-center gap-1 text-[11px] font-mono" style={{ color: isAdm ? "#25D366" : colors.textSecondary }}>
             {isAdm && <ShieldCheck size={11} />}
             {isAdm ? "ADMINISTRADOR" : "OPERADOR"}
           </div>
         </div>
-        <button onClick={onOpenAccount} title="Minha conta" className="text-slate-500 hover:text-slate-300 shrink-0">
+        <button onClick={toggleTheme} title={isDark ? "Tema claro" : "Tema escuro"} className="shrink-0" style={{ color: colors.textSecondary }}>
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+        <button onClick={onOpenAccount} title="Minha conta" className="shrink-0" style={{ color: colors.textSecondary }}>
           <Settings size={16} />
         </button>
-        <button onClick={logout} title="Sair" className="text-slate-500 hover:text-slate-300 shrink-0">
+        <button onClick={logout} title="Sair" className="shrink-0" style={{ color: colors.textSecondary }}>
           <LogOut size={16} />
         </button>
       </div>
@@ -57,13 +63,15 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         <div className="px-3 pb-2 flex flex-col gap-2">
           <button
             onClick={onOpenUsers}
-            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-slate-200 border border-slate-700 hover:bg-[#202C33]"
+            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
+            style={{ color: colors.textPrimary, borderColor: colors.border }}
           >
             <UserCog size={15} /> Usuários da equipe
           </button>
           <button
             onClick={onOpenAnnouncement}
-            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-slate-200 border border-slate-700 hover:bg-[#202C33]"
+            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
+            style={{ color: colors.textPrimary, borderColor: colors.border }}
           >
             <Megaphone size={15} /> Comunicado geral
           </button>
@@ -72,12 +80,13 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
 
       <div className="px-3 pb-2">
         <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Buscar conversa"
-            className="w-full bg-[#202C33] text-slate-200 text-sm rounded-lg pl-8 pr-3 py-2 border border-transparent focus:outline-none focus:border-[#25D366] placeholder:text-slate-500"
+            className="w-full text-sm rounded-lg pl-8 pr-3 py-2 border border-transparent focus:outline-none focus:border-[#25D366]"
+            style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
           />
         </div>
       </div>
@@ -94,8 +103,8 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               onClick={() => setTab(t.id)}
               className="flex-1 text-[12px] font-medium rounded-full py-1.5 transition-colors"
               style={{
-                background: tab === t.id ? "#25D366" : "#202C33",
-                color: tab === t.id ? "#0B1410" : "#94A3B8",
+                background: tab === t.id ? "#25D366" : colors.inputFieldBg,
+                color: tab === t.id ? "#0B1410" : colors.textSecondary,
               }}
             >
               {t.label}
@@ -105,9 +114,9 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
       )}
 
       {!isAdm && (
-        <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg bg-[#202C33] border border-slate-700/70 px-2.5 py-2">
-          <Lock size={13} className="text-slate-500 mt-0.5 shrink-0" />
-          <p className="text-[11px] leading-tight text-slate-400">Você só conversa com o ADM e com os grupos em que foi adicionado.</p>
+        <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg border px-2.5 py-2" style={{ background: colors.inputFieldBg, borderColor: colors.border }}>
+          <Lock size={13} className="mt-0.5 shrink-0" style={{ color: colors.textSecondary }} />
+          <p className="text-[11px] leading-tight" style={{ color: colors.textSecondary }}>Você só conversa com o ADM e com os grupos em que foi adicionado.</p>
         </div>
       )}
 
@@ -131,7 +140,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               key={c.id}
               onClick={() => setActiveConvId(c.id)}
               className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "animate-pulse" : ""}`}
-              style={{ background: active ? "#2A3942" : "transparent" }}
+              style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
                 {c.type === "group" ? (
@@ -140,21 +149,21 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   c.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
                 )}
                 {c.type === "dm" && onlineUsers?.has(c.otherUserId) && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#25D366] border-2 border-[#111B21]" />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#25D366]" style={{ border: `2px solid ${colors.sidebarBg}` }} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-100 text-sm font-medium truncate">{c.title}</span>
-                  {c.lastMessage && <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-1">{fmtTime(c.lastMessage.created_at)}</span>}
+                  <span className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{c.title}</span>
+                  {c.lastMessage && <span className="text-[10px] font-mono shrink-0 ml-1" style={{ color: colors.textSecondary }}>{fmtTime(c.lastMessage.created_at)}</span>}
                   {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#25D366] shrink-0 ml-1" />}
                 </div>
-                <div className="text-[12px] text-slate-500 truncate">{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
+                <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
             </button>
           );
         })}
-        {filtered.length === 0 && <div className="text-center text-slate-600 text-sm mt-8">Nenhuma conversa encontrada</div>}
+        {filtered.length === 0 && <div className="text-center text-sm mt-8" style={{ color: colors.textSecondary }}>Nenhuma conversa encontrada</div>}
       </div>
     </div>
   );
