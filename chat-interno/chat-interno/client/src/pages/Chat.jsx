@@ -7,8 +7,12 @@ import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import UsersPage from "./Users";
+import AnnouncementOverlay from "../components/AnnouncementOverlay";
+import NewAnnouncementModal from "../components/NewAnnouncementModal";
+import { playNotificationSound } from "../sound";
 
 const ORIGINAL_TITLE = "Chat Interno";
+const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
   const { user } = useAuth();
@@ -18,6 +22,8 @@ export default function Chat() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
+  const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
 
@@ -61,6 +67,15 @@ export default function Chat() {
   }, [loadConversations]);
 
   useEffect(() => {
+    api.get("/announcements/latest").then(({ data }) => {
+      const a = data.announcement;
+      if (!a) return;
+      const dismissedId = localStorage.getItem(DISMISSED_KEY);
+      if (String(a.id) !== dismissedId) setAnnouncement(a);
+    });
+  }, []);
+
+  useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
@@ -78,8 +93,43 @@ export default function Chat() {
       if (!isMine && !isViewingIt) {
         startBlink();
         setFlashIds((prev) => new Set(prev).add(message.conversation_id));
+        playNotificationSound();
       }
     };
+
+    const onEdited = (message) => {
+      setMessagesByConv((prev) => {
+        if (!prev[message.conversation_id]) return prev;
+        return {
+          ...prev,
+          [message.conversation_id]: prev[message.conversation_id].map((m) => (m.id === message.id ? { ...m, ...message } : m)),
+        };
+      });
+    };
+
+    const onDeleted = ({ id, conversation_id }) => {
+      setMessagesByConv((prev) => {
+        if (!prev[conversation_id]) return prev;
+        return {
+          ...prev,
+          [conversation_id]: prev[conversation_id].map((m) =>
+            m.id === id ? { ...m, deleted: true, content: null, file_url: null, file_name: null } : m
+          ),
+        };
+      });
+    };
+
+    const onReaction = ({ messageId, conversationId, reactions }) => {
+      setMessagesByConv((prev) => {
+        if (!prev[conversationId]) return prev;
+        return {
+          ...prev,
+          [conversationId]: prev[conversationId].map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+        };
+      });
+    };
+
+    const onAnnouncementNew = (a) => setAnnouncement(a);
 
     const onPinned = (message) => {
       setMessagesByConv((prev) => {
@@ -113,6 +163,10 @@ export default function Chat() {
 
     socket.on("message:new", onNewMessage);
     socket.on("message:pinned", onPinned);
+    socket.on("message:edited", onEdited);
+    socket.on("message:deleted", onDeleted);
+    socket.on("message:reaction", onReaction);
+    socket.on("announcement:new", onAnnouncementNew);
     socket.on("group:created", onGroupCreated);
     socket.on("group:removed", onGroupRemoved);
     socket.on("group:updated", onGroupUpdatedEvent);
@@ -123,6 +177,10 @@ export default function Chat() {
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("message:pinned", onPinned);
+      socket.off("message:edited", onEdited);
+      socket.off("message:deleted", onDeleted);
+      socket.off("message:reaction", onReaction);
+      socket.off("announcement:new", onAnnouncementNew);
       socket.off("group:created", onGroupCreated);
       socket.off("group:removed", onGroupRemoved);
       socket.off("group:updated", onGroupUpdatedEvent);
@@ -162,6 +220,7 @@ export default function Chat() {
         onNewGroup={() => setShowNewGroup(true)}
         onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
+        onOpenAnnouncement={() => setShowNewAnnouncement(true)}
         onlineUsers={onlineUsers}
         flashIds={flashIds}
       />
@@ -193,6 +252,19 @@ export default function Chat() {
         />
       )}
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
+      {showNewAnnouncement && (
+        <NewAnnouncementModal
+          onClose={() => setShowNewAnnouncement(false)}
+          onSent={() => setShowNewAnnouncement(false)}
+        />
+      )}
+      <AnnouncementOverlay
+        announcement={announcement}
+        onClose={() => {
+          if (announcement) localStorage.setItem(DISMISSED_KEY, String(announcement.id));
+          setAnnouncement(null);
+        }}
+      />
     </div>
   );
 }
