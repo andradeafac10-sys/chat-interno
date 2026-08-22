@@ -1,33 +1,25 @@
 const { pool } = require("../db");
 
-const dmId = (operatorId) => `dm-${operatorId}`;
 const groupConvId = (groupId) => `group-${groupId}`;
-// Conversa privada entre dois ADMs: id sempre com o menor id primeiro, pra ficar igual pros dois lados
-const adminDmId = (idA, idB) => {
+
+// Conversa privada entre duas pessoas (operador↔ADM ou ADM↔ADM): id sempre
+// com o menor id primeiro, pra ficar igual pros dois lados da conversa.
+const pairDmId = (idA, idB) => {
   const [a, b] = [Number(idA), Number(idB)].sort((x, y) => x - y);
-  return `admindm-${a}-${b}`;
+  return `dm-${a}-${b}`;
 };
 
 /**
  * Verifica se um usuário pode ler/escrever em uma determinada conversa.
  * Regras:
- *  - admin: acessa qualquer conversa privada com operador (dm-*) e qualquer grupo,
- *           mas a conversa privada entre DOIS ADMs (admindm-*) só é acessível
- *           pelos dois ADMs que participam dela — nem um terceiro ADM pode ver.
- *  - operator: acessa APENAS a própria conversa privada (dm-<seu id>)
- *              e grupos dos quais é membro. Nunca acessa a conversa
- *              privada de outro operador nem grupos que não integra.
+ *  - conversa privada (dm-<idA>-<idB>): só as duas pessoas envolvidas acessam,
+ *    seja operador↔ADM ou ADM↔ADM. Ninguém mais vê, nem outro ADM.
+ *  - grupo: ADM acessa qualquer grupo; operador só os grupos dos quais é membro.
  */
 async function canAccessConversation(user, conversationId) {
-  if (conversationId.startsWith("admindm-")) {
-    if (user.role !== "admin") return false;
+  if (conversationId.startsWith("dm-")) {
     const [, a, b] = conversationId.split("-");
     return user.id === Number(a) || user.id === Number(b);
-  }
-
-  if (conversationId.startsWith("dm-")) {
-    if (user.role === "admin") return true;
-    return conversationId === dmId(user.id);
   }
 
   if (conversationId.startsWith("group-")) {
@@ -43,4 +35,4 @@ async function canAccessConversation(user, conversationId) {
   return false;
 }
 
-module.exports = { canAccessConversation, dmId, groupConvId, adminDmId };
+module.exports = { canAccessConversation, pairDmId, groupConvId };
