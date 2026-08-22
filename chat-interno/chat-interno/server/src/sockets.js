@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { pool } = require("../src/db");
-const { dmId, groupConvId } = require("./utils/permissions");
+const { dmId, groupConvId, adminDmId } = require("./utils/permissions");
 
 /**
  * Cada usuário, ao conectar, entra automaticamente nas "salas" (rooms)
@@ -8,6 +8,13 @@ const { dmId, groupConvId } = require("./utils/permissions");
  * nunca confiando no que o cliente pede. Isso garante que um operador
  * jamais receba eventos de conversas de outro operador.
  */
+/**
+ * Controla quem está online agora. Guarda quantas abas/conexões cada
+ * pessoa tem abertas — só avisa "ficou online" na primeira conexão e
+ * "ficou offline" quando a última fecha.
+ */
+const onlineCounts = new Map();
+
 function setupSockets(io) {
   io.use(async (socket, next) => {
     try {
@@ -34,6 +41,8 @@ function setupSockets(io) {
     if (user.role === "admin") {
       const { rows: operators } = await pool.query("SELECT id FROM users WHERE role = 'operator'");
       operators.forEach((op) => socket.join(`conv-${dmId(op.id)}`));
+      const { rows: otherAdmins } = await pool.query("SELECT id FROM users WHERE role = 'admin' AND id != $1", [user.id]);
+      otherAdmins.forEach((adm) => socket.join(`conv-${adminDmId(user.id, adm.id)}`));
       const { rows: groups } = await pool.query("SELECT id FROM groups");
       groups.forEach((g) => socket.join(`conv-${groupConvId(g.id)}`));
     } else {
@@ -53,6 +62,22 @@ function setupSockets(io) {
       );
       if (rows.length > 0 || user.role === "admin") {
         socket.join(`conv-${groupConvId(groupId)}`);
+      }
+    });
+
+    // Presença online: avisa todo mundo que essa pessoa ficou online (se for a primeira aba dela)
+    const count = (onlineCounts.get(user.id) || 0) + 1;
+    onlineCounts.set(user.id, count);
+    if (count === 1) io.emit("presence:online", { userId: user.id });
+    socket.emit("presence:list", { userIds: [...onlineCounts.keys()] });
+
+    socket.on("disconnect", () => {
+      const c = (onlineCounts.get(user.id) || 1) - 1;
+      if (c <= 0) {
+        onlineCounts.delete(user.id);
+        io.emit("presence:offline", { userId: user.id });
+      } else {
+        onlineCounts.set(user.id, c);
       }
     });
   });
