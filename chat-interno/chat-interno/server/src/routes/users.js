@@ -8,7 +8,7 @@ const router = express.Router();
 // GET /api/users -> lista todos os operadores (usado pelo ADM p/ montar grupos e ver a lista de conversas)
 router.get("/", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, name, username, role, color, active FROM users WHERE role = 'operator' ORDER BY name"
+    "SELECT id, name, username, role, color, avatar_url, active FROM users WHERE role = 'operator' ORDER BY name"
   );
   res.json({ users: rows });
 });
@@ -16,7 +16,7 @@ router.get("/", requireAuth, requireAdmin, async (req, res) => {
 // GET /api/users/manage -> lista TODOS os usuários (admins + operadores) para a tela de gestão de acessos
 router.get("/manage", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, name, username, role, color, active, created_at FROM users ORDER BY role DESC, name"
+    "SELECT id, name, username, role, color, avatar_url, active, created_at FROM users ORDER BY role DESC, name"
   );
   res.json({ users: rows });
 });
