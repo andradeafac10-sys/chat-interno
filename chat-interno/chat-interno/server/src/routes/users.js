@@ -43,6 +43,31 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/users/:id -> ADM edita o nome (e opcionalmente usuário/cor) de qualquer pessoa, inclusive a si mesmo
+router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { name, username, color } = req.body || {};
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "O nome não pode ficar vazio." });
+  }
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users SET
+         name = $1,
+         username = COALESCE(NULLIF($2, ''), username),
+         color = COALESCE(NULLIF($3, ''), color)
+       WHERE id = $4
+       RETURNING id, name, username, role, color, active`,
+      [name.trim(), username ? username.trim().toLowerCase() : null, color || null, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado." });
+    res.json({ user: rows[0] });
+  } catch (err) {
+    if (err.code === "23505") return res.status(409).json({ error: "Já existe um usuário com esse username." });
+    console.error(err);
+    res.status(500).json({ error: "Erro ao atualizar usuário." });
+  }
+});
+
 // PATCH /api/users/:id/active -> ativar/desativar usuário
 router.patch("/:id/active", requireAuth, requireAdmin, async (req, res) => {
   const { active } = req.body || {};
