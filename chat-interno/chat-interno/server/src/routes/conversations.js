@@ -1,27 +1,11 @@
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
-const { canAccessConversation, dmId, groupConvId } = require("../utils/permissions");
+const { canAccessConversation, dmId, groupConvId, adminDmId } = require("../utils/permissions");
+const { upload } = require("../middleware/upload");
+const fs = require("fs");
 
 const router = express.Router();
-
-const uploadDir = path.join(__dirname, "..", "..", "uploads");
-fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const safe = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
-    cb(null, safe);
-  },
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: Number(process.env.MAX_UPLOAD_SIZE || 20 * 1024 * 1024) },
-});
 
 // GET /api/conversations -> lista as conversas visíveis para o usuário logado, com prévia da última mensagem
 router.get("/", requireAuth, async (req, res) => {
@@ -36,13 +20,29 @@ router.get("/", requireAuth, async (req, res) => {
       conversations.push({ id: dmId(op.id), type: "dm", title: op.name, color: op.color, otherUserId: op.id })
     );
 
+    // Conversas privadas com os outros ADMs
+    const { rows: otherAdmins } = await pool.query(
+      "SELECT id, name, color FROM users WHERE role = 'admin' AND active = true AND id != $1 ORDER BY name",
+      [user.id]
+    );
+    otherAdmins.forEach((adm) =>
+      conversations.push({
+        id: adminDmId(user.id, adm.id),
+        type: "dm",
+        title: adm.name,
+        color: adm.color,
+        otherUserId: adm.id,
+        isAdmin: true,
+      })
+    );
+
     const { rows: groups } = await pool.query(
-      `SELECT g.id, g.name, COUNT(gm.user_id)::int AS member_count
+      `SELECT g.id, g.name, g.avatar_url, COUNT(gm.user_id)::int AS member_count
        FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
        GROUP BY g.id ORDER BY g.name`
     );
     groups.forEach((g) =>
-      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, memberCount: g.member_count, groupId: g.id })
+      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
     );
   } else {
     const { rows: admins } = await pool.query("SELECT id, name, color FROM users WHERE role = 'admin' LIMIT 1");
@@ -50,7 +50,7 @@ router.get("/", requireAuth, async (req, res) => {
     conversations.push({ id: dmId(user.id), type: "dm", title: admin ? admin.name : "Administração", color: admin?.color });
 
     const { rows: groups } = await pool.query(
-      `SELECT g.id, g.name, COUNT(gm2.user_id)::int AS member_count
+      `SELECT g.id, g.name, g.avatar_url, COUNT(gm2.user_id)::int AS member_count
        FROM groups g
        JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
        LEFT JOIN group_members gm2 ON gm2.group_id = g.id
@@ -58,7 +58,7 @@ router.get("/", requireAuth, async (req, res) => {
       [user.id]
     );
     groups.forEach((g) =>
-      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, memberCount: g.member_count, groupId: g.id })
+      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
     );
   }
 
