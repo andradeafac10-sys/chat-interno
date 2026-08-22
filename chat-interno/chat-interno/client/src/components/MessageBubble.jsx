@@ -1,5 +1,5 @@
 import React from "react";
-import { File as FileIcon, Download, Pin, PinOff, Play, Pause, CheckCheck } from "lucide-react";
+import { File as FileIcon, Download, Pin, PinOff, Play, Pause, CheckCheck, Reply, Pencil, Trash2, ThumbsUp, X as XIcon } from "lucide-react";
 import { fileUrl } from "../api";
 
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -10,8 +10,36 @@ const fmtSize = (bytes) => {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
-export default function MessageBubble({ message, mine, isGroup, isAdm, onTogglePin, playingId, setPlayingId, audioRefs }) {
+const replyPreviewText = (type, content, deleted) => {
+  if (deleted) return "Mensagem apagada";
+  if (type === "text") return content;
+  if (type === "image") return "📷 Foto";
+  if (type === "audio") return "🎤 Áudio";
+  return "📎 Arquivo";
+};
+
+export default function MessageBubble({
+  message, mine, isGroup, isAdm, currentUserId,
+  onTogglePin, onReply, onEdit, onDelete, onReact,
+  playingId, setPlayingId, audioRefs,
+}) {
   const m = message;
+
+  if (m.deleted) {
+    return (
+      <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+        <div className="max-w-[70%] rounded-2xl px-3.5 py-2 text-sm italic text-slate-400 bg-white/60 border border-slate-200">
+          Mensagem apagada
+        </div>
+      </div>
+    );
+  }
+
+  const reactionCounts = (m.reactions || []).reduce((acc, r) => {
+    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    return acc;
+  }, {});
+  const myReaction = (m.reactions || []).find((r) => r.userId === currentUserId)?.emoji;
 
   return (
     <div className={`group flex ${mine ? "justify-end" : "justify-start"}`}>
@@ -34,6 +62,15 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
               borderTopLeftRadius: !mine ? 4 : undefined,
             }}
           >
+            {m.reply_id && (
+              <div className="mb-1.5 pl-2 border-l-2 border-[#25D366] bg-black/5 rounded px-2 py-1">
+                <div className="text-[11px] font-medium text-[#25D366]">{m.reply_sender_name}</div>
+                <div className="text-[12px] text-slate-600 truncate max-w-[220px]">
+                  {replyPreviewText(m.reply_type, m.reply_content, m.reply_deleted)}
+                </div>
+              </div>
+            )}
+
             {m.type === "text" && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
 
             {m.type === "image" && (
@@ -49,7 +86,7 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
                 </div>
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium truncate">{m.file_name}</div>
-                  <div className={`text-[11px] ${mine ? "text-slate-500" : "text-slate-500"}`}>{fmtSize(m.file_size)}</div>
+                  <div className="text-[11px] text-slate-500">{fmtSize(m.file_size)}</div>
                 </div>
                 <Download size={13} className="ml-1 shrink-0 opacity-70" />
               </a>
@@ -84,21 +121,55 @@ export default function MessageBubble({ message, mine, isGroup, isAdm, onToggleP
               </div>
             )}
           </div>
+
+          {Object.keys(reactionCounts).length > 0 && (
+            <div className={`flex gap-1 mt-1 ${mine ? "justify-end" : "justify-start"} px-1`}>
+              {Object.entries(reactionCounts).map(([emoji, count]) => (
+                <button
+                  key={emoji}
+                  onClick={() => onReact(m, emoji)}
+                  className="text-[11px] rounded-full px-1.5 py-0.5 bg-white border border-slate-200 shadow-sm"
+                  style={{ borderColor: myReaction === emoji ? "#25D366" : undefined }}
+                >
+                  {emoji} {count}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className={`flex items-center gap-1 mt-0.5 ${mine ? "justify-end" : "justify-start"} px-1`}>
+            {m.edited && <span className="text-[10px] text-slate-400 italic">editado</span>}
             <span className="text-[10px] text-slate-400 font-mono">{fmtTime(m.created_at)}</span>
             {mine && <CheckCheck size={12} className="text-[#25D366]" />}
           </div>
         </div>
 
-        {isAdm && (
-          <button
-            onClick={() => onTogglePin(m)}
-            title={m.pinned ? "Desafixar" : "Fixar mensagem"}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#25D366] shrink-0 mb-1"
-          >
-            {m.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
+          <button onClick={() => onReact(m, "👍")} title="Reagir 👍" className="text-slate-400 hover:text-[#25D366] p-0.5">
+            <ThumbsUp size={13} />
           </button>
-        )}
+          <button onClick={() => onReact(m, "❌")} title="Reagir ❌" className="text-slate-400 hover:text-red-500 p-0.5">
+            <XIcon size={13} />
+          </button>
+          <button onClick={() => onReply(m)} title="Responder" className="text-slate-400 hover:text-[#25D366] p-0.5">
+            <Reply size={14} />
+          </button>
+          {mine && m.type === "text" && (
+            <button onClick={() => onEdit(m)} title="Editar" className="text-slate-400 hover:text-[#25D366] p-0.5">
+              <Pencil size={13} />
+            </button>
+          )}
+          {(mine || isAdm) && (
+            <button onClick={() => onDelete(m)} title="Apagar" className="text-slate-400 hover:text-red-500 p-0.5">
+              <Trash2 size={13} />
+            </button>
+          )}
+          {isAdm && (
+            <button onClick={() => onTogglePin(m)} title={m.pinned ? "Desafixar" : "Fixar mensagem"} className="text-slate-400 hover:text-[#25D366] p-0.5">
+              {m.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
