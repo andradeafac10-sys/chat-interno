@@ -1,16 +1,18 @@
-import React, { useState } from "react";
-import { X, ShieldCheck } from "lucide-react";
-import { api } from "../api";
+import React, { useRef, useState } from "react";
+import { X, ShieldCheck, Camera } from "lucide-react";
+import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 export default function AccountModal({ onClose }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -33,6 +35,23 @@ export default function AccountModal({ onClose }) {
     }
   };
 
+  const handleAvatarPick = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const { data } = await api.post("/auth/avatar", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      updateUser({ avatar_url: data.avatar_url });
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl w-[360px] p-5" onClick={(e) => e.stopPropagation()}>
@@ -41,16 +60,28 @@ export default function AccountModal({ onClose }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
-        <div className="flex items-center gap-2.5 mb-5 bg-slate-50 rounded-lg px-3 py-2.5">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold" style={{ background: user.color }}>
-            {user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-          </div>
-          <div>
-            <div className="text-sm font-medium text-slate-800">{user.name}</div>
-            <div className="flex items-center gap-1 text-[11px] text-slate-500">
-              {user.role === "admin" && <ShieldCheck size={11} />}
-              {user.username} · {user.role === "admin" ? "Administrador" : "Operador"}
+        <div className="flex flex-col items-center mb-5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="relative w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-semibold overflow-hidden"
+            style={{ background: user.color }}
+          >
+            {user.avatar_url ? (
+              <img src={fileUrl(user.avatar_url)} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+            )}
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <Camera size={18} color="white" />
             </div>
+          </button>
+          <span className="text-[11px] text-slate-400 mt-1.5">{uploadingAvatar ? "Enviando..." : "Trocar foto"}</span>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
+
+          <div className="text-sm font-medium text-slate-800 mt-3">{user.name}</div>
+          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+            {user.role === "admin" && <ShieldCheck size={11} />}
+            {user.username} · {user.role === "admin" ? "Administrador" : "Operador"}
           </div>
         </div>
 
@@ -60,7 +91,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             required
           />
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
@@ -68,7 +99,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             required
             minLength={6}
           />
@@ -77,7 +108,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2F6FED]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
             required
             minLength={6}
           />
@@ -89,7 +120,7 @@ export default function AccountModal({ onClose }) {
             type="submit"
             disabled={saving}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "#2F6FED" }}
+            style={{ background: "#25D366" }}
           >
             {saving ? "Salvando..." : "Trocar senha"}
           </button>
