@@ -2,6 +2,11 @@ const { pool } = require("../db");
 
 const dmId = (operatorId) => `dm-${operatorId}`;
 const groupConvId = (groupId) => `group-${groupId}`;
+// Conversa privada entre dois ADMs: id sempre com o menor id primeiro, pra ficar igual pros dois lados
+const adminDmId = (idA, idB) => {
+  const [a, b] = [Number(idA), Number(idB)].sort((x, y) => x - y);
+  return `admindm-${a}-${b}`;
+};
 
 /**
  * Verifica se um usuário pode ler/escrever em uma determinada conversa.
@@ -30,4 +35,4 @@ async function canAccessConversation(user, conversationId) {
   return false;
 }
 
-module.exports = { canAccessConversation, dmId, groupConvId };
+module.exports = { canAccessConversation, dmId, groupConvId, adminDmId };
