@@ -42,4 +42,23 @@ router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
+// PATCH /api/auth/password -> o próprio usuário troca a senha (precisa confirmar a atual)
+router.patch("/password", requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "Informe a senha atual e a nova senha." });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "A nova senha precisa ter pelo menos 6 caracteres." });
+  }
+
+  const { rows } = await pool.query("SELECT password_hash FROM users WHERE id = $1", [req.user.id]);
+  const ok = await bcrypt.compare(currentPassword, rows[0].password_hash);
+  if (!ok) return res.status(401).json({ error: "Senha atual incorreta." });
+
+  const password_hash = await bcrypt.hash(newPassword, 10);
+  await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [password_hash, req.user.id]);
+  res.json({ ok: true });
+});
+
 module.exports = router;
