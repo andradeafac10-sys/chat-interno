@@ -1,41 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-html, body, #root { height: 100%; margin: 0; }
-body { background: #111B21; }
-
-@keyframes flash-new-message {
-  0%, 100% { background-color: transparent; box-shadow: inset 3px 0 0 rgba(46, 111, 217, 0); }
-  50% { background-color: rgba(46, 111, 217, 0.35); box-shadow: inset 3px 0 0 rgba(46, 111, 217, 1); }
-}
-.flash-new-message {
-  animation: flash-new-message 0.9s ease-in-out infinite;
-}
-
-/* Fundo do comunicado geral piscando em vermelho pra chamar atenção */
-@keyframes announcement-alert {
-  0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
-  50% { background-color: rgba(190, 18, 18, 0.75); }
-}
-.announcement-alert {
-  animation: announcement-alert 0.9s ease-in-out infinite;
-}
-
-/* Borda do card do comunicado pulsando */
-@keyframes announcement-card-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-  50% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
-}
-.announcement-card-pulse {
-  animation: announcement-card-pulse 1.2s ease-out infinite;
-}
-
-/* Balão de aviso de online/offline entrando pela direita */
-@keyframes toast-slide-in {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.toast-slide-in {
-  animation: toast-slide-in 0.25s ease-out;
-}
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/logo.svg" />
+    <meta name="theme-color" content="#2563EB" />
+    <title>Chat Nacional</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
