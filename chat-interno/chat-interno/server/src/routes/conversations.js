@@ -1,7 +1,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
-const { canAccessConversation, pairDmId, groupConvId } = require("../utils/permissions");
+const { canAccessConversation, canMonitorConversation, pairDmId, groupConvId } = require("../utils/permissions");
 const { upload } = require("../middleware/upload");
 const fs = require("fs");
 
@@ -90,11 +90,31 @@ router.get("/", requireAuth, async (req, res) => {
 // GET /api/conversations/:id/messages -> histórico (mais recentes primeiro, paginado por 'before')
 router.get("/:id/messages", requireAuth, async (req, res) => {
   const conversationId = req.params.id;
-  if (!(await canAccessConversation(req.user, conversationId))) {
+  const allowed = (await canAccessConversation(req.user, conversationId)) ||
+                  (await canMonitorConversation(req.user, conversationId));
+  if (!allowed) {
     return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
   }
 
-  const before = req.query.before ? new Date(req.query.before) : new Date();
+  // Se veio "aroundId", carrega a conversa a partir daquela mensagem (usado pela busca),
+  // trazendo também o que veio depois dela. Senão, carrega as mais recentes.
+  let before = req.query.before ? new Date(req.query.before) : new Date();
+  let limit = 50;
+
+  if (req.query.aroundId) {
+    const { rows: alvo } = await pool.query(
+      "SELECT created_at FROM messages WHERE id = $1 AND conversation_id = $2",
+      [req.query.aroundId, conversationId]
+    );
+    if (alvo[0]) {
+      const { rows: depois } = await pool.query(
+        "SELECT COUNT(*)::int AS total FROM messages WHERE conversation_id = $1 AND created_at >= $2",
+        [conversationId, alvo[0].created_at]
+      );
+      // pega tudo que veio depois da mensagem + 25 anteriores, pra dar contexto
+      limit = Math.min(depois[0].total + 25, 500);
+    }
+  }
   const { rows } = await pool.query(
     `SELECT m.*, u.name AS sender_name, u.color AS sender_color, u.avatar_url AS sender_avatar_url,
             r.id AS reply_id, r.type AS reply_type, r.content AS reply_content,
@@ -104,8 +124,8 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
      LEFT JOIN messages r ON r.id = m.reply_to_id
      LEFT JOIN users ru ON ru.id = r.sender_id
      WHERE m.conversation_id = $1 AND m.created_at < $2
-     ORDER BY m.created_at DESC LIMIT 50`,
-    [conversationId, before]
+     ORDER BY m.created_at DESC LIMIT $3`,
+    [conversationId, before, limit]
   );
 
   const ids = rows.map((r) => r.id);
@@ -123,6 +143,33 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
 
   const messages = rows.map((r) => ({ ...r, reactions: reactionsByMessage[r.id] || [] }));
   res.json({ messages: messages.reverse() });
+});
+
+// GET /api/conversations/:id/search?q=texto -> busca mensagens dentro da conversa
+router.get("/:id/search", requireAuth, async (req, res) => {
+  const conversationId = req.params.id;
+  const q = (req.query.q || "").trim();
+
+  const allowed = (await canAccessConversation(req.user, conversationId)) ||
+                  (await canMonitorConversation(req.user, conversationId));
+  if (!allowed) {
+    return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
+  }
+  if (q.length < 2) return res.json({ messages: [] });
+
+  const { rows } = await pool.query(
+    `SELECT m.id, m.content, m.type, m.file_name, m.created_at,
+            u.name AS sender_name, u.color AS sender_color,
+            (SELECT COUNT(*)::int FROM messages m2
+             WHERE m2.conversation_id = m.conversation_id AND m2.created_at >= m.created_at) AS position_from_end
+     FROM messages m JOIN users u ON u.id = m.sender_id
+     WHERE m.conversation_id = $1 AND m.deleted = false
+       AND (m.content ILIKE $2 OR m.file_name ILIKE $2)
+     ORDER BY m.created_at DESC LIMIT 40`,
+    [conversationId, `%${q}%`]
+  );
+
+  res.json({ messages: rows });
 });
 
 // POST /api/conversations/:id/messages -> envia mensagem de texto (opcionalmente respondendo outra)
@@ -190,15 +237,12 @@ router.patch("/:id/messages/:msgId", requireAuth, async (req, res) => {
   res.json({ message });
 });
 
-// DELETE /api/conversations/:id/messages/:msgId -> apaga (o próprio dono ou qualquer ADM)
-router.delete("/:id/messages/:msgId", requireAuth, async (req, res) => {
+// DELETE /api/conversations/:id/messages/:msgId -> apaga (SOMENTE ADM; operadores não podem apagar)
+router.delete("/:id/messages/:msgId", requireAuth, requireAdmin, async (req, res) => {
   const conversationId = req.params.id;
   const { rows: existing } = await pool.query("SELECT * FROM messages WHERE id = $1 AND conversation_id = $2", [req.params.msgId, conversationId]);
   const original = existing[0];
   if (!original) return res.status(404).json({ error: "Mensagem não encontrada." });
-  if (original.sender_id !== req.user.id && req.user.role !== "admin") {
-    return res.status(403).json({ error: "Você não pode apagar essa mensagem." });
-  }
 
   const { rows } = await pool.query(
     `UPDATE messages SET deleted = true, deleted_at = now(), content = NULL, file_url = NULL, file_name = NULL
