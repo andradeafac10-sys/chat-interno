@@ -47,7 +47,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{user.name}</div>
-          <div className="flex items-center gap-1 text-[11px] font-mono" style={{ color: isAdm ? "#25D366" : colors.textSecondary }}>
+          <div className="flex items-center gap-1 text-[11px] font-mono" style={{ color: isAdm ? "#2E6FD9" : colors.textSecondary }}>
             {isAdm && <ShieldCheck size={11} />}
             {isAdm ? "ADMINISTRADOR" : "OPERADOR"}
           </div>
@@ -63,33 +63,6 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         </button>
       </div>
 
-      <div className="px-3 pb-2 flex flex-col gap-2">
-        {isAdm && (
-          <button
-            onClick={onOpenUsers}
-            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
-            style={{ color: colors.textPrimary, borderColor: colors.border }}
-          >
-            <UserCog size={15} /> Usuários da equipe
-          </button>
-        )}
-        {isAdm && (
-          <button
-            onClick={onOpenMonitoring}
-            className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
-            style={{ color: colors.textPrimary, borderColor: colors.border }}
-          >
-            <Eye size={15} /> Monitoria
-          </button>
-        )}
-        <button
-          onClick={onOpenAnnouncement}
-          className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
-          style={{ color: colors.textPrimary, borderColor: colors.border }}
-        >
-          <Megaphone size={15} /> Comunicados
-        </button>
-      </div>
 
       <div className="px-3 pb-2">
         <div className="relative">
@@ -98,13 +71,13 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Buscar conversa"
-            className="w-full text-sm rounded-lg pl-8 pr-3 py-2 border border-transparent focus:outline-none focus:border-[#25D366]"
+            className="w-full text-sm rounded-lg pl-8 pr-3 py-2 border border-transparent focus:outline-none focus:border-[#2E6FD9]"
             style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
           />
         </div>
       </div>
 
-      {isAdm && (
+      {(
         <div className="px-3 pb-2 flex gap-1.5">
           {[
             { id: "all", label: "Todas" },
@@ -116,7 +89,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               onClick={() => setTab(t.id)}
               className="flex-1 text-[12px] font-medium rounded-full py-1.5 transition-colors"
               style={{
-                background: tab === t.id ? "#25D366" : colors.inputFieldBg,
+                background: tab === t.id ? "#2E6FD9" : colors.inputFieldBg,
                 color: tab === t.id ? "#0B1410" : colors.textSecondary,
               }}
             >
@@ -138,7 +111,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
           <button
             onClick={onNewGroup}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-white"
-            style={{ background: "#25D366" }}
+            style={{ background: "#2E6FD9" }}
           >
             <Plus size={15} /> Novo grupo
           </button>
@@ -155,7 +128,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
               style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#2E6FD9" }}>
                 {c.avatarUrl ? (
                   <img src={fileUrl(c.avatarUrl)} alt={c.title} className="w-full h-full object-cover" />
                 ) : c.type === "group" ? (
@@ -164,14 +137,14 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   c.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
                 )}
                 {c.type === "dm" && onlineUsers?.has(c.otherUserId) && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#25D366]" style={{ border: `2px solid ${colors.sidebarBg}` }} />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#2E6FD9]" style={{ border: `2px solid ${colors.sidebarBg}` }} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{c.title}</span>
                   {c.lastMessage && <span className="text-[10px] font-mono shrink-0 ml-1" style={{ color: colors.textSecondary }}>{fmtTime(c.lastMessage.created_at)}</span>}
-                  {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#25D366] shrink-0 ml-1" />}
+                  {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#2E6FD9] shrink-0 ml-1" />}
                 </div>
                 <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
