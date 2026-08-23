@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock } from "lucide-react";
+import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock, Trash2, Users as UsersIcon, User } from "lucide-react";
 import { api, fileUrl } from "../api";
 import NewAnnouncementModal from "../components/NewAnnouncementModal";
 import { useAuth } from "../context/AuthContext";
@@ -14,13 +14,24 @@ export default function Announcements({ onBack }) {
   const [expandedId, setExpandedId] = useState(null);
   const [acks, setAcks] = useState({}); // { [id]: { acked: [], pending: [] } }
 
+  const [error, setError] = useState("");
+
   const load = () => {
     setLoading(true);
-    api.get("/announcements").then(({ data }) => {
-      setAnnouncements(data.announcements);
-      setTotalActive(data.totalActive);
-      setLoading(false);
-    });
+    setError("");
+    api.get("/announcements")
+      .then(({ data }) => {
+        setAnnouncements(data.announcements);
+        setTotalActive(data.totalActive);
+      })
+      .catch((err) => setError(err.response?.data?.error || "Não foi possível carregar os comunicados."))
+      .finally(() => setLoading(false));
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm("Apagar esse comunicado? Isso não pode ser desfeito.")) return;
+    await api.delete(`/announcements/${id}`);
+    load();
   };
 
   useEffect(() => { load(); }, []);
@@ -61,6 +72,8 @@ export default function Announcements({ onBack }) {
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-slate-400 text-sm">Carregando...</div>
+        ) : error ? (
+          <div className="text-red-500 text-sm">{error}</div>
         ) : announcements.length === 0 ? (
           <div className="text-slate-400 text-sm">Nenhum comunicado enviado ainda.</div>
         ) : (
@@ -76,13 +89,30 @@ export default function Announcements({ onBack }) {
                     <div className="text-[11px] text-slate-400 mt-1">
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString("pt-BR")}
                     </div>
-                    {isAdm && (
-                      <div className="text-[12px] font-medium text-[#25D366] mt-1.5 flex items-center gap-1">
-                        <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      {isAdm && (
+                        <div className="text-[12px] font-medium text-[#25D366] flex items-center gap-1">
+                          <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
+                        </div>
+                      )}
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                        {a.audience === "groups" ? <><UsersIcon size={11} /> Grupos escolhidos</>
+                          : a.audience === "users" ? <><User size={11} /> Pessoas escolhidas</>
+                          : <><Megaphone size={11} /> Todos</>}
+                      </span>
+                    </div>
                   </div>
-                  <div className="shrink-0 text-slate-400">
+                  <div className="shrink-0 flex items-center gap-1 text-slate-400">
+                    {isAdm && (
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); remove(a.id); }}
+                        title="Apagar comunicado"
+                        className="p-1.5 hover:text-red-500 cursor-pointer"
+                      >
+                        <Trash2 size={15} />
+                      </span>
+                    )}
                     {expandedId === a.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </div>
                 </button>
