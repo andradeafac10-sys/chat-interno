@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -28,6 +28,11 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [viewingImage, setViewingImage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [highlightedId, setHighlightedId] = useState(null);
 
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -146,6 +151,35 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     await api.post(`/conversations/${conversation.id}/messages/${msg.id}/reactions`, { emoji });
   };
 
+  const runSearch = async (q) => {
+    setSearchQuery(q);
+    if (q.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const { data } = await api.get(`/conversations/${conversation.id}/search`, { params: { q: q.trim() } });
+      setSearchResults(data.messages);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const jumpToMessage = (msgId) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedId(msgId);
+      setTimeout(() => setHighlightedId(null), 2500);
+      setShowSearch(false);
+      setSearchQuery("");
+      setSearchResults([]);
+    } else {
+      alert("Essa mensagem é antiga e ainda não foi carregada. Role a conversa pra cima e busque de novo.");
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col" style={{ background: colors.chatBg }}>
       <button
@@ -173,12 +207,70 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <div className="text-[11px]" style={{ color: colors.textSecondary }}>{isOnline ? "online" : ""}</div>
           )}
         </div>
+        <span
+          onClick={(e) => { e.stopPropagation(); setShowSearch((v) => !v); }}
+          className="p-1.5 hover:text-[#25D366] cursor-pointer"
+          style={{ color: showSearch ? "#25D366" : colors.textSecondary }}
+          title="Buscar nesta conversa"
+        >
+          <Search size={18} />
+        </span>
         {conversation.type === "group" && (
           <span className="p-1.5" style={{ color: colors.textSecondary }} title="Ver informações do grupo">
             <Settings size={18} />
           </span>
         )}
       </button>
+
+      {showSearch && (
+        <div className="border-b px-4 py-3" style={{ background: colors.headerBg, borderColor: colors.headerBorder }}>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => runSearch(e.target.value)}
+              placeholder="Buscar mensagens nesta conversa..."
+              className="w-full rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+              style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
+            />
+            <button
+              onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: colors.textSecondary }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {searchQuery.trim().length >= 2 && (
+            <div className="mt-2 max-h-56 overflow-y-auto flex flex-col gap-1">
+              {searching && <div className="text-xs py-2" style={{ color: colors.textSecondary }}>Buscando...</div>}
+              {!searching && searchResults.length === 0 && (
+                <div className="text-xs py-2" style={{ color: colors.textSecondary }}>Nenhuma mensagem encontrada.</div>
+              )}
+              {searchResults.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => jumpToMessage(r.id)}
+                  className="text-left rounded-lg px-3 py-2"
+                  style={{ background: colors.inputFieldBg }}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[12px] font-semibold" style={{ color: r.sender_color }}>{r.sender_name}</span>
+                    <span className="text-[10px] font-mono" style={{ color: colors.textSecondary }}>
+                      {new Date(r.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div className="text-[13px] truncate" style={{ color: colors.textPrimary }}>
+                    {r.type === "text" ? r.content : `📎 ${r.file_name}`}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {showGroupSettings && (
         <GroupSettingsModal
@@ -225,6 +317,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             onDelete={deleteMessage}
             onReact={reactToMessage}
             onOpenImage={setViewingImage}
+            highlighted={highlightedId === m.id}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
