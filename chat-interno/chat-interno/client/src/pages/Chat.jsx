@@ -132,6 +132,14 @@ export default function Chat() {
     };
 
     const onAnnouncementNew = (a) => setAnnouncement(a);
+    const onAnnouncementDeleted = ({ id }) => {
+      setAnnouncement((prev) => (prev && prev.id === id ? null : prev));
+    };
+    const onMessagesCleared = () => {
+      setMessagesByConv({});
+      loadConversations();
+    };
+    const onAnnouncementsCleared = () => setAnnouncement(null);
 
     const onPinned = (message) => {
       setMessagesByConv((prev) => {
@@ -169,6 +177,9 @@ export default function Chat() {
     socket.on("message:deleted", onDeleted);
     socket.on("message:reaction", onReaction);
     socket.on("announcement:new", onAnnouncementNew);
+    socket.on("announcement:deleted", onAnnouncementDeleted);
+    socket.on("maintenance:messages-cleared", onMessagesCleared);
+    socket.on("maintenance:announcements-cleared", onAnnouncementsCleared);
     socket.on("group:created", onGroupCreated);
     socket.on("group:removed", onGroupRemoved);
     socket.on("group:updated", onGroupUpdatedEvent);
@@ -183,6 +194,9 @@ export default function Chat() {
       socket.off("message:deleted", onDeleted);
       socket.off("message:reaction", onReaction);
       socket.off("announcement:new", onAnnouncementNew);
+      socket.off("announcement:deleted", onAnnouncementDeleted);
+      socket.off("maintenance:messages-cleared", onMessagesCleared);
+      socket.off("maintenance:announcements-cleared", onAnnouncementsCleared);
       socket.off("group:created", onGroupCreated);
       socket.off("group:removed", onGroupRemoved);
       socket.off("group:updated", onGroupUpdatedEvent);
