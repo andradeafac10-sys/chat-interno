@@ -142,7 +142,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
             />
           ) : (
             <div className="text-sm text-slate-800 mb-4">{group.name}</div>
@@ -155,7 +155,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Do que se trata esse grupo..."
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366] resize-none"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none"
             />
           ) : (
             <div className="text-sm text-slate-600 mb-4 whitespace-pre-wrap">{group.description || "Sem descrição."}</div>
@@ -164,7 +164,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-slate-500 block">Arquivos e fotos</label>
             {isAdm && (
-              <button onClick={() => attachmentInputRef.current?.click()} className="text-[11px] text-[#25D366] font-medium flex items-center gap-1">
+              <button onClick={() => attachmentInputRef.current?.click()} className="text-[11px] text-[#2E6FD9] font-medium flex items-center gap-1">
                 <Paperclip size={12} /> {uploadingAttachment ? "Enviando..." : "Adicionar"}
               </button>
             )}
@@ -182,7 +182,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
                 )}
                 <span className="text-[12px] text-slate-700 truncate flex-1">{att.file_name}</span>
                 <span className="text-[10px] text-slate-400 shrink-0">{fmtSize(att.file_size)}</span>
-                <a href={fileUrl(att.file_url)} download={att.file_name} className="text-slate-400 hover:text-[#25D366] shrink-0"><Download size={13} /></a>
+                <a href={fileUrl(att.file_url)} download={att.file_name} className="text-slate-400 hover:text-[#2E6FD9] shrink-0"><Download size={13} /></a>
                 {isAdm && (
                   <button onClick={() => removeAttachment(att.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={13} /></button>
                 )}
@@ -198,13 +198,13 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
             <div className="flex flex-col gap-1 mb-5 max-h-48 overflow-y-auto">
               {operators.map((op) => (
                 <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#25D366]" />
+                  <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2E6FD9]" />
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
                     {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
                   <span className="text-sm text-slate-700 flex items-center gap-1">
                     {op.name}
-                    {op.role === "admin" && <ShieldCheck size={12} className="text-[#25D366]" />}
+                    {op.role === "admin" && <ShieldCheck size={12} className="text-[#2E6FD9]" />}
                   </span>
                 </label>
               ))}
@@ -218,7 +218,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
               onClick={save}
               disabled={saving || !name.trim()}
               className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-              style={{ background: "#25D366" }}
+              style={{ background: "#2E6FD9" }}
             >
               {saving ? "Salvando..." : "Salvar alterações"}
             </button>
