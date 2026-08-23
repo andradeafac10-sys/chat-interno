@@ -41,20 +41,20 @@ export default function NewGroupModal({ onClose, onCreated }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ex: Equipe Carteira X"
-          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
         />
 
         <label className="text-xs font-medium text-slate-500 mb-1.5 block">Membros</label>
         <div className="flex flex-col gap-1 mb-5 max-h-40 overflow-y-auto">
           {operators.map((op) => (
             <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
-              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#25D366]" />
+              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2E6FD9]" />
               <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
                 {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
               </div>
               <span className="text-sm text-slate-700 flex items-center gap-1">
                 {op.name}
-                {op.role === "admin" && <ShieldCheck size={12} className="text-[#25D366]" />}
+                {op.role === "admin" && <ShieldCheck size={12} className="text-[#2E6FD9]" />}
               </span>
             </label>
           ))}
@@ -65,7 +65,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
           onClick={create}
           disabled={!name.trim() || memberIds.length === 0 || saving}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-          style={{ background: "#25D366" }}
+          style={{ background: "#2E6FD9" }}
         >
           {saving ? "Criando..." : "Criar grupo"}
         </button>
