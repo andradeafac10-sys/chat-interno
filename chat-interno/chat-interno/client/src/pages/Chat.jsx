@@ -10,6 +10,7 @@ import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
+import PresenceToasts from "../components/PresenceToasts";
 import { playNotificationSound } from "../sound";
 
 const ORIGINAL_TITLE = "ChatInternoNNC";
@@ -28,6 +29,17 @@ export default function Chat() {
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
+  const [presenceToasts, setPresenceToasts] = useState([]);
+
+  // Mostra um balão de "fulano online/offline" que some sozinho
+  const mostrarToast = useCallback((userName, online) => {
+    if (!userName) return;
+    const key = `${userName}-${online}-${Date.now()}-${Math.random()}`;
+    setPresenceToasts((prev) => [...prev, { key, userName, online }].slice(-4));
+    setTimeout(() => {
+      setPresenceToasts((prev) => prev.filter((t) => t.key !== key));
+    }, 4000);
+  }, []);
 
   const blinkTimerRef = useRef(null);
   const activeConvIdRef = useRef(activeConvId);
@@ -163,13 +175,18 @@ export default function Chat() {
     const onGroupUpdatedEvent = () => loadConversations();
 
     const onPresenceList = ({ userIds }) => setOnlineUsers(new Set(userIds));
-    const onPresenceOnline = ({ userId }) => setOnlineUsers((prev) => new Set(prev).add(userId));
-    const onPresenceOffline = ({ userId }) =>
+    const onPresenceOnline = ({ userId, userName }) => {
+      if (userId !== user.id) mostrarToast(userName, true);
+      setOnlineUsers((prev) => new Set(prev).add(userId));
+    };
+    const onPresenceOffline = ({ userId, userName }) => {
+      if (userId !== user.id) mostrarToast(userName, false);
       setOnlineUsers((prev) => {
         const next = new Set(prev);
         next.delete(userId);
         return next;
       });
+    };
 
     socket.on("message:new", onNewMessage);
     socket.on("message:pinned", onPinned);
@@ -204,7 +221,7 @@ export default function Chat() {
       socket.off("presence:online", onPresenceOnline);
       socket.off("presence:offline", onPresenceOffline);
     };
-  }, [loadConversations, user.id, startBlink]);
+  }, [loadConversations, user.id, startBlink, mostrarToast]);
 
   const setMessagesForConv = (convId, msgs) => {
     setMessagesByConv((prev) => ({ ...prev, [convId]: msgs }));
@@ -272,7 +289,16 @@ export default function Chat() {
           }}
         />
       )}
-      {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
+      {showAccount && (
+        <AccountModal
+          onClose={() => setShowAccount(false)}
+          onOpenUsers={() => setShowUsers(true)}
+          onOpenMonitoring={() => setShowMonitoring(true)}
+          onOpenAnnouncements={() => setShowAnnouncements(true)}
+        />
+      )}
+      <PresenceToasts toasts={presenceToasts} />
+
       <AnnouncementOverlay
         announcement={announcement}
         onClose={() => {
