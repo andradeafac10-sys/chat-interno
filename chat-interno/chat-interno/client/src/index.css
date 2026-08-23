@@ -6,8 +6,8 @@ html, body, #root { height: 100%; margin: 0; }
 body { background: #111B21; }
 
 @keyframes flash-new-message {
-  0%, 100% { background-color: transparent; box-shadow: inset 3px 0 0 rgba(37, 211, 102, 0); }
-  50% { background-color: rgba(37, 211, 102, 0.35); box-shadow: inset 3px 0 0 rgba(37, 211, 102, 1); }
+  0%, 100% { background-color: transparent; box-shadow: inset 3px 0 0 rgba(46, 111, 217, 0); }
+  50% { background-color: rgba(46, 111, 217, 0.35); box-shadow: inset 3px 0 0 rgba(46, 111, 217, 1); }
 }
 .flash-new-message {
   animation: flash-new-message 0.9s ease-in-out infinite;
@@ -29,4 +29,13 @@ body { background: #111B21; }
 }
 .announcement-card-pulse {
   animation: announcement-card-pulse 1.2s ease-out infinite;
+}
+
+/* Balão de aviso de online/offline entrando pela direita */
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-slide-in {
+  animation: toast-slide-in 0.25s ease-out;
 }
