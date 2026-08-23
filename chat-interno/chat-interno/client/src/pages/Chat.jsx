@@ -13,7 +13,7 @@ import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import PresenceToasts from "../components/PresenceToasts";
 import { playNotificationSound } from "../sound";
 
-const ORIGINAL_TITLE = "ChatInternoNNC";
+const ORIGINAL_TITLE = "Chat Nacional";
 const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
