@@ -87,8 +87,19 @@ CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
   message TEXT NOT NULL,
   image_url TEXT,
+  audience TEXT NOT NULL DEFAULT 'all' CHECK (audience IN ('all','users','groups')),
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Garante a coluna em bancos que já existiam antes dessa versão
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'all';
+
+-- Quem deve receber o comunicado quando audience != 'all'
+CREATE TABLE IF NOT EXISTS announcement_targets (
+  announcement_id INTEGER NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS announcement_acks (
