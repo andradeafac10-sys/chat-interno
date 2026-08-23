@@ -56,13 +56,13 @@ export default function Announcements({ onBack }) {
           <ArrowLeft size={20} />
         </button>
         <div className="text-slate-800 text-sm font-semibold flex items-center gap-2">
-          <Megaphone size={16} className="text-[#25D366]" /> Comunicados gerais
+          <Megaphone size={16} className="text-[#2E6FD9]" /> Comunicados gerais
         </div>
         {isAdm && (
           <button
             onClick={() => setShowNew(true)}
             className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
-            style={{ background: "#25D366" }}
+            style={{ background: "#2E6FD9" }}
           >
             <Plus size={15} /> Novo comunicado
           </button>
@@ -91,7 +91,7 @@ export default function Announcements({ onBack }) {
                     </div>
                     <div className="flex items-center gap-3 mt-1.5">
                       {isAdm && (
-                        <div className="text-[12px] font-medium text-[#25D366] flex items-center gap-1">
+                        <div className="text-[12px] font-medium text-[#2E6FD9] flex items-center gap-1">
                           <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
                         </div>
                       )}
@@ -134,7 +134,7 @@ export default function Announcements({ onBack }) {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="text-[11px] font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                            <Check size={12} className="text-[#25D366]" /> Confirmaram ({acks[a.id].acked.length})
+                            <Check size={12} className="text-[#2E6FD9]" /> Confirmaram ({acks[a.id].acked.length})
                           </div>
                           <div className="flex flex-col gap-1">
                             {acks[a.id].acked.map((u) => (
