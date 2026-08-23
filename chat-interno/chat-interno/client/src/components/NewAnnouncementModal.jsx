@@ -72,7 +72,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
       <div className="bg-white rounded-xl w-[420px] max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-slate-800 font-semibold text-base flex items-center gap-2">
-            <Megaphone size={18} className="text-[#25D366]" /> Novo comunicado
+            <Megaphone size={18} className="text-[#2E6FD9]" /> Novo comunicado
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
@@ -89,9 +89,9 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
                   onClick={() => { setAudience(t.id); setError(""); }}
                   className="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-lg py-2 border"
                   style={{
-                    background: audience === t.id ? "#25D366" : "#fff",
+                    background: audience === t.id ? "#2E6FD9" : "#fff",
                     color: audience === t.id ? "#fff" : "#64748B",
-                    borderColor: audience === t.id ? "#25D366" : "#E2E8F0",
+                    borderColor: audience === t.id ? "#2E6FD9" : "#E2E8F0",
                   }}
                 >
                   <Icon size={13} /> {t.label}
@@ -104,13 +104,13 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             <div className="border border-slate-200 rounded-lg p-2 mb-3 max-h-40 overflow-y-auto flex flex-col gap-1">
               {users.map((u) => (
                 <label key={u.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 cursor-pointer">
-                  <input type="checkbox" checked={userIds.includes(u.id)} onChange={() => toggle(userIds, setUserIds, u.id)} className="accent-[#25D366]" />
+                  <input type="checkbox" checked={userIds.includes(u.id)} onChange={() => toggle(userIds, setUserIds, u.id)} className="accent-[#2E6FD9]" />
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: u.color }}>
                     {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
                   <span className="text-[13px] text-slate-700 flex items-center gap-1">
                     {u.name}
-                    {u.role === "admin" && <ShieldCheck size={11} className="text-[#25D366]" />}
+                    {u.role === "admin" && <ShieldCheck size={11} className="text-[#2E6FD9]" />}
                   </span>
                 </label>
               ))}
@@ -122,7 +122,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             <div className="border border-slate-200 rounded-lg p-2 mb-3 max-h-40 overflow-y-auto flex flex-col gap-1">
               {groups.map((g) => (
                 <label key={g.groupId} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 cursor-pointer">
-                  <input type="checkbox" checked={groupIds.includes(g.groupId)} onChange={() => toggle(groupIds, setGroupIds, g.groupId)} className="accent-[#25D366]" />
+                  <input type="checkbox" checked={groupIds.includes(g.groupId)} onChange={() => toggle(groupIds, setGroupIds, g.groupId)} className="accent-[#2E6FD9]" />
                   <UsersIcon size={14} className="text-slate-400" />
                   <span className="text-[13px] text-slate-700">{g.title}</span>
                 </label>
@@ -136,7 +136,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366] resize-none"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none"
             placeholder="Escreva o comunicado..."
             required
           />
@@ -163,7 +163,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             type="submit"
             disabled={sending || !message.trim()}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: "#25D366" }}
+            style={{ background: "#2E6FD9" }}
           >
             {sending ? "Enviando..." : "Enviar comunicado"}
           </button>
