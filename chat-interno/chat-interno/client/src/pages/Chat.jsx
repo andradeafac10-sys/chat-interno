@@ -11,7 +11,7 @@ import AnnouncementsPage from "./Announcements";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import { playNotificationSound } from "../sound";
 
-const ORIGINAL_TITLE = "Chat Interno";
+const ORIGINAL_TITLE = "ChatInternoNNC";
 const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
