@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon, Eye } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
@@ -14,7 +14,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onlineUsers, flashIds }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
@@ -63,8 +63,8 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         </button>
       </div>
 
-      {isAdm && (
-        <div className="px-3 pb-2 flex flex-col gap-2">
+      <div className="px-3 pb-2 flex flex-col gap-2">
+        {isAdm && (
           <button
             onClick={onOpenUsers}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
@@ -72,15 +72,24 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
           >
             <UserCog size={15} /> Usuários da equipe
           </button>
+        )}
+        {isAdm && (
           <button
-            onClick={onOpenAnnouncement}
+            onClick={onOpenMonitoring}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
             style={{ color: colors.textPrimary, borderColor: colors.border }}
           >
-            <Megaphone size={15} /> Comunicado geral
+            <Eye size={15} /> Monitoria
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={onOpenAnnouncement}
+          className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 border"
+          style={{ color: colors.textPrimary, borderColor: colors.border }}
+        >
+          <Megaphone size={15} /> Comunicados
+        </button>
+      </div>
 
       <div className="px-3 pb-2">
         <div className="relative">
@@ -143,7 +152,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             <button
               key={c.id}
               onClick={() => setActiveConvId(c.id)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "animate-pulse" : ""}`}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
               style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#25D366" }}>
