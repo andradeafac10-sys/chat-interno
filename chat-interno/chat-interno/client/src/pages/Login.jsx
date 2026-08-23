@@ -25,13 +25,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#111B21" }}>
       <form onSubmit={handleSubmit} className="w-[340px] bg-[#202C33] rounded-2xl p-7 border border-slate-800">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "#25D366" }}>
-            <ShieldCheck size={18} color="white" />
-          </div>
-          <h1 className="text-slate-100 text-lg font-semibold">Chat Interno</h1>
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.svg" alt="ChatInternoNNC" className="w-20 h-20 mb-3" />
+          <h1 className="text-slate-100 text-xl font-semibold">ChatInternoNNC</h1>
+          <p className="text-slate-500 text-xs mt-1">Acesso restrito à equipe</p>
         </div>
-        <p className="text-slate-500 text-xs mb-6">Acesso restrito à equipe</p>
 
         <label className="text-xs text-slate-400 mb-1 block">Usuário</label>
         <input
