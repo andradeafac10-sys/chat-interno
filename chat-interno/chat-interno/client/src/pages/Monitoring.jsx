@@ -18,8 +18,12 @@ export default function Monitoring({ onBack }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState("");
+
   useEffect(() => {
-    api.get("/users/manage").then(({ data }) => setUsers(data.users));
+    api.get("/users/manage")
+      .then(({ data }) => setUsers(data.users))
+      .catch(() => setError("Não foi possível carregar a lista de pessoas."));
   }, []);
 
   const pickUser = async (u) => {
@@ -27,9 +31,16 @@ export default function Monitoring({ onBack }) {
     setSelectedConv(null);
     setMessages([]);
     setLoading(true);
-    const { data } = await api.get(`/monitoring/conversations?userId=${u.id}`);
-    setConversations(data.conversations);
-    setLoading(false);
+    setError("");
+    try {
+      const { data } = await api.get(`/monitoring/conversations?userId=${u.id}`);
+      setConversations(data.conversations);
+    } catch (err) {
+      setConversations([]);
+      setError(err.response?.data?.error || "Não foi possível carregar as conversas dessa pessoa.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pickConv = async (conv) => {
@@ -99,9 +110,13 @@ export default function Monitoring({ onBack }) {
             <div className="px-3 py-4 text-xs" style={{ color: colors.textSecondary }}>
               Escolha uma pessoa à esquerda.
             </div>
+          ) : loading ? (
+            <div className="px-3 py-4 text-xs" style={{ color: colors.textSecondary }}>Carregando...</div>
+          ) : error ? (
+            <div className="px-3 py-4 text-xs text-red-500">{error}</div>
           ) : conversations.length === 0 ? (
             <div className="px-3 py-4 text-xs" style={{ color: colors.textSecondary }}>
-              {loading ? "Carregando..." : "Nenhuma conversa com mensagens."}
+              Nenhuma conversa com mensagens.
             </div>
           ) : (
             conversations.map((c) => (
