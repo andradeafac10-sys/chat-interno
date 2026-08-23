@@ -2,8 +2,11 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock } from "lucide-react";
 import { api, fileUrl } from "../api";
 import NewAnnouncementModal from "../components/NewAnnouncementModal";
+import { useAuth } from "../context/AuthContext";
 
 export default function Announcements({ onBack }) {
+  const { user } = useAuth();
+  const isAdm = user.role === "admin";
   const [announcements, setAnnouncements] = useState([]);
   const [totalActive, setTotalActive] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function Announcements({ onBack }) {
       return;
     }
     setExpandedId(id);
+    if (!isAdm) return; // operador não vê a lista de quem confirmou
     if (!acks[id]) {
       const { data } = await api.get(`/announcements/${id}/acks`);
       setAcks((prev) => ({ ...prev, [id]: data }));
@@ -43,13 +47,15 @@ export default function Announcements({ onBack }) {
         <div className="text-slate-800 text-sm font-semibold flex items-center gap-2">
           <Megaphone size={16} className="text-[#25D366]" /> Comunicados gerais
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
-          style={{ background: "#25D366" }}
-        >
-          <Plus size={15} /> Novo comunicado
-        </button>
+        {isAdm && (
+          <button
+            onClick={() => setShowNew(true)}
+            className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
+            style={{ background: "#25D366" }}
+          >
+            <Plus size={15} /> Novo comunicado
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -70,16 +76,27 @@ export default function Announcements({ onBack }) {
                     <div className="text-[11px] text-slate-400 mt-1">
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-[12px] font-medium text-[#25D366] mt-1.5 flex items-center gap-1">
-                      <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
-                    </div>
+                    {isAdm && (
+                      <div className="text-[12px] font-medium text-[#25D366] mt-1.5 flex items-center gap-1">
+                        <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
+                      </div>
+                    )}
                   </div>
                   <div className="shrink-0 text-slate-400">
                     {expandedId === a.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </div>
                 </button>
 
-                {expandedId === a.id && (
+                {expandedId === a.id && !isAdm && (
+                  <div className="border-t border-slate-100 p-4">
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{a.message}</p>
+                    {a.image_url && (
+                      <img src={fileUrl(a.image_url)} alt="" className="mt-3 rounded-lg max-h-72 object-contain" />
+                    )}
+                  </div>
+                )}
+
+                {expandedId === a.id && isAdm && (
                   <div className="border-t border-slate-100 p-4">
                     {!acks[a.id] ? (
                       <div className="text-xs text-slate-400">Carregando...</div>
