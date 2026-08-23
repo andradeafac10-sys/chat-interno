@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera } from "lucide-react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,6 +12,28 @@ export default function AccountModal({ onClose }) {
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cleaning, setCleaning] = useState("");
+  const [cleanMsg, setCleanMsg] = useState("");
+
+  // Só o usuário "admin" (dono do sistema) vê as ações de limpeza
+  const isSuperAdmin = user.role === "admin" && user.username === "admin";
+
+  const limpar = async (tipo) => {
+    const label = tipo === "messages" ? "TODAS as mensagens de TODAS as conversas" : "TODOS os comunicados";
+    if (!window.confirm(`Tem certeza que quer apagar ${label}? Isso NÃO pode ser desfeito.`)) return;
+    if (!window.confirm("Confirmando de novo: essa ação é definitiva. Deseja continuar?")) return;
+
+    setCleaning(tipo);
+    setCleanMsg("");
+    try {
+      await api.delete(`/maintenance/${tipo}`);
+      setCleanMsg(tipo === "messages" ? "Mensagens apagadas." : "Comunicados apagados.");
+    } catch (err) {
+      setCleanMsg(err.response?.data?.error || "Não foi possível concluir a limpeza.");
+    } finally {
+      setCleaning("");
+    }
+  };
   const fileInputRef = useRef(null);
 
   const submit = async (e) => {
@@ -125,6 +147,35 @@ export default function AccountModal({ onClose }) {
             {saving ? "Salvando..." : "Trocar senha"}
           </button>
         </form>
+
+        {isSuperAdmin && (
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-red-600 mb-1">
+              <AlertTriangle size={14} /> Zona de risco
+            </div>
+            <p className="text-[11px] text-slate-500 mb-3">
+              Ações definitivas, disponíveis só para o administrador principal.
+            </p>
+
+            <button
+              onClick={() => limpar("messages")}
+              disabled={!!cleaning}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 mb-2"
+            >
+              <Trash2 size={14} /> {cleaning === "messages" ? "Apagando..." : "Limpar todas as mensagens"}
+            </button>
+
+            <button
+              onClick={() => limpar("announcements")}
+              disabled={!!cleaning}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 size={14} /> {cleaning === "announcements" ? "Apagando..." : "Apagar todos os comunicados"}
+            </button>
+
+            {cleanMsg && <div className="text-[12px] text-slate-600 mt-2">{cleanMsg}</div>}
+          </div>
+        )}
       </div>
     </div>
   );
