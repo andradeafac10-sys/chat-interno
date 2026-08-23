@@ -294,7 +294,6 @@ export default function Chat() {
           onClose={() => setShowAccount(false)}
           onOpenUsers={() => setShowUsers(true)}
           onOpenMonitoring={() => setShowMonitoring(true)}
-          onOpenAnnouncements={() => setShowAnnouncements(true)}
         />
       )}
       <PresenceToasts toasts={presenceToasts} />
