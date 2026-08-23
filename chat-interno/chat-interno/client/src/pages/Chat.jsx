@@ -8,6 +8,7 @@ import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
+import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import { playNotificationSound } from "../sound";
 
@@ -23,6 +24,7 @@ export default function Chat() {
   const [showAccount, setShowAccount] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [showMonitoring, setShowMonitoring] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
@@ -221,6 +223,7 @@ export default function Chat() {
         onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
+        onOpenMonitoring={() => setShowMonitoring(true)}
         onlineUsers={onlineUsers}
         flashIds={flashIds}
       />
@@ -228,6 +231,8 @@ export default function Chat() {
         <UsersPage onBack={() => setShowUsers(false)} />
       ) : showAnnouncements ? (
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
+      ) : showMonitoring ? (
+        <MonitoringPage onBack={() => setShowMonitoring(false)} />
       ) : activeConv ? (
         <ChatWindow
           key={activeConv.id}
