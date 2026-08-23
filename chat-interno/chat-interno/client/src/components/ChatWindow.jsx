@@ -7,6 +7,19 @@ import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
 import ImageViewer from "./ImageViewer";
 
+// Deixa em destaque o trecho que bate com o que foi buscado
+function realcar(texto, termo) {
+  if (!texto || !termo || termo.trim().length < 2) return texto;
+  const t = termo.trim();
+  const escapado = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const partes = String(texto).split(new RegExp(`(${escapado})`, "gi"));
+  return partes.map((parte, i) =>
+    parte.toLowerCase() === t.toLowerCase()
+      ? <mark key={i} style={{ background: "#25D366", color: "#0B1410", borderRadius: 3, padding: "0 2px" }}>{parte}</mark>
+      : parte
+  );
+}
+
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
   if (type === "text") return content;
@@ -166,17 +179,33 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     }
   };
 
-  const jumpToMessage = (msgId) => {
+  const destacar = (msgId) => {
     const el = document.getElementById(`msg-${msgId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightedId(msgId);
-      setTimeout(() => setHighlightedId(null), 2500);
-      setShowSearch(false);
-      setSearchQuery("");
-      setSearchResults([]);
-    } else {
-      alert("Essa mensagem é antiga e ainda não foi carregada. Role a conversa pra cima e busque de novo.");
+    if (!el) return false;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedId(msgId);
+    setTimeout(() => setHighlightedId(null), 4000);
+    return true;
+  };
+
+  const jumpToMessage = async (msgId) => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchResults([]);
+
+    // Se a mensagem já está na tela, só rola até ela
+    if (destacar(msgId)) return;
+
+    // Senão, carrega a conversa a partir daquela mensagem e depois rola
+    try {
+      const { data } = await api.get(`/conversations/${conversation.id}/messages`, {
+        params: { aroundId: msgId },
+      });
+      setMessagesForConv(conversation.id, data.messages);
+      // espera o React desenhar as mensagens antes de tentar rolar
+      setTimeout(() => destacar(msgId), 350);
+    } catch (err) {
+      alert("Não foi possível abrir essa mensagem.");
     }
   };
 
@@ -263,7 +292,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                     </span>
                   </div>
                   <div className="text-[13px] truncate" style={{ color: colors.textPrimary }}>
-                    {r.type === "text" ? r.content : `📎 ${r.file_name}`}
+                    {r.type === "text" ? realcar(r.content, searchQuery) : <>📎 {realcar(r.file_name, searchQuery)}</>}
                   </div>
                 </button>
               ))}
