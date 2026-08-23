@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil } from "lucide-react";
 import { api } from "../api";
 
-const COLORS = ["#25D366", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
+const COLORS = ["#2E6FD9", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
 
 export default function Users({ onBack }) {
   const [users, setUsers] = useState([]);
@@ -36,7 +36,7 @@ export default function Users({ onBack }) {
         <button
           onClick={() => setShowNew(true)}
           className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
-          style={{ background: "#25D366" }}
+          style={{ background: "#2E6FD9" }}
         >
           <Plus size={15} /> Novo usuário
         </button>
@@ -55,7 +55,7 @@ export default function Users({ onBack }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-slate-800 truncate">{u.name}</span>
-                    {u.role === "admin" && <ShieldCheck size={13} className="text-[#25D366]" />}
+                    {u.role === "admin" && <ShieldCheck size={13} className="text-[#2E6FD9]" />}
                     {!u.active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Desativado</span>}
                   </div>
                   <div className="text-[12px] text-slate-500">{u.username} · {u.role === "admin" ? "Administrador" : "Operador"}</div>
@@ -63,14 +63,14 @@ export default function Users({ onBack }) {
                 <button
                   onClick={() => setEditTarget(u)}
                   title="Editar nome"
-                  className="text-slate-400 hover:text-[#25D366] p-1.5"
+                  className="text-slate-400 hover:text-[#2E6FD9] p-1.5"
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => setResetTarget(u)}
                   title="Definir nova senha"
-                  className="text-slate-400 hover:text-[#25D366] p-1.5"
+                  className="text-slate-400 hover:text-[#2E6FD9] p-1.5"
                 >
                   <KeyRound size={16} />
                 </button>
@@ -123,14 +123,14 @@ function EditUserModal({ user, onClose, onSaved }) {
         </div>
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nome completo</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required />
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required />
 
           {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
-          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#25D366" }}>
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#2E6FD9" }}>
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </form>
@@ -171,18 +171,18 @@ function NewUserModal({ onClose, onCreated }) {
         </div>
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nome completo</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required placeholder="ex: joana" />
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required placeholder="ex: joana" />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Senha inicial</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required minLength={6} />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required minLength={6} />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Cargo</label>
           <div className="flex gap-2 mb-3">
-            <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#25D366] text-[#25D366] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>Operador</button>
-            <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#25D366] text-[#25D366] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>ADM</button>
+            <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2E6FD9] text-[#2E6FD9] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>Operador</button>
+            <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2E6FD9] text-[#2E6FD9] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>ADM</button>
           </div>
 
           <label className="text-xs font-medium text-slate-500 mb-1.5 block">Cor</label>
@@ -194,7 +194,7 @@ function NewUserModal({ onClose, onCreated }) {
 
           {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
-          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#25D366" }}>
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#2E6FD9" }}>
             {saving ? "Criando..." : "Criar usuário"}
           </button>
         </form>
@@ -228,8 +228,8 @@ function ResetPasswordModal({ user, onClose }) {
         ) : (
           <form onSubmit={submit}>
             <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]" required minLength={6} />
-            <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#25D366" }}>
+            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required minLength={6} />
+            <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50" style={{ background: "#2E6FD9" }}>
               {saving ? "Salvando..." : "Definir nova senha"}
             </button>
           </form>
