@@ -44,11 +44,11 @@ export default function MessageBubble({
     <div
       id={`msg-${m.id}`}
       className="group flex gap-3 px-3 py-2 rounded-lg transition-colors"
-      style={{ background: highlighted ? "rgba(37,211,102,0.15)" : "transparent" }}
+      style={{ background: highlighted ? "rgba(46,111,217,0.2)" : "transparent" }}
     >
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 overflow-hidden mt-0.5"
-        style={{ background: m.sender_color || "#25D366" }}
+        style={{ background: m.sender_color || "#2E6FD9" }}
       >
         {m.sender_avatar_url ? (
           <img src={fileUrl(m.sender_avatar_url)} alt={m.sender_name} className="w-full h-full object-cover" />
@@ -68,7 +68,7 @@ export default function MessageBubble({
           {m.edited && (
             <span className="text-[10px] italic" style={{ color: colors.textSecondary }}>editado</span>
           )}
-          {m.pinned && <Pin size={11} className="text-[#25D366]" />}
+          {m.pinned && <Pin size={11} className="text-[#2E6FD9]" />}
         </div>
 
         {m.deleted ? (
@@ -78,8 +78,8 @@ export default function MessageBubble({
         ) : (
           <div className="mt-0.5">
             {m.reply_id && (
-              <div className="mb-1.5 pl-2 border-l-2 border-[#25D366] rounded px-2 py-1" style={{ background: colors.inputFieldBg }}>
-                <div className="text-[11px] font-medium text-[#25D366]">{m.reply_sender_name}</div>
+              <div className="mb-1.5 pl-2 border-l-2 border-[#2E6FD9] rounded px-2 py-1" style={{ background: colors.inputFieldBg }}>
+                <div className="text-[11px] font-medium text-[#2E6FD9]">{m.reply_sender_name}</div>
                 <div className="text-[12px] truncate max-w-[420px]" style={{ color: colors.textSecondary }}>
                   {replyPreviewText(m.reply_type, m.reply_content, m.reply_deleted)}
                 </div>
@@ -106,7 +106,7 @@ export default function MessageBubble({
                 style={{ background: colors.inputFieldBg, borderColor: colors.border }}
               >
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
-                  <FileIcon size={16} color="#25D366" />
+                  <FileIcon size={16} color="#2E6FD9" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-medium truncate" style={{ color: colors.textPrimary }}>{m.file_name}</div>
@@ -128,7 +128,7 @@ export default function MessageBubble({
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{ background: colors.panelBg }}
                 >
-                  {playingId === m.id ? <Pause size={14} color="#25D366" /> : <Play size={14} color="#25D366" />}
+                  {playingId === m.id ? <Pause size={14} color="#2E6FD9" /> : <Play size={14} color="#2E6FD9" />}
                 </button>
                 <div className="flex items-center gap-[2px] flex-1 h-5">
                   {Array.from({ length: 22 }).map((_, i) => (
@@ -149,7 +149,7 @@ export default function MessageBubble({
                     key={emoji}
                     onClick={() => onReact(m, emoji)}
                     className="text-[11px] rounded-full px-2 py-0.5 border"
-                    style={{ background: colors.inputFieldBg, borderColor: myReaction === emoji ? "#25D366" : colors.border, color: colors.textPrimary }}
+                    style={{ background: colors.inputFieldBg, borderColor: myReaction === emoji ? "#2E6FD9" : colors.border, color: colors.textPrimary }}
                   >
                     {emoji} {count}
                   </button>
@@ -162,17 +162,17 @@ export default function MessageBubble({
 
       {!m.deleted && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-start gap-1 shrink-0">
-          <button onClick={() => onReact(m, "👍")} title="Reagir 👍" className="p-1 hover:text-[#25D366]" style={{ color: colors.textSecondary }}>
+          <button onClick={() => onReact(m, "👍")} title="Reagir 👍" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
             <ThumbsUp size={14} />
           </button>
           <button onClick={() => onReact(m, "❌")} title="Reagir ❌" className="p-1 hover:text-red-500" style={{ color: colors.textSecondary }}>
             <XIcon size={14} />
           </button>
-          <button onClick={() => onReply(m)} title="Responder" className="p-1 hover:text-[#25D366]" style={{ color: colors.textSecondary }}>
+          <button onClick={() => onReply(m)} title="Responder" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
             <Reply size={15} />
           </button>
           {mine && m.type === "text" && (
-            <button onClick={() => onEdit(m)} title="Editar" className="p-1 hover:text-[#25D366]" style={{ color: colors.textSecondary }}>
+            <button onClick={() => onEdit(m)} title="Editar" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
               <Pencil size={14} />
             </button>
           )}
@@ -181,7 +181,7 @@ export default function MessageBubble({
               <button onClick={() => onDelete(m)} title="Apagar" className="p-1 hover:text-red-500" style={{ color: colors.textSecondary }}>
                 <Trash2 size={14} />
               </button>
-              <button onClick={() => onTogglePin(m)} title={m.pinned ? "Desafixar" : "Fixar"} className="p-1 hover:text-[#25D366]" style={{ color: colors.textSecondary }}>
+              <button onClick={() => onTogglePin(m)} title={m.pinned ? "Desafixar" : "Fixar"} className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
                 {m.pinned ? <PinOff size={15} /> : <Pin size={15} />}
               </button>
             </>
