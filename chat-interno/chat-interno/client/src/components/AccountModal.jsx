@@ -1,9 +1,9 @@
 import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera, Trash2, AlertTriangle } from "lucide-react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye, Megaphone } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
-export default function AccountModal({ onClose }) {
+export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring, onOpenAnnouncements }) {
   const { user, updateUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -107,13 +107,38 @@ export default function AccountModal({ onClose }) {
           </div>
         </div>
 
+        <div className="flex flex-col gap-2 mb-5 pb-5 border-b border-slate-200">
+          {user.role === "admin" && (
+            <>
+              <button
+                onClick={() => { onClose(); onOpenUsers?.(); }}
+                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                <UserCog size={15} /> Usuários da equipe
+              </button>
+              <button
+                onClick={() => { onClose(); onOpenMonitoring?.(); }}
+                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                <Eye size={15} /> Monitoria
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => { onClose(); onOpenAnnouncements?.(); }}
+            className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            <Megaphone size={15} /> Comunicados
+          </button>
+        </div>
+
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Senha atual</label>
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
             required
           />
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
@@ -121,7 +146,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
             required
             minLength={6}
           />
@@ -130,7 +155,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
             required
             minLength={6}
           />
@@ -142,7 +167,7 @@ export default function AccountModal({ onClose }) {
             type="submit"
             disabled={saving}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "#25D366" }}
+            style={{ background: "#2E6FD9" }}
           >
             {saving ? "Salvando..." : "Trocar senha"}
           </button>
