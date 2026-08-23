@@ -1,9 +1,9 @@
 import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye, Megaphone } from "lucide-react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
-export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring, onOpenAnnouncements }) {
+export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring }) {
   const { user, updateUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -124,12 +124,6 @@ export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring, o
               </button>
             </>
           )}
-          <button
-            onClick={() => { onClose(); onOpenAnnouncements?.(); }}
-            className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            <Megaphone size={15} /> Comunicados
-          </button>
         </div>
 
         <form onSubmit={submit}>
