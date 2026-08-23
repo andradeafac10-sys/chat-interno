@@ -52,6 +52,9 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             {isAdm ? "ADMINISTRADOR" : "OPERADOR"}
           </div>
         </div>
+        <button onClick={onOpenAnnouncement} title="Comunicados" className="shrink-0" style={{ color: colors.textSecondary }}>
+          <Megaphone size={16} />
+        </button>
         <button onClick={toggleTheme} title={isDark ? "Tema claro" : "Tema escuro"} className="shrink-0" style={{ color: colors.textSecondary }}>
           {isDark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
