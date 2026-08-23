@@ -69,14 +69,14 @@ function setupSockets(io) {
     // Presença online: avisa todo mundo que essa pessoa ficou online (se for a primeira aba dela)
     const count = (onlineCounts.get(user.id) || 0) + 1;
     onlineCounts.set(user.id, count);
-    if (count === 1) io.emit("presence:online", { userId: user.id });
+    if (count === 1) io.emit("presence:online", { userId: user.id, userName: user.name });
     socket.emit("presence:list", { userIds: [...onlineCounts.keys()] });
 
     socket.on("disconnect", () => {
       const c = (onlineCounts.get(user.id) || 1) - 1;
       if (c <= 0) {
         onlineCounts.delete(user.id);
-        io.emit("presence:offline", { userId: user.id });
+        io.emit("presence:offline", { userId: user.id, userName: user.name });
       } else {
         onlineCounts.set(user.id, c);
       }
