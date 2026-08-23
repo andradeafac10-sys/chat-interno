@@ -81,7 +81,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
             onClick={handleAck}
             disabled={acking || acked}
             className="w-full rounded-lg py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
-            style={{ background: acked ? "#16A34A" : "#25D366" }}
+            style={{ background: acked ? "#1B7A4A" : "#2E6FD9" }}
           >
             <Check size={16} /> {acked ? "Confirmado!" : acking ? "Enviando..." : "ESTOU CIENTE"}
           </button>
