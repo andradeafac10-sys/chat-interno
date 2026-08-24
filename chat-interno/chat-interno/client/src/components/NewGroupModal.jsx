@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, ShieldCheck } from "lucide-react";
+import { X, ShieldCheck, Search } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -9,6 +9,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
   const [name, setName] = useState("");
   const [memberIds, setMemberIds] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [memberFilter, setMemberFilter] = useState("");
 
   useEffect(() => {
     api.get("/users/manage").then(({ data }) => setOperators(data.users.filter((u) => u.id !== currentUser.id)));
@@ -16,6 +17,10 @@ export default function NewGroupModal({ onClose, onCreated }) {
 
   const toggle = (id) =>
     setMemberIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const filteredOperators = operators.filter((op) =>
+    op.name.toLowerCase().includes(memberFilter.toLowerCase())
+  );
 
   const create = async () => {
     if (!name.trim() || memberIds.length === 0) return;
@@ -45,8 +50,17 @@ export default function NewGroupModal({ onClose, onCreated }) {
         />
 
         <label className="text-xs font-medium text-slate-500 mb-1.5 block">Membros</label>
+        <div className="relative mb-2">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={memberFilter}
+            onChange={(e) => setMemberFilter(e.target.value)}
+            placeholder="Buscar pessoa..."
+            className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          />
+        </div>
         <div className="flex flex-col gap-1 mb-5 max-h-40 overflow-y-auto">
-          {operators.map((op) => (
+          {filteredOperators.map((op) => (
             <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
               <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2E6FD9]" />
               <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
@@ -58,7 +72,11 @@ export default function NewGroupModal({ onClose, onCreated }) {
               </span>
             </label>
           ))}
-          {operators.length === 0 && <span className="text-xs text-slate-400">Nenhuma outra pessoa cadastrada ainda.</span>}
+          {filteredOperators.length === 0 && (
+            <span className="text-xs text-slate-400">
+              {operators.length === 0 ? "Nenhuma outra pessoa cadastrada ainda." : "Ninguém encontrado com esse nome."}
+            </span>
+          )}
         </div>
 
         <button
