@@ -78,10 +78,15 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 CREATE TABLE IF NOT EXISTS message_reactions (
   message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  emoji TEXT NOT NULL CHECK (emoji IN ('👍','❌')),
+  emoji TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (message_id, user_id)
 );
+
+-- Libera qualquer um dos emojis padrão (bancos antigos tinham só 👍/❌)
+ALTER TABLE message_reactions DROP CONSTRAINT IF EXISTS message_reactions_emoji_check;
+ALTER TABLE message_reactions ADD CONSTRAINT message_reactions_emoji_check
+  CHECK (emoji IN ('👍','❤️','😂','😮','😢','🙏'));
 
 CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
