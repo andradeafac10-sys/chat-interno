@@ -256,9 +256,11 @@ router.delete("/:id/messages/:msgId", requireAuth, requireAdmin, async (req, res
 });
 
 // POST /api/conversations/:id/messages/:msgId/reactions -> reagir (👍 ou ❌); clicar de novo no mesmo remove
+const REACOES_PERMITIDAS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
 router.post("/:id/messages/:msgId/reactions", requireAuth, async (req, res) => {
   const { emoji } = req.body || {};
-  if (!["👍", "❌"].includes(emoji)) return res.status(400).json({ error: "Reação inválida." });
+  if (!REACOES_PERMITIDAS.includes(emoji)) return res.status(400).json({ error: "Reação inválida." });
 
   const { rows: existing } = await pool.query(
     "SELECT emoji FROM message_reactions WHERE message_id = $1 AND user_id = $2",
@@ -291,8 +293,13 @@ router.patch("/:id/messages/:msgId/pin", requireAuth, requireAdmin, async (req, 
   const { pinned } = req.body || {};
 
   if (pinned) {
-    // só uma mensagem fixada por conversa: desfixa as outras antes
-    await pool.query("UPDATE messages SET pinned = false WHERE conversation_id = $1", [conversationId]);
+    const { rows: contagem } = await pool.query(
+      "SELECT COUNT(*)::int AS total FROM messages WHERE conversation_id = $1 AND pinned = true",
+      [conversationId]
+    );
+    if (contagem[0].total >= 10) {
+      return res.status(400).json({ error: "Já tem 10 mensagens fixadas nessa conversa. Desafixe alguma antes de fixar outra." });
+    }
   }
 
   const { rows } = await pool.query(
@@ -305,6 +312,23 @@ router.patch("/:id/messages/:msgId/pin", requireAuth, requireAdmin, async (req, 
 
   broadcast(req, conversationId, "message:pinned", message);
   res.json({ message });
+});
+
+// GET /api/conversations/:id/pinned -> lista as mensagens fixadas dessa conversa (mais recente primeiro)
+router.get("/:id/pinned", requireAuth, async (req, res) => {
+  const conversationId = req.params.id;
+  const allowed = (await canAccessConversation(req.user, conversationId)) ||
+                  (await canMonitorConversation(req.user, conversationId));
+  if (!allowed) return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
+
+  const { rows } = await pool.query(
+    `SELECT m.id, m.type, m.content, m.file_name, m.pinned_at, u.name AS sender_name
+     FROM messages m JOIN users u ON u.id = m.sender_id
+     WHERE m.conversation_id = $1 AND m.pinned = true AND m.deleted = false
+     ORDER BY m.pinned_at DESC LIMIT 10`,
+    [conversationId]
+  );
+  res.json({ pinned: rows });
 });
 
 function broadcast(req, conversationId, event, payload) {
