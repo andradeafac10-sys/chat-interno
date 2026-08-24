@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, Users, Camera, ShieldCheck, Paperclip, Trash2, Download, File as FileIcon, Image as ImageIcon } from "lucide-react";
+import { X, Users, Camera, ShieldCheck, Paperclip, Trash2, Download, File as FileIcon, Image as ImageIcon, Search } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ImageViewer from "./ImageViewer";
@@ -21,6 +21,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [memberFilter, setMemberFilter] = useState("");
   const [viewingImage, setViewingImage] = useState(null);
   const fileInputRef = useRef(null);
   const attachmentInputRef = useRef(null);
@@ -195,20 +196,36 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
             {isAdm ? "Membros" : `Membros (${group.memberIds.length})`}
           </label>
           {isAdm ? (
-            <div className="flex flex-col gap-1 mb-5 max-h-48 overflow-y-auto">
-              {operators.map((op) => (
-                <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2E6FD9]" />
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
-                    {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                  </div>
-                  <span className="text-sm text-slate-700 flex items-center gap-1">
-                    {op.name}
-                    {op.role === "admin" && <ShieldCheck size={12} className="text-[#2E6FD9]" />}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="relative mb-2">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={memberFilter}
+                  onChange={(e) => setMemberFilter(e.target.value)}
+                  placeholder="Buscar pessoa..."
+                  className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+                />
+              </div>
+              <div className="flex flex-col gap-1 mb-5 max-h-48 overflow-y-auto">
+                {operators
+                  .filter((op) => op.name.toLowerCase().includes(memberFilter.toLowerCase()))
+                  .map((op) => (
+                    <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
+                      <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2E6FD9]" />
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
+                        {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                      </div>
+                      <span className="text-sm text-slate-700 flex items-center gap-1">
+                        {op.name}
+                        {op.role === "admin" && <ShieldCheck size={12} className="text-[#2E6FD9]" />}
+                      </span>
+                    </label>
+                  ))}
+                {operators.filter((op) => op.name.toLowerCase().includes(memberFilter.toLowerCase())).length === 0 && (
+                  <span className="text-xs text-slate-400">Ninguém encontrado com esse nome.</span>
+                )}
+              </div>
+            </>
           ) : (
             <div className="text-xs text-slate-400 mb-5">Só o ADM pode ver e editar a lista completa de membros.</div>
           )}
