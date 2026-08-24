@@ -1,7 +1,9 @@
-import React from "react";
-import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, ThumbsUp, X as XIcon } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, SmilePlus } from "lucide-react";
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
+
+const REACOES = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 const fmtDateTime = (ts) =>
   new Date(ts).toLocaleString("pt-BR", {
@@ -24,6 +26,19 @@ const replyPreviewText = (type, content, deleted) => {
   return "📎 Arquivo";
 };
 
+// Destaca menções tipo @Nome dentro do texto
+function comMencoes(texto) {
+  if (!texto) return texto;
+  const partes = String(texto).split(/(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)/g);
+  return partes.map((parte, i) =>
+    parte.startsWith("@") ? (
+      <span key={i} className="font-semibold text-[#2E6FD9]">{parte}</span>
+    ) : (
+      parte
+    )
+  );
+}
+
 export default function MessageBubble({
   message, mine, isGroup, isAdm, currentUserId,
   onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage,
@@ -31,6 +46,8 @@ export default function MessageBubble({
 }) {
   const { colors } = useTheme();
   const m = message;
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const pickerTimeout = useRef(null);
 
   const initials = m.sender_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
@@ -39,6 +56,14 @@ export default function MessageBubble({
     return acc;
   }, {});
   const myReaction = (m.reactions || []).find((r) => r.userId === currentUserId)?.emoji;
+
+  const openPicker = () => {
+    clearTimeout(pickerTimeout.current);
+    setShowReactionPicker(true);
+  };
+  const closePickerDelayed = () => {
+    pickerTimeout.current = setTimeout(() => setShowReactionPicker(false), 350);
+  };
 
   return (
     <div
@@ -57,17 +82,11 @@ export default function MessageBubble({
         )}
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1" onDoubleClick={() => !m.deleted && onReply(m)}>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[14px] font-semibold" style={{ color: colors.textPrimary }}>
             {m.sender_name}
           </span>
-          <span className="text-[11px]" style={{ color: colors.textSecondary }}>
-            {fmtDateTime(m.created_at)}
-          </span>
-          {m.edited && (
-            <span className="text-[10px] italic" style={{ color: colors.textSecondary }}>editado</span>
-          )}
           {m.pinned && <Pin size={11} className="text-[#2E6FD9]" />}
         </div>
 
@@ -87,8 +106,8 @@ export default function MessageBubble({
             )}
 
             {m.type === "text" && (
-              <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: colors.textPrimary }}>
-                {m.content}
+              <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words cursor-pointer select-none" style={{ color: colors.textPrimary }}>
+                {comMencoes(m.content)}
               </div>
             )}
 
@@ -143,51 +162,77 @@ export default function MessageBubble({
             )}
 
             {Object.keys(reactionCounts).length > 0 && (
-              <div className="flex gap-1 mt-1.5">
+              <div className="flex gap-1 mt-1.5 flex-wrap">
                 {Object.entries(reactionCounts).map(([emoji, count]) => (
                   <button
                     key={emoji}
                     onClick={() => onReact(m, emoji)}
-                    className="text-[11px] rounded-full px-2 py-0.5 border"
+                    className="text-[12px] rounded-full px-2 py-0.5 border flex items-center gap-1"
                     style={{ background: colors.inputFieldBg, borderColor: myReaction === emoji ? "#2E6FD9" : colors.border, color: colors.textPrimary }}
                   >
-                    {emoji} {count}
+                    <span>{emoji}</span> <span className="text-[10px]">{count}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
         )}
-      </div>
 
-      {!m.deleted && (
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-start gap-1 shrink-0">
-          <button onClick={() => onReact(m, "👍")} title="Reagir 👍" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-            <ThumbsUp size={14} />
-          </button>
-          <button onClick={() => onReact(m, "❌")} title="Reagir ❌" className="p-1 hover:text-red-500" style={{ color: colors.textSecondary }}>
-            <XIcon size={14} />
-          </button>
-          <button onClick={() => onReply(m)} title="Responder" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-            <Reply size={15} />
-          </button>
-          {mine && m.type === "text" && (
-            <button onClick={() => onEdit(m)} title="Editar" className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-              <Pencil size={14} />
-            </button>
-          )}
-          {isAdm && (
-            <>
-              <button onClick={() => onDelete(m)} title="Apagar" className="p-1 hover:text-red-500" style={{ color: colors.textSecondary }}>
-                <Trash2 size={14} />
+        {/* Horário + ações, tudo na mesma linha */}
+        {!m.deleted && (
+          <div className="flex items-center gap-2.5 mt-1 relative">
+            <span className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtDateTime(m.created_at)}</span>
+            {m.edited && <span className="text-[10px] italic" style={{ color: colors.textSecondary }}>editado</span>}
+
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+              <div
+                className="relative"
+                onMouseEnter={openPicker}
+                onMouseLeave={closePickerDelayed}
+              >
+                <button title="Reagir" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+                  <SmilePlus size={14} />
+                </button>
+                {showReactionPicker && (
+                  <div
+                    className="absolute bottom-full left-0 mb-1 flex items-center gap-0.5 rounded-full px-2 py-1.5 shadow-lg border z-20"
+                    style={{ background: colors.panelBg, borderColor: colors.border }}
+                  >
+                    {REACOES.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => { onReact(m, emoji); setShowReactionPicker(false); }}
+                        className="text-[18px] hover:scale-125 transition-transform px-0.5"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={() => onReply(m)} title="Responder" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+                <Reply size={14} />
               </button>
-              <button onClick={() => onTogglePin(m)} title={m.pinned ? "Desafixar" : "Fixar"} className="p-1 hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-                {m.pinned ? <PinOff size={15} /> : <Pin size={15} />}
-              </button>
-            </>
-          )}
-        </div>
-      )}
+              {mine && m.type === "text" && (
+                <button onClick={() => onEdit(m)} title="Editar" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+                  <Pencil size={13} />
+                </button>
+              )}
+              {isAdm && (
+                <>
+                  <button onClick={() => onDelete(m)} title="Apagar" className="hover:text-red-500" style={{ color: colors.textSecondary }}>
+                    <Trash2 size={13} />
+                  </button>
+                  <button onClick={() => onTogglePin(m)} title={m.pinned ? "Desafixar" : "Fixar"} className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+                    {m.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
