@@ -43,6 +43,12 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showPinnedPanel, setShowPinnedPanel] = useState(false);
+  const [pinnedList, setPinnedList] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [highlightedId, setHighlightedId] = useState(null);
@@ -67,11 +73,61 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     });
   }, [conversation.id]);
 
+  // Busca a lista de membros do grupo, pra poder sugerir @menções
+  useEffect(() => {
+    if (conversation.type !== "group" || !conversation.groupId) {
+      setGroupMembers([]);
+      return;
+    }
+    api.get(`/groups/${conversation.groupId}/members`)
+      .then(({ data }) => setGroupMembers(data.members))
+      .catch(() => setGroupMembers([]));
+  }, [conversation.type, conversation.groupId]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const pinned = (messages || []).find((m) => m.pinned);
+  const mentionCandidates = groupMembers
+    .filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+    .slice(0, 6);
+
+  // Detecta se a pessoa está digitando um @nome, pra abrir a sugestão
+  const handleDraftChange = (e) => {
+    const value = e.target.value;
+    setDraft(value);
+
+    const cursor = e.target.selectionStart;
+    const antesDoCursor = value.slice(0, cursor);
+    const match = antesDoCursor.match(/@([\wÀ-ÿ]*)$/);
+
+    if (match && conversation.type === "group") {
+      setMentionQuery(match[1]);
+      setMentionIndex(0);
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const pickMention = (membro) => {
+    const cursor = inputRef.current?.selectionStart ?? draft.length;
+    const antes = draft.slice(0, cursor).replace(/@([\wÀ-ÿ]*)$/, `@${membro.name} `);
+    const depois = draft.slice(cursor);
+    setDraft(antes + depois);
+    setShowMentions(false);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (showMentions && mentionCandidates.length > 0) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setMentionIndex((i) => (i + 1) % mentionCandidates.length); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setMentionIndex((i) => (i - 1 + mentionCandidates.length) % mentionCandidates.length); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pickMention(mentionCandidates[mentionIndex]); return; }
+      if (e.key === "Escape") { setShowMentions(false); return; }
+    }
+    if (e.key === "Enter") sendText();
+  };
 
   const sendText = async () => {
     if (!draft.trim()) return;
@@ -188,6 +244,22 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     return true;
   };
 
+  const openPinnedPanel = async () => {
+    setShowSearch(false);
+    setShowPinnedPanel((v) => !v);
+    try {
+      const { data } = await api.get(`/conversations/${conversation.id}/pinned`);
+      setPinnedList(data.pinned);
+    } catch (err) {
+      setPinnedList([]);
+    }
+  };
+
+  const unpinFromPanel = async (msgId) => {
+    await api.patch(`/conversations/${conversation.id}/messages/${msgId}/pin`, { pinned: false });
+    setPinnedList((prev) => prev.filter((p) => p.id !== msgId));
+  };
+
   const jumpToMessage = async (msgId) => {
     setShowSearch(false);
     setSearchQuery("");
@@ -237,12 +309,20 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           )}
         </div>
         <span
-          onClick={(e) => { e.stopPropagation(); setShowSearch((v) => !v); }}
+          onClick={(e) => { e.stopPropagation(); setShowSearch((v) => !v); setShowPinnedPanel(false); }}
           className="p-1.5 hover:text-[#2E6FD9] cursor-pointer"
           style={{ color: showSearch ? "#2E6FD9" : colors.textSecondary }}
           title="Buscar nesta conversa"
         >
           <Search size={18} />
+        </span>
+        <span
+          onClick={(e) => { e.stopPropagation(); openPinnedPanel(); }}
+          className="p-1.5 hover:text-[#2E6FD9] cursor-pointer relative"
+          style={{ color: showPinnedPanel ? "#2E6FD9" : colors.textSecondary }}
+          title="Mensagens fixadas"
+        >
+          <Pin size={18} />
         </span>
         {conversation.type === "group" && (
           <span className="p-1.5" style={{ color: colors.textSecondary }} title="Ver informações do grupo">
@@ -313,18 +393,45 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         />
       )}
 
-      {pinned && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b text-xs" style={{ background: colors.inputFieldBg, borderColor: colors.headerBorder }}>
-          <Pin size={13} className="text-[#2E6FD9] shrink-0" />
-          <span className="shrink-0 font-medium" style={{ color: colors.textSecondary }}>Fixado:</span>
-          <span className="truncate flex-1" style={{ color: colors.textPrimary }}>
-            {pinned.type === "text" ? pinned.content : pinned.type === "image" ? "Foto" : pinned.type === "audio" ? "Mensagem de áudio" : pinned.file_name}
-          </span>
-          {isAdm && (
-            <button onClick={() => onTogglePin(pinned, false)} className="shrink-0" style={{ color: colors.textSecondary }}>
-              <X size={14} />
+      {showPinnedPanel && (
+        <div className="border-b px-4 py-3" style={{ background: colors.headerBg, borderColor: colors.headerBorder }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: colors.textPrimary }}>
+              <Pin size={13} className="text-[#2E6FD9]" /> Fixados ({pinnedList.length}/10)
+            </span>
+            <button onClick={() => setShowPinnedPanel(false)} style={{ color: colors.textSecondary }}>
+              <X size={15} />
             </button>
-          )}
+          </div>
+          <div className="max-h-56 overflow-y-auto flex flex-col gap-1">
+            {pinnedList.length === 0 && (
+              <div className="text-xs py-2" style={{ color: colors.textSecondary }}>Nenhuma mensagem fixada ainda.</div>
+            )}
+            {pinnedList.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-2 rounded-lg px-3 py-2"
+                style={{ background: colors.inputFieldBg }}
+              >
+                <button onClick={() => jumpToMessage(p.id)} className="text-left flex-1 min-w-0">
+                  <div className="text-[12px] font-semibold" style={{ color: colors.textPrimary }}>{p.sender_name}</div>
+                  <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>
+                    {p.type === "text" ? p.content : p.type === "image" ? "📷 Foto" : p.type === "audio" ? "🎤 Áudio" : `📎 ${p.file_name}`}
+                  </div>
+                </button>
+                {isAdm && (
+                  <button
+                    onClick={() => unpinFromPanel(p.id)}
+                    title="Remover dos fixados"
+                    className="shrink-0 hover:text-red-500"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -389,23 +496,46 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, "image")} />
             <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handlePick(e, "file")} />
 
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendText()}
-              onPaste={(e) => {
-                const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
-                if (item) {
-                  e.preventDefault();
-                  const file = item.getAsFile();
-                  if (file) uploadFile(file, "image");
-                }
-              }}
-              placeholder="Escreva uma mensagem"
-              className="flex-1 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
-              style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
-            />
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={handleDraftChange}
+                onKeyDown={handleInputKeyDown}
+                onPaste={(e) => {
+                  const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
+                  if (item) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) uploadFile(file, "image");
+                  }
+                }}
+                placeholder="Escreva uma mensagem"
+                className="w-full rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+                style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
+              />
+
+              {showMentions && mentionCandidates.length > 0 && (
+                <div
+                  className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border shadow-lg z-20"
+                  style={{ background: colors.panelBg, borderColor: colors.border }}
+                >
+                  {mentionCandidates.map((mMember, i) => (
+                    <button
+                      key={mMember.id}
+                      onClick={() => pickMention(mMember)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                      style={{ background: i === mentionIndex ? colors.inputFieldBg : "transparent" }}
+                    >
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: mMember.color }}>
+                        {mMember.avatar_url ? <img src={fileUrl(mMember.avatar_url)} alt={mMember.name} className="w-full h-full object-cover" /> : mMember.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                      </div>
+                      <span className="text-[13px]" style={{ color: colors.textPrimary }}>{mMember.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {draft.trim() ? (
               <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2E6FD9" }}>
