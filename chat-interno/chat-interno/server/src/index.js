@@ -45,10 +45,25 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/gestao", gestaoRoutes);
-   const gestaoTasksRoutes = require('./routes/gestaoTasks');
-   app.use('/api/gestao/tasks', gestaoTasksRoutes);
+const gestaoTasksRoutes = require("./routes/gestaoTasks");
+app.use("/api/gestao/tasks", gestaoTasksRoutes);
+const { router: gestaoRecurrencesRoutes, gerarTodasAsOcorrencias } = require("./routes/gestaoRecurrences");
+app.use("/api/gestao/recurrences", gestaoRecurrencesRoutes);
 
 setupSockets(io);
+
+// Gera as ocorrências das rotinas ativas ao ligar o servidor, e depois de tempos
+// em tempos (a cada 6h) — é seguro rodar várias vezes, nunca duplica.
+setTimeout(() => {
+  gerarTodasAsOcorrencias()
+    .then((n) => n > 0 && console.log(`[rotinas] ${n} ocorrência(s) gerada(s) na inicialização.`))
+    .catch((err) => console.error("[rotinas] erro ao gerar ocorrências na inicialização:", err));
+}, 5000);
+setInterval(() => {
+  gerarTodasAsOcorrencias()
+    .then((n) => n > 0 && console.log(`[rotinas] ${n} ocorrência(s) gerada(s).`))
+    .catch((err) => console.error("[rotinas] erro ao gerar ocorrências:", err));
+}, 6 * 60 * 60 * 1000);
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
