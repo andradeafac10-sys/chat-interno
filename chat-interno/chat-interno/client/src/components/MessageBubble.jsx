@@ -68,7 +68,7 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${m.id}`}
-      className={`group flex gap-3 px-3 rounded-lg transition-colors ${showHeader ? "py-2" : "py-0.5"}`}
+      className={`group flex gap-3 px-3 rounded-lg transition-colors ${showHeader ? "pt-2.5 pb-1" : "py-0"}`}
       style={{ background: highlighted ? "rgba(46,111,217,0.2)" : "transparent" }}
     >
       {showHeader ? (
