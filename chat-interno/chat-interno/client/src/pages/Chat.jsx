@@ -11,6 +11,8 @@ import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import PresenceToasts from "../components/PresenceToasts";
+import HiddenGroupsModal from "../components/HiddenGroupsModal";
+import UpdateBanner from "../components/UpdateBanner";
 import { playNotificationSound } from "../sound";
 
 const ORIGINAL_TITLE = "Chat Nacional";
@@ -26,6 +28,8 @@ export default function Chat() {
   const [showUsers, setShowUsers] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
+  const [showHiddenGroups, setShowHiddenGroups] = useState(false);
+  const [hiddenGroupsCount, setHiddenGroupsCount] = useState(0);
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
@@ -76,9 +80,24 @@ export default function Chat() {
     setActiveConvId((prev) => prev || data.conversations[0]?.id || null);
   }, []);
 
+  const loadHiddenGroupsCount = useCallback(async () => {
+    try {
+      const { data } = await api.get("/conversations/hidden-groups");
+      setHiddenGroupsCount(data.groups.length);
+    } catch { /* silencioso: não é crítico se falhar */ }
+  }, []);
+
+  const hideGroup = useCallback(async (groupId, groupName) => {
+    if (!window.confirm(`Esconder "${groupName}" da sua lista? Você pode trazer de volta quando quiser.`)) return;
+    await api.post(`/conversations/groups/${groupId}/hide`);
+    loadConversations();
+    loadHiddenGroupsCount();
+  }, [loadConversations, loadHiddenGroupsCount]);
+
   useEffect(() => {
     loadConversations();
-  }, [loadConversations]);
+    loadHiddenGroupsCount();
+  }, [loadConversations, loadHiddenGroupsCount]);
 
   useEffect(() => {
     api.get("/announcements/latest").then(({ data }) => {
@@ -228,7 +247,11 @@ export default function Chat() {
   };
 
   const togglePin = async (message, pinned) => {
-    await api.patch(`/conversations/${message.conversation_id}/messages/${message.id}/pin`, { pinned });
+    try {
+      await api.patch(`/conversations/${message.conversation_id}/messages/${message.id}/pin`, { pinned });
+    } catch (err) {
+      alert(err.response?.data?.error || "Não foi possível fixar essa mensagem.");
+    }
   };
 
   const setActiveConvIdAndStopBlink = (id) => {
@@ -257,6 +280,9 @@ export default function Chat() {
         onOpenMonitoring={() => setShowMonitoring(true)}
         onlineUsers={onlineUsers}
         flashIds={flashIds}
+        onHideGroup={hideGroup}
+        hiddenGroupsCount={hiddenGroupsCount}
+        onOpenHiddenGroups={() => setShowHiddenGroups(true)}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
@@ -298,6 +324,13 @@ export default function Chat() {
       )}
       <PresenceToasts toasts={presenceToasts} />
 
+      {showHiddenGroups && (
+        <HiddenGroupsModal
+          onClose={() => setShowHiddenGroups(false)}
+          onChanged={() => { loadConversations(); loadHiddenGroupsCount(); }}
+        />
+      )}
+
       <AnnouncementOverlay
         announcement={announcement}
         onClose={() => {
@@ -305,6 +338,8 @@ export default function Chat() {
           setAnnouncement(null);
         }}
       />
+
+      <UpdateBanner />
     </div>
   );
 }
