@@ -7,6 +7,27 @@ const { upload } = require("../middleware/upload");
 
 const router = express.Router();
 
+// GET /api/groups/:id/members -> lista os membros com nome/cor/foto (pra @menção e afins)
+router.get("/:id/members", requireAuth, async (req, res) => {
+  const groupId = Number(req.params.id);
+
+  if (req.user.role !== "admin") {
+    const { rows: membership } = await pool.query(
+      "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+      [groupId, req.user.id]
+    );
+    if (membership.length === 0) return res.status(403).json({ error: "Você não faz parte desse grupo." });
+  }
+
+  const { rows } = await pool.query(
+    `SELECT u.id, u.name, u.color, u.avatar_url, u.role
+     FROM group_members gm JOIN users u ON u.id = gm.user_id
+     WHERE gm.group_id = $1 AND u.active = true ORDER BY u.name`,
+    [groupId]
+  );
+  res.json({ members: rows });
+});
+
 // GET /api/groups/:id -> detalhes completos (ADM e membros do grupo podem ver; ADM sempre pode)
 router.get("/:id", requireAuth, async (req, res) => {
   const groupId = Number(req.params.id);
