@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon, Eye } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon, Eye, EyeOff, VolumeX } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
@@ -14,7 +14,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
@@ -110,7 +110,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
       )}
 
       {isAdm && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 flex flex-col gap-1.5">
           <button
             onClick={onNewGroup}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg py-2 text-white"
@@ -118,6 +118,15 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
           >
             <Plus size={15} /> Novo grupo
           </button>
+          {hiddenGroupsCount > 0 && (
+            <button
+              onClick={onOpenHiddenGroups}
+              className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium py-1"
+              style={{ color: colors.textSecondary }}
+            >
+              <EyeOff size={12} /> {hiddenGroupsCount} grupo(s) oculto(s) — mostrar
+            </button>
+          )}
         </div>
       )}
 
@@ -125,10 +134,13 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         {filtered.map((c) => {
           const active = c.id === activeConvId;
           return (
-            <button
+            <div
               key={c.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setActiveConvId(c.id)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
+              onKeyDown={(e) => e.key === "Enter" && setActiveConvId(c.id)}
+              className={`group w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left cursor-pointer ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
               style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#2E6FD9" }}>
@@ -151,7 +163,17 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                 </div>
                 <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
-            </button>
+              {c.type === "group" && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onHideGroup?.(c.groupId, c.title); }}
+                  title="Silenciar (esconder da minha lista)"
+                  className="shrink-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: colors.textSecondary }}
+                >
+                  <VolumeX size={15} />
+                </button>
+              )}
+            </div>
           );
         })}
         {filtered.length === 0 && <div className="text-center text-sm mt-8" style={{ color: colors.textSecondary }}>Nenhuma conversa encontrada</div>}
