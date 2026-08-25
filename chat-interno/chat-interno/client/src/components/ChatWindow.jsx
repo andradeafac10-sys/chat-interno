@@ -126,7 +126,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pickMention(mentionCandidates[mentionIndex]); return; }
       if (e.key === "Escape") { setShowMentions(false); return; }
     }
-    if (e.key === "Enter") sendText();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendText();
+    }
+  };
+
+  const resetInputHeight = () => {
+    if (inputRef.current) inputRef.current.style.height = "auto";
   };
 
   const sendText = async () => {
@@ -135,12 +142,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
     if (editingMessage) {
       setDraft("");
+      resetInputHeight();
       setEditingMessage(null);
       await api.patch(`/conversations/${conversation.id}/messages/${editingMessage.id}`, { text });
       return;
     }
 
     setDraft("");
+    resetInputHeight();
     const replyToId = replyingTo?.id || null;
     setReplyingTo(null);
     await api.post(`/conversations/${conversation.id}/messages`, { text, replyToId });
@@ -535,7 +544,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <div className="flex-1 relative">
-              <input
+              <textarea
                 ref={inputRef}
                 value={draft}
                 onChange={handleDraftChange}
@@ -548,9 +557,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                     if (file) uploadFile(file, "image");
                   }
                 }}
-                placeholder="Escreva uma mensagem"
-                className="w-full rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+                placeholder="Escreva uma mensagem (Shift+Enter pula linha)"
+                rows={1}
+                className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none max-h-40 overflow-y-auto"
                 style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
+                }}
               />
 
               {showMentions && mentionCandidates.length > 0 && (
