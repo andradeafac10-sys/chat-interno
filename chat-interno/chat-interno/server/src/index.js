@@ -37,6 +37,10 @@ app.use("/api", limiter);
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
+// Muda toda vez que o servidor reinicia (ou seja, toda vez que sai uma atualização nova).
+// O site usa isso pra avisar a pessoa "tem versão nova" sem precisar dar F5 sozinho.
+const SERVER_STARTED_AT = Date.now();
+app.get("/api/version", (req, res) => res.json({ version: SERVER_STARTED_AT }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/groups", groupRoutes);
