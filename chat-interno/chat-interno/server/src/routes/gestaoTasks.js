@@ -80,6 +80,21 @@ async function hydrateTask(taskId) {
 }
 
 // -------------------------------------------------------------
+// GET /api/gestao/tasks/meta/assignees — lista de ADMs pra atribuir tarefas
+// -------------------------------------------------------------
+router.get('/meta/assignees', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, name, avatar_url FROM users WHERE role = 'admin' AND active = TRUE ORDER BY name`
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    console.error('Erro ao listar responsáveis:', err);
+    res.status(500).json({ error: 'Erro ao listar responsáveis' });
+  }
+});
+
+// -------------------------------------------------------------
 // GET /api/gestao/tasks — lista com filtros
 // query: status, assignee_id, overdue=1, priority
 // -------------------------------------------------------------
