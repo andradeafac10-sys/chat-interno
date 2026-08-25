@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 router.use(requireAuth, requireAdmin);
@@ -14,7 +14,7 @@ router.use(requireAuth, requireAdmin);
 // -------------------------------------------------------------
 
 async function recordHistory(taskId, userId, action, details = null) {
-  await db.query(
+  await pool.query(
     `INSERT INTO task_history (task_id, user_id, action, details)
      VALUES ($1, $2, $3, $4)`,
     [taskId, userId, action, details ? JSON.stringify(details) : null]
@@ -22,10 +22,10 @@ async function recordHistory(taskId, userId, action, details = null) {
 }
 
 async function recalcProgress(taskId) {
-  const task = await db.query(`SELECT progress_type FROM tasks WHERE id = $1`, [taskId]);
+  const task = await pool.query(`SELECT progress_type FROM tasks WHERE id = $1`, [taskId]);
   if (!task.rows[0] || task.rows[0].progress_type !== 'checklist') return;
 
-  const items = await db.query(
+  const items = await pool.query(
     `SELECT is_done FROM task_checklist_items WHERE task_id = $1`,
     [taskId]
   );
@@ -34,14 +34,14 @@ async function recalcProgress(taskId) {
   const done = items.rows.filter((i) => i.is_done).length;
   const percent = Math.round((done / items.rows.length) * 100);
 
-  await db.query(
+  await pool.query(
     `UPDATE tasks SET progress_percent = $1, updated_at = NOW() WHERE id = $2`,
     [percent, taskId]
   );
 }
 
 async function hydrateTask(taskId) {
-  const taskRes = await db.query(
+  const taskRes = await pool.query(
     `SELECT t.*, u.name AS created_by_name
      FROM tasks t
      JOIN users u ON u.id = t.created_by
@@ -51,7 +51,7 @@ async function hydrateTask(taskId) {
   const task = taskRes.rows[0];
   if (!task) return null;
 
-  const assignees = await db.query(
+  const assignees = await pool.query(
     `SELECT u.id, u.name, u.avatar_url
      FROM task_assignees ta
      JOIN users u ON u.id = ta.user_id
@@ -60,7 +60,7 @@ async function hydrateTask(taskId) {
     [taskId]
   );
 
-  const checklist = await db.query(
+  const checklist = await pool.query(
     `SELECT * FROM task_checklist_items WHERE task_id = $1 ORDER BY position, id`,
     [taskId]
   );
@@ -84,7 +84,7 @@ async function hydrateTask(taskId) {
 // -------------------------------------------------------------
 router.get('/meta/assignees', async (req, res) => {
   try {
-    const result = await db.query(
+    const result = await pool.query(
       `SELECT id, name, avatar_url FROM users WHERE role = 'admin' AND active = TRUE ORDER BY name`
     );
     res.json({ users: result.rows });
@@ -126,7 +126,7 @@ router.get('/', async (req, res) => {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const result = await db.query(
+    const result = await pool.query(
       `SELECT t.*, u.name AS created_by_name,
               COALESCE(
                 (SELECT json_agg(json_build_object('id', au.id, 'name', au.name, 'avatar_url', au.avatar_url))
@@ -165,7 +165,7 @@ router.get('/', async (req, res) => {
 // -------------------------------------------------------------
 router.get('/overview', async (req, res) => {
   try {
-    const totals = await db.query(`
+    const totals = await pool.query(`
       SELECT
         COUNT(*) FILTER (WHERE status = 'pending') AS pending,
         COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
@@ -175,7 +175,7 @@ router.get('/overview', async (req, res) => {
       FROM tasks
     `);
 
-    const byAssignee = await db.query(`
+    const byAssignee = await pool.query(`
       SELECT u.id, u.name,
              COUNT(t.id) FILTER (WHERE t.status <> 'canceled') AS total,
              COUNT(t.id) FILTER (WHERE t.status = 'done') AS done,
@@ -203,14 +203,14 @@ router.get('/:id', async (req, res) => {
     const task = await hydrateTask(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tarefa não encontrada' });
 
-    const comments = await db.query(
+    const comments = await pool.query(
       `SELECT c.*, u.name AS user_name, u.avatar_url
        FROM task_comments c JOIN users u ON u.id = c.user_id
        WHERE c.task_id = $1 ORDER BY c.created_at ASC`,
       [req.params.id]
     );
 
-    const history = await db.query(
+    const history = await pool.query(
       `SELECT h.*, u.name AS user_name
        FROM task_history h JOIN users u ON u.id = h.user_id
        WHERE h.task_id = $1 ORDER BY h.created_at DESC`,
@@ -237,7 +237,7 @@ router.post('/', async (req, res) => {
 
     const progressType = checklist_items && checklist_items.length > 0 ? 'checklist' : 'manual';
 
-    const result = await db.query(
+    const result = await pool.query(
       `INSERT INTO tasks (title, description, priority, due_date, created_by, progress_type)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [title.trim(), description || null, priority || 'medium', due_date || null, req.user.id, progressType]
@@ -246,7 +246,7 @@ router.post('/', async (req, res) => {
 
     if (Array.isArray(assignee_ids)) {
       for (const userId of assignee_ids) {
-        await db.query(
+        await pool.query(
           `INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
           [taskId, userId]
         );
@@ -257,7 +257,7 @@ router.post('/', async (req, res) => {
       let position = 0;
       for (const itemTitle of checklist_items) {
         if (!itemTitle || !itemTitle.trim()) continue;
-        await db.query(
+        await pool.query(
           `INSERT INTO task_checklist_items (task_id, title, position) VALUES ($1, $2, $3)`,
           [taskId, itemTitle.trim(), position++]
         );
@@ -281,7 +281,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const taskId = req.params.id;
-    const existing = await db.query(`SELECT * FROM tasks WHERE id = $1`, [taskId]);
+    const existing = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [taskId]);
     if (!existing.rows[0]) return res.status(404).json({ error: 'Tarefa não encontrada' });
     const before = existing.rows[0];
 
@@ -308,13 +308,13 @@ router.put('/:id', async (req, res) => {
     if (fields.length > 0) {
       fields.push(`updated_at = NOW()`);
       params.push(taskId);
-      await db.query(`UPDATE tasks SET ${fields.join(', ')} WHERE id = $${i}`, params);
+      await pool.query(`UPDATE tasks SET ${fields.join(', ')} WHERE id = $${i}`, params);
     }
 
     if (Array.isArray(assignee_ids)) {
-      await db.query(`DELETE FROM task_assignees WHERE task_id = $1`, [taskId]);
+      await pool.query(`DELETE FROM task_assignees WHERE task_id = $1`, [taskId]);
       for (const userId of assignee_ids) {
-        await db.query(
+        await pool.query(
           `INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
           [taskId, userId]
         );
@@ -345,7 +345,7 @@ router.put('/:id', async (req, res) => {
 // -------------------------------------------------------------
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await db.query(`DELETE FROM tasks WHERE id = $1 RETURNING id`, [req.params.id]);
+    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id`, [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Tarefa não encontrada' });
     res.json({ ok: true });
   } catch (err) {
@@ -362,14 +362,14 @@ router.post('/:id/checklist', async (req, res) => {
     const { title } = req.body;
     if (!title || !title.trim()) return res.status(400).json({ error: 'Título é obrigatório' });
 
-    await db.query(`UPDATE tasks SET progress_type = 'checklist' WHERE id = $1 AND progress_type = 'manual'`, [req.params.id]);
+    await pool.query(`UPDATE tasks SET progress_type = 'checklist' WHERE id = $1 AND progress_type = 'manual'`, [req.params.id]);
 
-    const posRes = await db.query(
+    const posRes = await pool.query(
       `SELECT COALESCE(MAX(position), -1) + 1 AS next FROM task_checklist_items WHERE task_id = $1`,
       [req.params.id]
     );
 
-    const result = await db.query(
+    const result = await pool.query(
       `INSERT INTO task_checklist_items (task_id, title, position) VALUES ($1, $2, $3) RETURNING *`,
       [req.params.id, title.trim(), posRes.rows[0].next]
     );
@@ -385,7 +385,7 @@ router.post('/:id/checklist', async (req, res) => {
 router.put('/:id/checklist/:itemId', async (req, res) => {
   try {
     const { is_done } = req.body;
-    const result = await db.query(
+    const result = await pool.query(
       `UPDATE task_checklist_items SET is_done = $1 WHERE id = $2 AND task_id = $3 RETURNING *`,
       [is_done, req.params.itemId, req.params.id]
     );
@@ -405,7 +405,7 @@ router.put('/:id/checklist/:itemId', async (req, res) => {
 
 router.delete('/:id/checklist/:itemId', async (req, res) => {
   try {
-    await db.query(`DELETE FROM task_checklist_items WHERE id = $1 AND task_id = $2`, [req.params.itemId, req.params.id]);
+    await pool.query(`DELETE FROM task_checklist_items WHERE id = $1 AND task_id = $2`, [req.params.itemId, req.params.id]);
     await recalcProgress(req.params.id);
     res.json({ ok: true });
   } catch (err) {
@@ -422,7 +422,7 @@ router.post('/:id/comments', async (req, res) => {
     const { content } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Comentário vazio' });
 
-    const result = await db.query(
+    const result = await pool.query(
       `INSERT INTO task_comments (task_id, user_id, content) VALUES ($1, $2, $3) RETURNING *`,
       [req.params.id, req.user.id, content.trim()]
     );
