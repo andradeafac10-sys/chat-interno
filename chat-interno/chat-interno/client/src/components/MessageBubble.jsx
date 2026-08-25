@@ -21,7 +21,7 @@ const fmtSize = (bytes) => {
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
   if (type === "text") return content;
-  if (type === "image") return "📷 Foto";
+  if (type === "image") return content ? `📷 ${content}` : "📷 Foto";
   if (type === "audio") return "🎤 Áudio";
   return "📎 Arquivo";
 };
@@ -42,7 +42,7 @@ function comMencoes(texto) {
 export default function MessageBubble({
   message, mine, isGroup, isAdm, currentUserId,
   onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage,
-  playingId, setPlayingId, audioRefs, highlighted,
+  playingId, setPlayingId, audioRefs, highlighted, showHeader = true,
 }) {
   const { colors } = useTheme();
   const m = message;
@@ -68,27 +68,33 @@ export default function MessageBubble({
   return (
     <div
       id={`msg-${m.id}`}
-      className="group flex gap-3 px-3 py-2 rounded-lg transition-colors"
+      className={`group flex gap-3 px-3 rounded-lg transition-colors ${showHeader ? "py-2" : "py-0.5"}`}
       style={{ background: highlighted ? "rgba(46,111,217,0.2)" : "transparent" }}
     >
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 overflow-hidden mt-0.5"
-        style={{ background: m.sender_color || "#2E6FD9" }}
-      >
-        {m.sender_avatar_url ? (
-          <img src={fileUrl(m.sender_avatar_url)} alt={m.sender_name} className="w-full h-full object-cover" />
-        ) : (
-          initials
-        )}
-      </div>
+      {showHeader ? (
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 overflow-hidden mt-0.5"
+          style={{ background: m.sender_color || "#2E6FD9" }}
+        >
+          {m.sender_avatar_url ? (
+            <img src={fileUrl(m.sender_avatar_url)} alt={m.sender_name} className="w-full h-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+      ) : (
+        <div className="w-9 shrink-0" />
+      )}
 
       <div className="min-w-0 flex-1" onDoubleClick={() => !m.deleted && onReply(m)}>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[14px] font-semibold" style={{ color: colors.textPrimary }}>
-            {m.sender_name}
-          </span>
-          {m.pinned && <Pin size={11} className="text-[#2E6FD9]" />}
-        </div>
+        {showHeader && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[14px] font-semibold" style={{ color: colors.textPrimary }}>
+              {m.sender_name}
+            </span>
+            {m.pinned && <Pin size={11} className="text-[#2E6FD9]" />}
+          </div>
+        )}
 
         {m.deleted ? (
           <div className="text-[14px] italic mt-0.5" style={{ color: colors.textSecondary }}>
@@ -112,9 +118,16 @@ export default function MessageBubble({
             )}
 
             {m.type === "image" && (
-              <button onClick={() => onOpenImage?.({ url: m.file_url, name: m.file_name })} className="block mt-1">
-                <img src={fileUrl(m.file_url)} alt={m.file_name} className="rounded-lg max-w-[320px] max-h-[280px] object-cover cursor-zoom-in" />
-              </button>
+              <div className="mt-1">
+                <button onClick={() => onOpenImage?.({ url: m.file_url, name: m.file_name })} className="block">
+                  <img src={fileUrl(m.file_url)} alt={m.file_name} className="rounded-lg max-w-[320px] max-h-[280px] object-cover cursor-zoom-in" />
+                </button>
+                {m.content && (
+                  <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words mt-1.5 max-w-[320px]" style={{ color: colors.textPrimary }}>
+                    {m.content}
+                  </div>
+                )}
+              </div>
             )}
 
             {m.type === "file" && (
