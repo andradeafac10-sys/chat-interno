@@ -14,6 +14,7 @@ const conversationRoutes = require("./routes/conversations");
 const announcementRoutes = require("./routes/announcements");
 const monitoringRoutes = require("./routes/monitoring");
 const maintenanceRoutes = require("./routes/maintenance");
+const gestaoRoutes = require("./routes/gestao");
 const { setupSockets } = require("./sockets");
 
 const app = express();
@@ -43,6 +44,7 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/gestao", gestaoRoutes);
 
 setupSockets(io);
 
