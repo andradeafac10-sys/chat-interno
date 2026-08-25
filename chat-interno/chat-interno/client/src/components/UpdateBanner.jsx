@@ -29,7 +29,7 @@ export default function UpdateBanner() {
     };
 
     checar();
-    const intervalo = setInterval(checar, 60000); // confere a cada 1 minuto
+    const intervalo = setInterval(checar, 5000); // confere a cada 5 segundos
     return () => { cancelado = true; clearInterval(intervalo); };
   }, []);
 
