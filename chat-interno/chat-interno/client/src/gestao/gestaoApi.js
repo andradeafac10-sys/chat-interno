@@ -51,4 +51,11 @@ export const gestaoApi = {
     request(`/tasks/${id}/checklist/${itemId}`, { method: 'DELETE' }),
   addComment: (id, content) =>
     request(`/tasks/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
+
+  // Rotinas (tarefas recorrentes)
+  listRecurrences: () => request('/recurrences'),
+  createRecurrence: (payload) => request('/recurrences', { method: 'POST', body: JSON.stringify(payload) }),
+  updateRecurrence: (id, payload) => request(`/recurrences/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteRecurrence: (id) => request(`/recurrences/${id}`, { method: 'DELETE' }),
+  generateOccurrencesNow: () => request('/recurrences/generate', { method: 'POST' }),
 };
