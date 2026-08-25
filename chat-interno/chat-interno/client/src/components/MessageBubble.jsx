@@ -202,13 +202,13 @@ export default function MessageBubble({
           </div>
         )}
 
-        {/* Horário + ações, tudo na mesma linha */}
+        {/* Horário + ações — nas mensagens agrupadas (mesma pessoa, mesmo minuto), só aparece ao passar o mouse */}
         {!m.deleted && (
-          <div className="flex items-center gap-2.5 mt-1 relative">
+          <div className={`flex items-center gap-2.5 mt-1 relative transition-opacity ${showHeader ? "" : "opacity-0 group-hover:opacity-100"}`}>
             <span className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtDateTime(m.created_at)}</span>
             {m.edited && <span className="text-[10px] italic" style={{ color: colors.textSecondary }}>editado</span>}
 
-            <div className="opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+            <div className="opacity-100 flex items-center gap-2">
               <div
                 className="relative"
                 onMouseEnter={openPicker}
