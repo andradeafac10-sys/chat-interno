@@ -45,6 +45,8 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/gestao", gestaoRoutes);
+   const gestaoTasksRoutes = require('./routes/gestaoTasks');
+   app.use('/api/gestao/tasks', gestaoTasksRoutes);
 
 setupSockets(io);
 
