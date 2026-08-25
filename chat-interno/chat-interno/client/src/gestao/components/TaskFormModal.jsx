@@ -8,13 +8,17 @@ const PRIORITIES = [
   { value: 'high', label: 'Alta' },
 ];
 
-export default function TaskFormModal({ task, onClose, onSaved }) {
+export default function TaskFormModal({ task, initialDueDate, onClose, onSaved }) {
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [priority, setPriority] = useState(task?.priority || 'medium');
   const [dueDate, setDueDate] = useState(
-    task?.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ''
+    task?.due_date
+      ? new Date(task.due_date).toISOString().slice(0, 16)
+      : initialDueDate
+      ? new Date(initialDueDate).toISOString().slice(0, 16)
+      : ''
   );
   const [assignees, setAssignees] = useState(new Set((task?.assignees || []).map((a) => a.id)));
   const [checklistItems, setChecklistItems] = useState(['']);
