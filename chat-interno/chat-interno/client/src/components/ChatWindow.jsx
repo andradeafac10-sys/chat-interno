@@ -511,7 +511,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         </>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1.5">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
         {!loadingHistory && (messages || []).length === 0 && (
           <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
