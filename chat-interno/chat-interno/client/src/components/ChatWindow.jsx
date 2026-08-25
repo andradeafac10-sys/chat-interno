@@ -23,7 +23,7 @@ function realcar(texto, termo) {
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
   if (type === "text") return content;
-  if (type === "image") return "📷 Foto";
+  if (type === "image") return content ? `📷 ${content}` : "📷 Foto";
   if (type === "audio") return "🎤 Áudio";
   return "📎 Arquivo";
 };
@@ -39,6 +39,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl } — foto escolhida, aguardando legenda antes de enviar
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -71,6 +72,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       setMessagesForConv(conversation.id, data.messages);
       setLoadingHistory(false);
     });
+    // Já deixa o campo de digitar pronto pra escrever, sem precisar clicar nele
+    setTimeout(() => inputRef.current?.focus(), 0);
   }, [conversation.id]);
 
   // Busca a lista de membros do grupo, pra poder sugerir @menções
@@ -137,6 +140,17 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   const sendText = async () => {
+    if (pendingImage) {
+      const legenda = draft.trim();
+      const { file, previewUrl } = pendingImage;
+      setPendingImage(null);
+      setDraft("");
+      resetInputHeight();
+      URL.revokeObjectURL(previewUrl);
+      await uploadFile(file, "image", undefined, legenda || undefined);
+      return;
+    }
+
     if (!draft.trim()) return;
     const text = draft.trim();
 
@@ -155,11 +169,12 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     await api.post(`/conversations/${conversation.id}/messages`, { text, replyToId });
   };
 
-  const uploadFile = async (file, kind, secondsArg) => {
+  const uploadFile = async (file, kind, secondsArg, caption) => {
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
     if (secondsArg) form.append("seconds", String(secondsArg));
+    if (caption) form.append("caption", caption);
     if (replyingTo?.id) form.append("replyToId", String(replyingTo.id));
     setReplyingTo(null);
     await api.post(`/conversations/${conversation.id}/upload`, form, {
@@ -167,9 +182,23 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     });
   };
 
+  const cancelarImagemPendente = () => {
+    if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+    setPendingImage(null);
+    setDraft("");
+    resetInputHeight();
+  };
+
   const handlePick = (e, kind) => {
     const file = e.target.files?.[0];
-    if (file) uploadFile(file, kind);
+    if (!file) { e.target.value = ""; return; }
+
+    if (kind === "image") {
+      setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else {
+      uploadFile(file, kind);
+    }
     e.target.value = "";
   };
 
@@ -486,26 +515,35 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         {!loadingHistory && (messages || []).length === 0 && (
           <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
-        {(messages || []).map((m) => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            mine={m.sender_id === user.id}
-            isGroup={conversation.type === "group"}
-            isAdm={isAdm}
-            currentUserId={user.id}
-            onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
-            onReply={startReply}
-            onEdit={startEdit}
-            onDelete={deleteMessage}
-            onReact={reactToMessage}
-            onOpenImage={setViewingImage}
-            highlighted={highlightedId === m.id}
-            playingId={playingId}
-            setPlayingId={setPlayingId}
-            audioRefs={audioRefs}
-          />
-        ))}
+        {(messages || []).map((m, idx) => {
+          const anterior = messages[idx - 1];
+          // Agrupa (esconde nome/foto repetidos) quando é a mesma pessoa mandando
+          // dentro do mesmo minuto — igual o Discord faz com mensagens em sequência.
+          const mesmaPessoa = anterior && !anterior.deleted && !m.deleted && anterior.sender_id === m.sender_id;
+          const mesmoMinuto = anterior && Math.abs(new Date(m.created_at) - new Date(anterior.created_at)) < 60000;
+          const showHeader = !(mesmaPessoa && mesmoMinuto && !m.reply_id);
+          return (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              mine={m.sender_id === user.id}
+              isGroup={conversation.type === "group"}
+              isAdm={isAdm}
+              currentUserId={user.id}
+              onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
+              onReply={startReply}
+              onEdit={startEdit}
+              onDelete={deleteMessage}
+              onReact={reactToMessage}
+              onOpenImage={setViewingImage}
+              highlighted={highlightedId === m.id}
+              showHeader={showHeader}
+              playingId={playingId}
+              setPlayingId={setPlayingId}
+              audioRefs={audioRefs}
+            />
+          );
+        })}
       </div>
 
       <div className="border-t px-3 py-3 shrink-0" style={{ background: colors.inputBarBg, borderColor: colors.headerBorder }}>
@@ -519,6 +557,19 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               </div>
             </div>
             <button onClick={cancelComposeExtra} className="shrink-0" style={{ color: colors.textSecondary }}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {pendingImage && (
+          <div className="flex items-center gap-3 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
+            <img src={pendingImage.previewUrl} alt="Prévia" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium text-[#2E6FD9]">Enviar foto</div>
+              <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{pendingImage.file.name}</div>
+            </div>
+            <button onClick={cancelarImagemPendente} className="shrink-0" style={{ color: colors.textSecondary }}>
               <X size={16} />
             </button>
           </div>
@@ -554,10 +605,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                   if (item) {
                     e.preventDefault();
                     const file = item.getAsFile();
-                    if (file) uploadFile(file, "image");
+                    if (file) setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
                   }
                 }}
-                placeholder="Escreva uma mensagem (Shift+Enter pula linha)"
+                placeholder={pendingImage ? "Escreva uma legenda (opcional)" : "Escreva uma mensagem (Shift+Enter pula linha)"}
                 rows={1}
                 className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none max-h-40 overflow-y-auto"
                 style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
@@ -589,7 +640,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               )}
             </div>
 
-            {draft.trim() ? (
+            {draft.trim() || pendingImage ? (
               <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2E6FD9" }}>
                 <Send size={16} />
               </button>
