@@ -172,3 +172,43 @@ CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
 CREATE INDEX IF NOT EXISTS idx_task_assignees_user ON task_assignees(user_id);
 CREATE INDEX IF NOT EXISTS idx_task_history_task ON task_history(task_id);
 
+
+-- ============================================================
+-- ROTINAS (tarefas recorrentes) — Etapa 6 do Painel Gestão.
+-- A "rotina" é a receita; cada dia que ela deve acontecer vira
+-- uma tarefa de verdade (linha própria em "tasks"), independente
+-- das outras — concluir a de segunda não afeta a de terça.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS task_recurrences (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  priority VARCHAR(10) NOT NULL DEFAULT 'medium',        -- low, medium, high
+  recurrence_type VARCHAR(20) NOT NULL DEFAULT 'weekdays', -- daily, weekdays, specific_days, monthly
+  days_of_week INTEGER[] NOT NULL DEFAULT '{}',            -- 0=domingo ... 6=sábado (specific_days)
+  day_of_month INTEGER,                                    -- usado quando recurrence_type = monthly
+  start_time TIME,
+  start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  end_date DATE,                                           -- opcional; nulo = sem data pra parar
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS recurrence_assignees (
+  recurrence_id INTEGER NOT NULL REFERENCES task_recurrences(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (recurrence_id, user_id)
+);
+
+-- Liga cada tarefa gerada de volta pra sua rotina de origem, e guarda
+-- qual dia ela representa — é isso que impede duplicar a mesma ocorrência.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_id INTEGER REFERENCES task_recurrences(id) ON DELETE SET NULL;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS occurrence_date DATE;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_recurrence_occurrence
+  ON tasks(recurrence_id, occurrence_date) WHERE recurrence_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_recurrences_active ON task_recurrences(active);
