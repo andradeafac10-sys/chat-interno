@@ -322,7 +322,8 @@ router.get("/:id/pinned", requireAuth, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
 
   const { rows } = await pool.query(
-    `SELECT m.id, m.type, m.content, m.file_name, m.pinned_at, u.name AS sender_name
+    `SELECT m.id, m.type, m.content, m.file_name, m.file_url, m.created_at, m.pinned_at,
+            u.name AS sender_name, u.color AS sender_color, u.avatar_url AS sender_avatar_url
      FROM messages m JOIN users u ON u.id = m.sender_id
      WHERE m.conversation_id = $1 AND m.pinned = true AND m.deleted = false
      ORDER BY m.pinned_at DESC LIMIT 10`,
