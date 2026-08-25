@@ -260,6 +260,9 @@ const REACOES_PERMITIDAS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 router.post("/:id/messages/:msgId/reactions", requireAuth, async (req, res) => {
   const { emoji } = req.body || {};
+  if (!(await canAccessConversation(req.user, req.params.id))) {
+    return res.status(403).json({ error: "Você não tem acesso a esta conversa." });
+  }
   if (!REACOES_PERMITIDAS.includes(emoji)) return res.status(400).json({ error: "Reação inválida." });
 
   const { rows: existing } = await pool.query(
