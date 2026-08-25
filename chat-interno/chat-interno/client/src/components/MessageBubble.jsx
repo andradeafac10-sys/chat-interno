@@ -106,7 +106,7 @@ export default function MessageBubble({
             )}
 
             {m.type === "text" && (
-              <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words cursor-pointer select-none" style={{ color: colors.textPrimary }}>
+              <div className="text-[14px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: colors.textPrimary }}>
                 {comMencoes(m.content)}
               </div>
             )}
@@ -184,7 +184,7 @@ export default function MessageBubble({
             <span className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtDateTime(m.created_at)}</span>
             {m.edited && <span className="text-[10px] italic" style={{ color: colors.textSecondary }}>editado</span>}
 
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+            <div className="opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-2">
               <div
                 className="relative"
                 onMouseEnter={openPicker}
