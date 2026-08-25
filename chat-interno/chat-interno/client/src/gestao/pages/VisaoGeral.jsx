@@ -1,69 +1,91 @@
-import React from "react";
-import { LayoutDashboard, AlertTriangle, Activity } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
-import PageHeader from "../PageHeader";
+// client/src/gestao/pages/VisaoGeral.jsx
+import { useEffect, useState } from 'react';
+import PageHeader from '../PageHeader';
+import { gestaoApi } from '../gestaoApi';
 
-const CARDS = [
-  { label: "Tarefas hoje" },
-  { label: "Concluídas hoje" },
-  { label: "Em andamento" },
-  { label: "Pendentes" },
-  { label: "Atrasadas" },
-  { label: "Conclusão do dia" },
-];
-
-function Card({ label, colors }) {
-  return (
-    <div className="rounded-xl border p-4" style={{ background: colors.panelBg, borderColor: colors.border }}>
-      <div className="text-[12px] mb-2" style={{ color: colors.textSecondary }}>{label}</div>
-      <div className="text-2xl font-semibold" style={{ color: colors.textPrimary }}>—</div>
-    </div>
-  );
-}
+const NAVY = '#0f2a4a';
 
 export default function VisaoGeral() {
-  const { colors } = useTheme();
+  const [totals, setTotals] = useState(null);
+  const [byAssignee, setByAssignee] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    gestaoApi
+      .overview()
+      .then((data) => {
+        setTotals(data.totals);
+        setByAssignee(data.by_assignee || []);
+      })
+      .catch((err) => setError(err.message || 'Não consegui carregar a visão geral.'));
+  }, []);
+
+  const cards = [
+    { label: 'Pendentes', value: totals?.pending, color: '#6b7280' },
+    { label: 'Em andamento', value: totals?.in_progress, color: '#d97706' },
+    { label: 'Concluídas', value: totals?.done, color: '#16a34a' },
+    { label: 'Atrasadas', value: totals?.overdue, color: '#dc2626' },
+  ];
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader icon={LayoutDashboard} title="Visão Geral" subtitle="Panorama do dia da equipe" />
+    <div>
+      <PageHeader title="Visão Geral" />
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        {/* Cards principais */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {CARDS.map((c) => <Card key={c.label} label={c.label} colors={colors} />)}
-        </div>
+      {error && <p style={styles.error}>{error}</p>}
 
-        {/* Resumo da equipe */}
-        <div className="rounded-xl border overflow-hidden" style={{ background: colors.panelBg, borderColor: colors.border }}>
-          <div className="px-4 py-3 border-b text-[13px] font-semibold" style={{ borderColor: colors.border, color: colors.textPrimary }}>
-            Resumo da equipe
+      <div style={styles.cardsRow}>
+        {cards.map((c) => (
+          <div key={c.label} style={styles.card}>
+            <span style={{ ...styles.cardValue, color: c.color }}>
+              {c.value === undefined ? '—' : c.value}
+            </span>
+            <span style={styles.cardLabel}>{c.label}</span>
           </div>
-          <div className="p-6 text-center text-[13px]" style={{ color: colors.textSecondary }}>
-            Ainda não há tarefas cadastradas para mostrar aqui.
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Atenção necessária */}
-        <div className="rounded-xl border overflow-hidden" style={{ background: colors.panelBg, borderColor: colors.border }}>
-          <div className="px-4 py-3 border-b text-[13px] font-semibold flex items-center gap-2" style={{ borderColor: colors.border, color: colors.textPrimary }}>
-            <AlertTriangle size={15} className="text-amber-500" /> Atenção necessária
-          </div>
-          <div className="p-6 text-center text-[13px]" style={{ color: colors.textSecondary }}>
-            Nenhuma pendência crítica no momento.
-          </div>
+      <h3 style={styles.sectionTitle}>Por responsável</h3>
+      <div style={styles.table}>
+        <div style={styles.tableHeader}>
+          <span style={{ flex: 1 }}>Nome</span>
+          <span style={styles.col}>Total</span>
+          <span style={styles.col}>Concluídas</span>
+          <span style={styles.col}>Atrasadas</span>
         </div>
-
-        {/* Atividade recente */}
-        <div className="rounded-xl border overflow-hidden" style={{ background: colors.panelBg, borderColor: colors.border }}>
-          <div className="px-4 py-3 border-b text-[13px] font-semibold flex items-center gap-2" style={{ borderColor: colors.border, color: colors.textPrimary }}>
-            <Activity size={15} className="text-[#2E6FD9]" /> Atividade recente
+        {byAssignee.map((a) => (
+          <div key={a.id} style={styles.tableRow}>
+            <span style={{ flex: 1 }}>{a.name}</span>
+            <span style={styles.col}>{a.total}</span>
+            <span style={styles.col}>{a.done}</span>
+            <span style={{ ...styles.col, color: a.overdue > 0 ? '#dc2626' : '#374151', fontWeight: a.overdue > 0 ? 700 : 400 }}>
+              {a.overdue}
+            </span>
           </div>
-          <div className="p-6 text-center text-[13px]" style={{ color: colors.textSecondary }}>
-            Nenhuma atividade registrada ainda.
-          </div>
-        </div>
+        ))}
+        {byAssignee.length === 0 && !error && <p style={styles.hint}>Sem dados ainda.</p>}
       </div>
     </div>
   );
 }
+
+const styles = {
+  error: { color: '#ef4444', fontSize: 14 },
+  cardsRow: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 },
+  card: {
+    flex: '1 1 140px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
+    padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 4,
+  },
+  cardValue: { fontSize: 28, fontWeight: 700 },
+  cardLabel: { fontSize: 13, color: '#6b7280' },
+  sectionTitle: { fontSize: 15, color: NAVY, marginBottom: 10 },
+  table: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' },
+  tableHeader: {
+    display: 'flex', padding: '10px 16px', background: '#f8fafc', fontSize: 12,
+    fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
+  },
+  tableRow: {
+    display: 'flex', padding: '10px 16px', borderTop: '1px solid #f1f5f9', fontSize: 14, color: '#111827',
+  },
+  col: { width: 100, textAlign: 'center' },
+  hint: { padding: 16, fontSize: 13, color: '#6b7280', margin: 0 },
+};
