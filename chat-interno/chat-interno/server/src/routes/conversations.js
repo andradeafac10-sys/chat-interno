@@ -40,7 +40,9 @@ router.get("/", requireAuth, async (req, res) => {
     const { rows: groups } = await pool.query(
       `SELECT g.id, g.name, g.avatar_url, COUNT(gm.user_id)::int AS member_count
        FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
-       GROUP BY g.id ORDER BY g.name`
+       WHERE NOT EXISTS (SELECT 1 FROM hidden_groups hg WHERE hg.group_id = g.id AND hg.user_id = $1)
+       GROUP BY g.id ORDER BY g.name`,
+      [user.id]
     );
     groups.forEach((g) =>
       conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
@@ -67,6 +69,7 @@ router.get("/", requireAuth, async (req, res) => {
        FROM groups g
        JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = $1
        LEFT JOIN group_members gm2 ON gm2.group_id = g.id
+       WHERE NOT EXISTS (SELECT 1 FROM hidden_groups hg WHERE hg.group_id = g.id AND hg.user_id = $1)
        GROUP BY g.id ORDER BY g.name`,
       [user.id]
     );
@@ -203,11 +206,12 @@ router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) 
 
   const kind = req.body.kind === "image" || req.body.kind === "audio" ? req.body.kind : "file";
   const fileUrl = `/uploads/${req.file.filename}`;
+  const legenda = req.body.caption && req.body.caption.trim() ? req.body.caption.trim() : null;
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (conversation_id, sender_id, type, file_url, file_name, file_size, audio_seconds, reply_to_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-    [conversationId, req.user.id, kind, fileUrl, req.file.originalname, req.file.size, req.body.seconds ? Number(req.body.seconds) : null, req.body.replyToId || null]
+    `INSERT INTO messages (conversation_id, sender_id, type, content, file_url, file_name, file_size, audio_seconds, reply_to_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    [conversationId, req.user.id, kind, legenda, fileUrl, req.file.originalname, req.file.size, req.body.seconds ? Number(req.body.seconds) : null, req.body.replyToId || null]
   );
   const message = await hydrateNewMessage(rows[0], req.user);
 
@@ -353,5 +357,31 @@ async function hydrateNewMessage(row, sender) {
   }
   return { ...row, sender_name: sender.name, sender_color: sender.color, sender_avatar_url: sender.avatar_url, reactions: [], ...reply };
 }
+
+// POST /api/conversations/groups/:groupId/hide -> esconde esse grupo só da MINHA lista (não afeta ninguém mais)
+router.post("/groups/:groupId/hide", requireAuth, async (req, res) => {
+  await pool.query(
+    "INSERT INTO hidden_groups (user_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [req.user.id, req.params.groupId]
+  );
+  res.json({ ok: true });
+});
+
+// DELETE /api/conversations/groups/:groupId/hide -> mostra esse grupo de novo na minha lista
+router.delete("/groups/:groupId/hide", requireAuth, async (req, res) => {
+  await pool.query("DELETE FROM hidden_groups WHERE user_id = $1 AND group_id = $2", [req.user.id, req.params.groupId]);
+  res.json({ ok: true });
+});
+
+// GET /api/conversations/hidden-groups -> lista os grupos que EU escondi, pra eu poder trazer de volta
+router.get("/hidden-groups", requireAuth, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT g.id, g.name, g.avatar_url, hg.hidden_at
+     FROM hidden_groups hg JOIN groups g ON g.id = hg.group_id
+     WHERE hg.user_id = $1 ORDER BY hg.hidden_at DESC`,
+    [req.user.id]
+  );
+  res.json({ groups: rows });
+});
 
 module.exports = router;
