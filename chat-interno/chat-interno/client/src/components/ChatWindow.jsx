@@ -282,7 +282,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: colors.chatBg }}>
+    <div className="flex-1 flex flex-col relative" style={{ background: colors.chatBg }}>
       <button
         onClick={() => conversation.type === "group" && setShowGroupSettings(true)}
         className="h-16 flex items-center gap-3 px-4 border-b shrink-0 text-left"
@@ -394,45 +394,83 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       )}
 
       {showPinnedPanel && (
-        <div className="border-b px-4 py-3" style={{ background: colors.headerBg, borderColor: colors.headerBorder }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: colors.textPrimary }}>
-              <Pin size={13} className="text-[#2E6FD9]" /> Fixados ({pinnedList.length}/10)
-            </span>
-            <button onClick={() => setShowPinnedPanel(false)} style={{ color: colors.textSecondary }}>
-              <X size={15} />
-            </button>
-          </div>
-          <div className="max-h-56 overflow-y-auto flex flex-col gap-1">
-            {pinnedList.length === 0 && (
-              <div className="text-xs py-2" style={{ color: colors.textSecondary }}>Nenhuma mensagem fixada ainda.</div>
-            )}
-            {pinnedList.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-2 rounded-lg px-3 py-2"
-                style={{ background: colors.inputFieldBg }}
-              >
-                <button onClick={() => jumpToMessage(p.id)} className="text-left flex-1 min-w-0">
-                  <div className="text-[12px] font-semibold" style={{ color: colors.textPrimary }}>{p.sender_name}</div>
-                  <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>
-                    {p.type === "text" ? p.content : p.type === "image" ? "📷 Foto" : p.type === "audio" ? "🎤 Áudio" : `📎 ${p.file_name}`}
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setShowPinnedPanel(false)} />
+          <div
+            className="absolute top-16 right-4 w-[380px] max-h-[70vh] rounded-xl shadow-2xl border z-40 flex flex-col overflow-hidden"
+            style={{ background: colors.panelBg, borderColor: colors.headerBorder }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: colors.headerBorder }}>
+              <span className="text-[14px] font-semibold flex items-center gap-1.5" style={{ color: colors.textPrimary }}>
+                <Pin size={15} className="text-[#2E6FD9]" /> Mensagens fixadas
+              </span>
+              <button onClick={() => setShowPinnedPanel(false)} style={{ color: colors.textSecondary }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-3 py-3 flex flex-col gap-2.5">
+              {pinnedList.length === 0 && (
+                <div className="text-sm py-6 text-center" style={{ color: colors.textSecondary }}>
+                  Nenhuma mensagem fixada ainda.
+                </div>
+              )}
+              {pinnedList.map((p) => (
+                <div
+                  key={p.id}
+                  className="rounded-lg border overflow-hidden"
+                  style={{ background: colors.inputFieldBg, borderColor: colors.border }}
+                >
+                  <div className="flex items-start gap-2.5 p-3">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden mt-0.5"
+                      style={{ background: p.sender_color || "#2E6FD9" }}
+                    >
+                      {p.sender_avatar_url ? (
+                        <img src={fileUrl(p.sender_avatar_url)} alt={p.sender_name} className="w-full h-full object-cover" />
+                      ) : (
+                        p.sender_name?.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase()
+                      )}
+                    </div>
+
+                    <button onClick={() => jumpToMessage(p.id)} className="text-left flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold" style={{ color: "#2E6FD9" }}>{p.sender_name}</span>
+                        <span className="text-[11px]" style={{ color: colors.textSecondary }}>
+                          {new Date(p.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="text-[13px] mt-0.5 whitespace-pre-wrap break-words" style={{ color: colors.textPrimary }}>
+                        {p.type === "text" ? p.content
+                          : p.type === "image" ? "📷 Foto"
+                          : p.type === "audio" ? "🎤 Áudio"
+                          : `📎 ${p.file_name}`}
+                      </div>
+                      {p.type === "image" && p.file_url && (
+                        <img src={fileUrl(p.file_url)} alt="" className="mt-2 rounded-lg max-h-40 object-cover" />
+                      )}
+                    </button>
+
+                    {isAdm && (
+                      <button
+                        onClick={() => unpinFromPanel(p.id)}
+                        title="Remover dos fixados"
+                        className="shrink-0 hover:text-red-500 mt-0.5"
+                        style={{ color: colors.textSecondary }}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                   </div>
-                </button>
-                {isAdm && (
-                  <button
-                    onClick={() => unpinFromPanel(p.id)}
-                    title="Remover dos fixados"
-                    className="shrink-0 hover:text-red-500"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    <X size={15} />
-                  </button>
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="px-4 py-2 text-[11px] border-t text-center" style={{ borderColor: colors.headerBorder, color: colors.textSecondary }}>
+              {pinnedList.length}/10 fixadas
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1.5">
