@@ -115,3 +115,60 @@ CREATE TABLE IF NOT EXISTS announcement_acks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
+-- ===================================================================
+-- PAINEL GESTÃO — TAREFAS (Etapa 3)
+-- Este bloco não altera nada que já existe. Só adiciona tabelas novas.
+-- ===================================================================
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',       -- pending, in_progress, done, canceled
+  priority VARCHAR(10) NOT NULL DEFAULT 'medium',       -- low, medium, high
+  progress_type VARCHAR(10) NOT NULL DEFAULT 'manual',  -- manual, checklist
+  progress_percent INTEGER NOT NULL DEFAULT 0,
+  due_date TIMESTAMP,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS task_assignees (
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (task_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS task_checklist_items (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  is_done BOOLEAN NOT NULL DEFAULT FALSE,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS task_comments (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS task_history (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  action VARCHAR(50) NOT NULL,   -- created, status_changed, priority_changed, due_date_changed, assignee_added, assignee_removed, checklist_item_done, checklist_item_undone, comment_added, deleted
+  details JSONB,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+CREATE INDEX IF NOT EXISTS idx_task_assignees_user ON task_assignees(user_id);
+CREATE INDEX IF NOT EXISTS idx_task_history_task ON task_history(task_id);
+
