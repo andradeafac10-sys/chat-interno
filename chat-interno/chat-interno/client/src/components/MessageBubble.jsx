@@ -86,7 +86,18 @@ export default function MessageBubble({
         <div className="w-9 shrink-0" />
       )}
 
-      <div className="min-w-0 flex-1" onDoubleClick={() => !m.deleted && onReply(m)}>
+      {!m.deleted && (
+        <button
+          onClick={() => onReply(m)}
+          title="Responder"
+          className="w-6 shrink-0 flex items-start justify-center pt-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color: colors.textSecondary }}
+        >
+          <Reply size={14} />
+        </button>
+      )}
+
+      <div className="min-w-0 flex-1">
         {showHeader && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[14px] font-semibold" style={{ color: colors.textPrimary }}>
