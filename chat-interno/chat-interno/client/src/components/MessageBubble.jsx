@@ -86,7 +86,7 @@ export default function MessageBubble({
         <div className="w-9 shrink-0" />
       )}
 
-      {!m.deleted && (
+      {!m.deleted && !showHeader && (
         <button
           onClick={() => onReply(m)}
           title="Responder"
@@ -103,6 +103,16 @@ export default function MessageBubble({
             <span className="text-[14px] font-semibold" style={{ color: colors.textPrimary }}>
               {m.sender_name}
             </span>
+            {!m.deleted && (
+              <button
+                onClick={() => onReply(m)}
+                title="Responder"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ color: colors.textSecondary }}
+              >
+                <Reply size={13} />
+              </button>
+            )}
             {m.pinned && <Pin size={11} className="text-[#2E6FD9]" />}
           </div>
         )}
@@ -235,9 +245,6 @@ export default function MessageBubble({
                 )}
               </div>
 
-              <button onClick={() => onReply(m)} title="Responder" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-                <Reply size={14} />
-              </button>
               {mine && m.type === "text" && (
                 <button onClick={() => onEdit(m)} title="Editar" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
                   <Pencil size={13} />
