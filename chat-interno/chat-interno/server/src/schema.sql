@@ -212,3 +212,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_recurrence_occurrence
   ON tasks(recurrence_id, occurrence_date) WHERE recurrence_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_recurrences_active ON task_recurrences(active);
+
+-- Grupos que a pessoa escolheu esconder da própria lista (não afeta ninguém
+-- mais nem tira ela do grupo de verdade — é só uma preferência pessoal de visão).
+CREATE TABLE IF NOT EXISTS hidden_groups (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  hidden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, group_id)
+);
