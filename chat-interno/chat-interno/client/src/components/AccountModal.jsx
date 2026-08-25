@@ -1,10 +1,12 @@
 import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye } from "lucide-react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye, LayoutDashboard } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring }) {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -121,6 +123,13 @@ export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring })
                 className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
               >
                 <Eye size={15} /> Monitoria
+              </button>
+              <button
+                onClick={() => { onClose(); navigate("/gestao"); }}
+                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border text-white"
+                style={{ background: "#2E6FD9", borderColor: "#2E6FD9" }}
+              >
+                <LayoutDashboard size={15} /> Ir para Gestão
               </button>
             </>
           )}
