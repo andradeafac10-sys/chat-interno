@@ -56,66 +56,66 @@ export default function Tarefas() {
 
   return (
     <div>
-      <PageHeader
-        title="Tarefas"
-        action={
+      <PageHeader title="Tarefas" subtitle="Acompanhe e organize as tarefas da equipe" />
+
+      <div style={{ padding: '0 24px' }}>
+        <div style={styles.topRow}>
+          <div style={styles.filters}>
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                style={filter === f.key ? styles.filterActive : styles.filter}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
           <button style={styles.newBtn} onClick={() => { setEditingTask(null); setShowForm(true); }}>
             + Nova tarefa
           </button>
-        }
-      />
+        </div>
 
-      <div style={styles.filters}>
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            style={filter === f.key ? styles.filterActive : styles.filter}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+        {loading && <p style={styles.hint}>Carregando tarefas...</p>}
+        {error && <p style={styles.error}>{error}</p>}
 
-      {loading && <p style={styles.hint}>Carregando tarefas...</p>}
-      {error && <p style={styles.error}>{error}</p>}
+        {!loading && !error && tasks.length === 0 && (
+          <p style={styles.hint}>Nenhuma tarefa por aqui ainda.</p>
+        )}
 
-      {!loading && !error && tasks.length === 0 && (
-        <p style={styles.hint}>Nenhuma tarefa por aqui ainda.</p>
-      )}
+        <div style={styles.list}>
+          {tasks.map((task) => (
+            <div key={task.id} style={styles.card} onClick={() => setOpenTaskId(task.id)}>
+              <div style={styles.cardTop}>
+                <span style={{ ...styles.priorityDot, background: PRIORITY_COLORS[task.priority] }} />
+                <h3 style={styles.cardTitle}>{task.title}</h3>
+                {task.is_overdue && <span style={styles.overdueBadge}>Atrasada</span>}
+              </div>
 
-      <div style={styles.list}>
-        {tasks.map((task) => (
-          <div key={task.id} style={styles.card} onClick={() => setOpenTaskId(task.id)}>
-            <div style={styles.cardTop}>
-              <span style={{ ...styles.priorityDot, background: PRIORITY_COLORS[task.priority] }} />
-              <h3 style={styles.cardTitle}>{task.title}</h3>
-              {task.is_overdue && <span style={styles.overdueBadge}>Atrasada</span>}
-            </div>
+              <div style={styles.cardMeta}>
+                <span>{PRIORITY_LABELS[task.priority]}</span>
+                {task.due_date && (
+                  <span>· prazo {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                )}
+                <span>· {statusLabel(task.status)}</span>
+              </div>
 
-            <div style={styles.cardMeta}>
-              <span>{PRIORITY_LABELS[task.priority]}</span>
-              {task.due_date && (
-                <span>· prazo {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+              {(task.assignees || []).length > 0 && (
+                <div style={styles.assigneesRow}>
+                  {task.assignees.map((a) => (
+                    <span key={a.id} style={styles.assigneeChip}>{a.name}</span>
+                  ))}
+                </div>
               )}
-              <span>· {statusLabel(task.status)}</span>
+
+              {task.progress_type === 'checklist' && (
+                <div style={styles.progressOuter}>
+                  <div style={{ ...styles.progressInner, width: `${task.progress_percent}%` }} />
+                </div>
+              )}
             </div>
-
-            {(task.assignees || []).length > 0 && (
-              <div style={styles.assigneesRow}>
-                {task.assignees.map((a) => (
-                  <span key={a.id} style={styles.assigneeChip}>{a.name}</span>
-                ))}
-              </div>
-            )}
-
-            {task.progress_type === 'checklist' && (
-              <div style={styles.progressOuter}>
-                <div style={{ ...styles.progressInner, width: `${task.progress_percent}%` }} />
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {showForm && (
@@ -144,11 +144,15 @@ function statusLabel(status) {
 }
 
 const styles = {
+  topRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 20, marginBottom: 16, flexWrap: 'wrap', gap: 12,
+  },
   newBtn: {
     background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
-    padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
   },
-  filters: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  filters: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   filter: {
     padding: '7px 14px', borderRadius: 999, border: '1px solid #d1d5db', background: '#fff',
     fontSize: 13, cursor: 'pointer', color: '#374151',
@@ -159,7 +163,7 @@ const styles = {
   },
   hint: { color: '#6b7280', fontSize: 14 },
   error: { color: '#ef4444', fontSize: 14 },
-  list: { display: 'flex', flexDirection: 'column', gap: 10 },
+  list: { display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 24 },
   card: {
     background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
     padding: 14, cursor: 'pointer',
