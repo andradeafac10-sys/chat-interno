@@ -6,6 +6,14 @@ import Login from "./pages/Login";
 import Chat from "./pages/Chat";
 import RequireAdmin from "./gestao/RequireAdmin";
 import GestaoApp from "./gestao/GestaoApp";
+import VisaoGeral from "./gestao/pages/VisaoGeral";
+import MinhaRotina from "./gestao/pages/MinhaRotina";
+import Tarefas from "./gestao/pages/Tarefas";
+import Equipe from "./gestao/pages/Equipe";
+import Cronograma from "./gestao/pages/Cronograma";
+import Rotinas from "./gestao/pages/Rotinas";
+import Ranking from "./gestao/pages/Ranking";
+import Historico from "./gestao/pages/Historico";
 
 // Mesmo comportamento de sempre: se está logado mostra o Chat, senão a tela de login.
 // Isso NÃO mudou — só passou a viver dentro da rota "/*" em vez de ser tudo o que existia.
@@ -27,15 +35,26 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter>
           <Routes>
-            {/* /gestao — só ADM entra; RequireAdmin manda de volta pro chat quem não pode */}
+            {/* /gestao — só ADM entra; RequireAdmin manda de volta pro chat quem não pode.
+                GestaoApp é o layout (menu lateral); cada item do menu é uma rota-filha própria. */}
             <Route
-              path="/gestao/*"
+              path="/gestao"
               element={
                 <RequireAdmin>
                   <GestaoApp />
                 </RequireAdmin>
               }
-            />
+            >
+              <Route index element={<VisaoGeral />} />
+              <Route path="minha-rotina" element={<MinhaRotina />} />
+              <Route path="tarefas" element={<Tarefas />} />
+              <Route path="equipe" element={<Equipe />} />
+              <Route path="cronograma" element={<Cronograma />} />
+              <Route path="rotinas" element={<Rotinas />} />
+              <Route path="ranking" element={<Ranking />} />
+              <Route path="historico" element={<Historico />} />
+            </Route>
+
             {/* Qualquer outro caminho continua sendo o Chat de sempre, sem nenhuma mudança */}
             <Route path="/*" element={<Gate />} />
           </Routes>
