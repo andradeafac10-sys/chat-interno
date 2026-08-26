@@ -5,14 +5,6 @@
 html, body, #root { height: 100%; margin: 0; }
 body { background: #111B21; }
 
-@keyframes flash-new-message {
-  0%, 100% { background-color: transparent; box-shadow: inset 3px 0 0 rgba(46, 111, 217, 0); }
-  50% { background-color: rgba(46, 111, 217, 0.35); box-shadow: inset 3px 0 0 rgba(46, 111, 217, 1); }
-}
-.flash-new-message {
-  animation: flash-new-message 0.9s ease-in-out infinite;
-}
-
 /* Fundo do comunicado geral piscando em vermelho pra chamar atenção */
 @keyframes announcement-alert {
   0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
