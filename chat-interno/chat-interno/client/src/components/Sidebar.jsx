@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon, Eye, EyeOff, VolumeX } from "lucide-react";
+import { Search, Plus, Users, Lock, ShieldCheck, LogOut, Settings, UserCog, Megaphone, Sun, Moon, Eye, EyeOff, VolumeX, Pin, PinOff, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
@@ -14,7 +14,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
@@ -30,6 +30,8 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
       return true;
     })
     .sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
       const at = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
       const bt = b.lastMessage?.created_at ? new Date(b.lastMessage.created_at).getTime() : 0;
       return bt - at;
@@ -157,22 +159,44 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium truncate" style={{ color: colors.textPrimary }}>{c.title}</span>
+                  <span className="text-sm font-medium truncate flex items-center gap-1" style={{ color: colors.textPrimary }}>
+                    {c.pinned && <Pin size={11} className="shrink-0 text-[#2E6FD9]" />}
+                    {c.title}
+                  </span>
                   {c.lastMessage && <span className="text-[10px] font-mono shrink-0 ml-1" style={{ color: colors.textSecondary }}>{fmtTime(c.lastMessage.created_at)}</span>}
                   {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#2E6FD9] shrink-0 ml-1" />}
                 </div>
                 <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
-              {c.type === "group" && (
+              <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  onClick={(e) => { e.stopPropagation(); onHideGroup?.(c.groupId, c.title); }}
-                  title="Silenciar (esconder da minha lista)"
-                  className="shrink-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: colors.textSecondary }}
+                  onClick={(e) => { e.stopPropagation(); onTogglePinConversation?.(c.id, !c.pinned); }}
+                  title={c.pinned ? "Desafixar conversa" : "Fixar conversa no topo"}
+                  className="p-1"
+                  style={{ color: c.pinned ? "#2E6FD9" : colors.textSecondary }}
                 >
-                  <VolumeX size={15} />
+                  {c.pinned ? <PinOff size={14} /> : <Pin size={14} />}
                 </button>
-              )}
+                {c.type === "group" ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onHideGroup?.(c.groupId, c.title); }}
+                    title="Silenciar (esconder da minha lista)"
+                    className="p-1"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    <VolumeX size={15} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCloseConversation?.(c.id, c.title); }}
+                    title="Fechar (some da lista, histórico continua salvo)"
+                    className="p-1"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
