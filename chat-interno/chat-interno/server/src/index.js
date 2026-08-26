@@ -31,7 +31,10 @@ app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: clientOrigin, credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 
-const limiter = rateLimit({ windowMs: 60 * 1000, max: 300 });
+// 300/min era baixo demais pra quem usa VPN corporativa (várias pessoas saem pelo
+// mesmo endereço de internet, e a soma de todo mundo passava do limite — chegando
+// a bloquear até o login). Bem mais folgado agora, mesmo assim protegendo contra abuso.
+const limiter = rateLimit({ windowMs: 60 * 1000, max: 3000 });
 app.use("/api", limiter);
 
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
