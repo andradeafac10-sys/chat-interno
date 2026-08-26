@@ -1,7 +1,12 @@
 // Service worker mínimo — só existe pra permitir "Instalar app" no Chrome/Android.
-// Nunca intercepta API, uploads nem o socket — só ajuda a carregar mais rápido
-// o "esqueleto" visual do site (arquivos JS/CSS/HTML fixos).
-const CACHE_NAME = "chat-nacional-v1";
+// Nunca intercepta API, uploads nem o socket.
+//
+// IMPORTANTE: busca sempre a versão mais NOVA primeiro (network-first). Como
+// esse é um sistema que muda com frequência, mostrar uma cópia antiga guardada
+// e só atualizar "por baixo dos panos" fazia a pessoa nunca ver a mudança na
+// primeira vez que recarregava — só a versão anterior. Agora só usa o que está
+// guardado se a pessoa estiver sem internet.
+const CACHE_NAME = "chat-nacional-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -31,17 +36,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const buscaDaRede = fetch(request)
-        .then((resposta) => {
-          if (resposta.ok) {
-            const copia = resposta.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copia));
-          }
-          return resposta;
-        })
-        .catch(() => cached);
-      return cached || buscaDaRede;
-    })
+    fetch(request)
+      .then((resposta) => {
+        if (resposta.ok) {
+          const copia = resposta.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copia));
+        }
+        return resposta;
+      })
+      .catch(() => caches.match(request)) // só usa o cache se a rede falhar (ex: sem internet)
   );
 });
