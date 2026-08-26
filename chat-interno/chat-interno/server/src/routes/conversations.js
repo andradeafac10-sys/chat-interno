@@ -91,11 +91,72 @@ router.get("/", requireAuth, async (req, res) => {
   // ganha um painel de "online" à direita pra iniciar conversa nova com quem quiser).
   // Operador não tem esse painel, então continua vendo todo mundo, senão perderia o
   // jeito de falar com um ADM que ainda não conversou. Grupos sempre aparecem.
-  const resultado = user.role === "admin"
+  let resultado = user.role === "admin"
     ? conversations.filter((c) => c.type !== "dm" || c.lastMessage)
     : conversations;
 
+  // Conversas privadas que a pessoa "fechou" ficam de fora (o histórico continua
+  // existindo — só some da lista até alguém mandar mensagem de novo).
+  const { rows: fechadas } = await pool.query(
+    "SELECT other_user_id FROM closed_dms WHERE user_id = $1",
+    [user.id]
+  );
+  const fechadasIds = new Set(fechadas.map((f) => f.other_user_id));
+  resultado = resultado.filter((c) => c.type !== "dm" || !fechadasIds.has(c.otherUserId));
+
+  // Marca quais estão fixadas, e coloca elas primeiro na lista
+  const { rows: fixadas } = await pool.query(
+    "SELECT conversation_id, pinned_at FROM pinned_conversations WHERE user_id = $1",
+    [user.id]
+  );
+  const fixadasMap = new Map(fixadas.map((f) => [f.conversation_id, f.pinned_at]));
+  resultado = resultado.map((c) => ({ ...c, pinned: fixadasMap.has(c.id), pinnedAt: fixadasMap.get(c.id) || null }));
+  resultado.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    if (a.pinned && b.pinned) return new Date(b.pinnedAt) - new Date(a.pinnedAt);
+    const dataA = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at) : 0;
+    const dataB = b.lastMessage?.created_at ? new Date(b.lastMessage.created_at) : 0;
+    return dataB - dataA;
+  });
+
   res.json({ conversations: resultado });
+});
+
+// POST /api/conversations/:id/pin -> fixa uma conversa no topo da lista (pessoal, não afeta ninguém mais)
+router.post("/:id/pin", requireAuth, async (req, res) => {
+  await pool.query(
+    "INSERT INTO pinned_conversations (user_id, conversation_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [req.user.id, req.params.id]
+  );
+  res.json({ ok: true });
+});
+
+// DELETE /api/conversations/:id/pin -> desafixa
+router.delete("/:id/pin", requireAuth, async (req, res) => {
+  await pool.query(
+    "DELETE FROM pinned_conversations WHERE user_id = $1 AND conversation_id = $2",
+    [req.user.id, req.params.id]
+  );
+  res.json({ ok: true });
+});
+
+// POST /api/conversations/:id/close -> fecha uma conversa PRIVADA (nunca apaga histórico;
+// volta a aparecer sozinha assim que qualquer um dos dois mandar mensagem de novo)
+router.post("/:id/close", requireAuth, async (req, res) => {
+  if (!req.params.id.startsWith("dm-")) {
+    return res.status(400).json({ error: "Só é possível fechar conversas privadas." });
+  }
+  const [, a, b] = req.params.id.split("-").map(Number);
+  const outroId = a === req.user.id ? b : a;
+  if (![a, b].includes(req.user.id)) {
+    return res.status(403).json({ error: "Você não participa dessa conversa." });
+  }
+  await pool.query(
+    "INSERT INTO closed_dms (user_id, other_user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    [req.user.id, outroId]
+  );
+  res.json({ ok: true });
 });
 
 // GET /api/conversations/:id/messages -> histórico (mais recentes primeiro, paginado por 'before')
@@ -198,6 +259,7 @@ router.post("/:id/messages", requireAuth, async (req, res) => {
     [conversationId, req.user.id, text.trim(), replyToId || null]
   );
   const message = await hydrateNewMessage(rows[0], req.user);
+  await reabrirDmSeFechada(conversationId);
 
   broadcast(req, conversationId, "message:new", message);
   res.status(201).json({ message });
@@ -222,6 +284,7 @@ router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) 
     [conversationId, req.user.id, kind, legenda, fileUrl, req.file.originalname, req.file.size, req.body.seconds ? Number(req.body.seconds) : null, req.body.replyToId || null]
   );
   const message = await hydrateNewMessage(rows[0], req.user);
+  await reabrirDmSeFechada(conversationId);
 
   broadcast(req, conversationId, "message:new", message);
   res.status(201).json({ message });
@@ -353,6 +416,17 @@ function broadcast(req, conversationId, event, payload) {
 }
 
 // Monta a mensagem recém-criada já com o preview de "respondendo a" (se houver) e reações vazias
+// Se a conversa for privada e algum dos dois tinha "fechado", reabre pros dois
+// automaticamente — trocar mensagem de novo é sinal claro que a conversa "voltou".
+async function reabrirDmSeFechada(conversationId) {
+  if (!conversationId.startsWith("dm-")) return;
+  const [, a, b] = conversationId.split("-").map(Number);
+  await pool.query(
+    "DELETE FROM closed_dms WHERE (user_id = $1 AND other_user_id = $2) OR (user_id = $2 AND other_user_id = $1)",
+    [a, b]
+  );
+}
+
 async function hydrateNewMessage(row, sender) {
   let reply = {};
   if (row.reply_to_id) {
