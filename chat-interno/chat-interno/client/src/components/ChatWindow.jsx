@@ -47,10 +47,26 @@ function agruparEmBlocos(messages) {
   return blocos;
 }
 
+// Marca quais mensagens (dos outros) ainda estão "sem resposta": chegaram depois
+// da última vez que EU mandei algo nessa conversa. Assim que eu responder, todas
+// elas voltam ao normal — não é sobre ter "visto", é sobre ter respondido.
+function calcularNaoRespondidas(messages, meuId) {
+  let ultimoIndiceMeu = -1;
+  (messages || []).forEach((m, i) => {
+    if (m.sender_id === meuId && !m.deleted) ultimoIndiceMeu = i;
+  });
+  const set = new Set();
+  (messages || []).forEach((m, i) => {
+    if (i > ultimoIndiceMeu && m.sender_id !== meuId && !m.deleted) set.add(m.id);
+  });
+  return set;
+}
+
 export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const isAdm = user.role === "admin";
+  const naoRespondidas = calcularNaoRespondidas(messages, user.id);
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -559,6 +575,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             onReact={reactToMessage}
             onOpenImage={setViewingImage}
             highlightedId={highlightedId}
+            naoRespondidas={naoRespondidas}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
