@@ -44,7 +44,7 @@ function comMencoes(texto) {
 export default function MessageBubble({
   messages, mine, isGroup, isAdm, currentUserId,
   onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage,
-  playingId, setPlayingId, audioRefs, highlightedId,
+  playingId, setPlayingId, audioRefs, highlightedId, naoRespondidas,
 }) {
   const { colors } = useTheme();
   const primeira = messages[0];
@@ -52,7 +52,7 @@ export default function MessageBubble({
   const initials = primeira.sender_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="flex gap-2.5 px-3 pt-2 pb-0.5 rounded-lg">
+    <div className="flex gap-2.5 px-3 pt-1.5 pb-0 rounded-lg">
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden mt-0.5"
         style={{ background: primeira.sender_color || "#2E6FD9" }}
@@ -65,17 +65,19 @@ export default function MessageBubble({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+        <div className="flex items-center gap-2 flex-wrap mb-0">
           <span className="text-[13.5px] font-semibold" style={{ color: colors.textPrimary }}>
             {primeira.sender_name}
           </span>
           <span className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtHora(primeira.created_at)}</span>
         </div>
 
-        {messages.map((m) => (
+        {messages.map((m, i) => (
           <MessageLine
             key={m.id}
             m={m}
+            isFirst={i === 0}
+            precisaResposta={naoRespondidas?.has(m.id)}
             mine={mine}
             isAdm={isAdm}
             currentUserId={currentUserId}
@@ -98,7 +100,7 @@ export default function MessageBubble({
 }
 
 function MessageLine({
-  m, mine, isAdm, currentUserId, colors, highlighted,
+  m, mine, isAdm, currentUserId, colors, highlighted, isFirst, precisaResposta,
   onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage,
   playingId, setPlayingId, audioRefs,
 }) {
@@ -130,8 +132,11 @@ function MessageLine({
   return (
     <div
       id={`msg-${m.id}`}
-      className="group/line relative flex items-start justify-between gap-3 py-0.5 px-1 -mx-1 rounded transition-colors"
-      style={{ background: highlighted ? "rgba(46,111,217,0.2)" : "transparent" }}
+      className="group/line relative flex items-start justify-between gap-3 py-[1px] px-1.5 -mx-1 rounded transition-colors"
+      style={{
+        background: highlighted ? "rgba(46,111,217,0.2)" : "transparent",
+        borderLeft: precisaResposta ? "3px solid #EF4444" : "3px solid transparent",
+      }}
     >
       <div className="min-w-0 flex-1">
         {m.reply_id && (
@@ -226,27 +231,29 @@ function MessageLine({
 
       {/* Ações — só aparecem ao passar o mouse NESSA mensagem específica, sem mexer no resto do bloco */}
       <div className="opacity-0 group-hover/line:opacity-100 transition-opacity flex items-center gap-2 shrink-0 mt-0.5">
-        <div className="relative" onMouseEnter={openPicker} onMouseLeave={closePickerDelayed}>
-          <button title="Reagir" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-            <SmilePlus size={14} />
-          </button>
-          {showReactionPicker && (
-            <div
-              className="absolute bottom-full right-0 mb-1 flex items-center gap-0.5 rounded-full px-2 py-1.5 shadow-lg border z-20"
-              style={{ background: colors.panelBg, borderColor: colors.border }}
-            >
-              {REACOES.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => { onReact(m, emoji); setShowReactionPicker(false); }}
-                  className="text-[18px] hover:scale-125 transition-transform px-0.5"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {isFirst && (
+          <div className="relative" onMouseEnter={openPicker} onMouseLeave={closePickerDelayed}>
+            <button title="Reagir" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+              <SmilePlus size={14} />
+            </button>
+            {showReactionPicker && (
+              <div
+                className="absolute bottom-full right-0 mb-1 flex items-center gap-0.5 rounded-full px-2 py-1.5 shadow-lg border z-20"
+                style={{ background: colors.panelBg, borderColor: colors.border }}
+              >
+                {REACOES.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => { onReact(m, emoji); setShowReactionPicker(false); }}
+                    className="text-[18px] hover:scale-125 transition-transform px-0.5"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <button onClick={() => onReply(m)} title="Responder" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
           <Reply size={13} />
