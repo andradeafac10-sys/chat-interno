@@ -33,36 +33,17 @@ export default function Chat() {
   const [hiddenGroupsCount, setHiddenGroupsCount] = useState(0);
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
-  const [flashIds, setFlashIds] = useState(() => new Set());
+  const [unreadCounts, setUnreadCounts] = useState(() => ({})); // { conversationId: quantidade }
 
-  const blinkTimerRef = useRef(null);
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
-  const startBlink = useCallback(() => {
-    if (blinkTimerRef.current) return; // já piscando
-    let flipped = false;
-    blinkTimerRef.current = setInterval(() => {
-      document.title = flipped ? ORIGINAL_TITLE : "💬 Nova mensagem!";
-      flipped = !flipped;
-    }, 900);
-  }, []);
-
-  const stopBlink = useCallback(() => {
-    if (blinkTimerRef.current) {
-      clearInterval(blinkTimerRef.current);
-      blinkTimerRef.current = null;
-    }
-    document.title = ORIGINAL_TITLE;
-  }, []);
-
+  // Título da aba mostra a quantidade de mensagens não lidas, igual o WhatsApp —
+  // não pisca mais, só atualiza o número.
   useEffect(() => {
-    window.addEventListener("focus", stopBlink);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") stopBlink();
-    });
-    return () => window.removeEventListener("focus", stopBlink);
-  }, [stopBlink]);
+    const total = Object.values(unreadCounts).reduce((soma, n) => soma + n, 0);
+    document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
+  }, [unreadCounts]);
 
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
@@ -144,8 +125,7 @@ export default function Chat() {
       const isMine = message.sender_id === user.id;
       const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
       if (!isMine && !isViewingIt) {
-        startBlink();
-        setFlashIds((prev) => new Set(prev).add(message.conversation_id));
+        setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
       }
     };
@@ -258,7 +238,7 @@ export default function Chat() {
       socket.off("presence:online", onPresenceOnline);
       socket.off("presence:offline", onPresenceOffline);
     };
-  }, [loadConversations, user.id, startBlink]);
+  }, [loadConversations, user.id]);
 
   const setMessagesForConv = (convId, msgs) => {
     setMessagesByConv((prev) => ({ ...prev, [convId]: msgs }));
@@ -274,11 +254,10 @@ export default function Chat() {
 
   const setActiveConvIdAndStopBlink = (id) => {
     setActiveConvId(id);
-    stopBlink();
-    setFlashIds((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
+    setUnreadCounts((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
       return next;
     });
   };
@@ -304,7 +283,7 @@ export default function Chat() {
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
         onlineUsers={onlineUsers}
-        flashIds={flashIds}
+        unreadCounts={unreadCounts}
         onHideGroup={hideGroup}
         onTogglePinConversation={togglePinConversation}
         onCloseConversation={closeConversation}
