@@ -10,8 +10,8 @@ import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
-import PresenceToasts from "../components/PresenceToasts";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
+import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
 import { playNotificationSound } from "../sound";
 
@@ -22,6 +22,7 @@ export default function Chat() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
+  const [pendingConversation, setPendingConversation] = useState(null); // conversa aberta pelo painel de online, ainda sem mensagem
   const [messagesByConv, setMessagesByConv] = useState({});
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
@@ -33,17 +34,6 @@ export default function Chat() {
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
-  const [presenceToasts, setPresenceToasts] = useState([]);
-
-  // Mostra um balão de "fulano online/offline" que some sozinho
-  const mostrarToast = useCallback((userName, online) => {
-    if (!userName) return;
-    const key = `${userName}-${online}-${Date.now()}-${Math.random()}`;
-    setPresenceToasts((prev) => [...prev, { key, userName, online }].slice(-4));
-    setTimeout(() => {
-      setPresenceToasts((prev) => prev.filter((t) => t.key !== key));
-    }, 4000);
-  }, []);
 
   const blinkTimerRef = useRef(null);
   const activeConvIdRef = useRef(activeConvId);
@@ -194,12 +184,10 @@ export default function Chat() {
     const onGroupUpdatedEvent = () => loadConversations();
 
     const onPresenceList = ({ userIds }) => setOnlineUsers(new Set(userIds));
-    const onPresenceOnline = ({ userId, userName }) => {
-      if (userId !== user.id) mostrarToast(userName, true);
+    const onPresenceOnline = ({ userId }) => {
       setOnlineUsers((prev) => new Set(prev).add(userId));
     };
-    const onPresenceOffline = ({ userId, userName }) => {
-      if (userId !== user.id) mostrarToast(userName, false);
+    const onPresenceOffline = ({ userId }) => {
       setOnlineUsers((prev) => {
         const next = new Set(prev);
         next.delete(userId);
@@ -240,7 +228,7 @@ export default function Chat() {
       socket.off("presence:online", onPresenceOnline);
       socket.off("presence:offline", onPresenceOffline);
     };
-  }, [loadConversations, user.id, startBlink, mostrarToast]);
+  }, [loadConversations, user.id, startBlink]);
 
   const setMessagesForConv = (convId, msgs) => {
     setMessagesByConv((prev) => ({ ...prev, [convId]: msgs }));
@@ -265,7 +253,14 @@ export default function Chat() {
     });
   };
 
-  const activeConv = conversations.find((c) => c.id === activeConvId);
+  // Abre (ou começa) uma conversa a partir do painel de "online", mesmo que
+  // ainda não exista histórico de mensagem com essa pessoa.
+  const openFromOnlinePanel = (conv) => {
+    setPendingConversation(conv);
+    setActiveConvIdAndStopBlink(conv.id);
+  };
+
+  const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
     <div className="w-screen h-screen flex" style={{ background: "#111B21" }}>
@@ -290,20 +285,27 @@ export default function Chat() {
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : showMonitoring ? (
         <MonitoringPage onBack={() => setShowMonitoring(false)} />
-      ) : activeConv ? (
-        <ChatWindow
-          key={activeConv.id}
-          conversation={activeConv}
-          messages={messagesByConv[activeConv.id]}
-          setMessagesForConv={setMessagesForConv}
-          onTogglePin={togglePin}
-          onGroupUpdated={loadConversations}
-          isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
-        />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
-          {conversations.length === 0 ? "Nenhuma conversa disponível ainda." : "Selecione uma conversa"}
-        </div>
+        <>
+          {activeConv ? (
+            <ChatWindow
+              key={activeConv.id}
+              conversation={activeConv}
+              messages={messagesByConv[activeConv.id]}
+              setMessagesForConv={setMessagesForConv}
+              onTogglePin={togglePin}
+              onGroupUpdated={loadConversations}
+              isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+              {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
+            </div>
+          )}
+          {user.role === "admin" && (
+            <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
+          )}
+        </>
       )}
 
       {showNewGroup && (
@@ -322,7 +324,6 @@ export default function Chat() {
           onOpenMonitoring={() => setShowMonitoring(true)}
         />
       )}
-      <PresenceToasts toasts={presenceToasts} />
 
       {showHiddenGroups && (
         <HiddenGroupsModal
