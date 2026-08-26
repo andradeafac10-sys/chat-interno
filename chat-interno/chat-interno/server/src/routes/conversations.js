@@ -87,7 +87,15 @@ router.get("/", requireAuth, async (req, res) => {
     conv.lastMessage = rows[0] || null;
   }
 
-  res.json({ conversations });
+  // Conversas privadas sem NENHUMA mensagem ainda ficam de fora da lista do ADM (ele
+  // ganha um painel de "online" à direita pra iniciar conversa nova com quem quiser).
+  // Operador não tem esse painel, então continua vendo todo mundo, senão perderia o
+  // jeito de falar com um ADM que ainda não conversou. Grupos sempre aparecem.
+  const resultado = user.role === "admin"
+    ? conversations.filter((c) => c.type !== "dm" || c.lastMessage)
+    : conversations;
+
+  res.json({ conversations: resultado });
 });
 
 // GET /api/conversations/:id/messages -> histórico (mais recentes primeiro, paginado por 'before')
