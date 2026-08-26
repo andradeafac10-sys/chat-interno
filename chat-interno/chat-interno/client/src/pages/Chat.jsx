@@ -101,13 +101,24 @@ export default function Chat() {
     loadHiddenGroupsCount();
   }, [loadConversations, loadHiddenGroupsCount]);
 
+  // Além de escutar em tempo real (socket), confere sozinho de tempos em tempos
+  // se saiu um comunicado novo — assim ninguém depende só da conexão em tempo real
+  // continuar funcionando pra saber que tem um comunicado esperando.
   useEffect(() => {
-    api.get("/announcements/latest").then(({ data }) => {
-      const a = data.announcement;
-      if (!a) return;
-      const dismissedId = localStorage.getItem(DISMISSED_KEY);
-      if (String(a.id) !== dismissedId) setAnnouncement(a);
-    });
+    let cancelado = false;
+    const checar = () => {
+      api.get("/announcements/latest").then(({ data }) => {
+        if (cancelado) return;
+        const a = data.announcement;
+        if (!a) return;
+        const dismissedId = localStorage.getItem(DISMISSED_KEY);
+        if (String(a.id) === dismissedId) return;
+        setAnnouncement((prev) => (prev?.id === a.id ? prev : a));
+      });
+    };
+    checar();
+    const intervalo = setInterval(checar, 20000);
+    return () => { cancelado = true; clearInterval(intervalo); };
   }, []);
 
   useEffect(() => {
