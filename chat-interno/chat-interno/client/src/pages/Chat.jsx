@@ -84,6 +84,18 @@ export default function Chat() {
     loadHiddenGroupsCount();
   }, [loadConversations, loadHiddenGroupsCount]);
 
+  const togglePinConversation = useCallback(async (conversationId, pinned) => {
+    await api[pinned ? "post" : "delete"](`/conversations/${conversationId}/pin`);
+    loadConversations();
+  }, [loadConversations]);
+
+  const closeConversation = useCallback(async (conversationId, title) => {
+    if (!window.confirm(`Fechar a conversa com "${title}"? O histórico continua salvo — ela volta a aparecer se algum dos dois mandar mensagem de novo.`)) return;
+    await api.post(`/conversations/${conversationId}/close`);
+    if (activeConvIdRef.current === conversationId) setActiveConvId(null);
+    loadConversations();
+  }, [loadConversations]);
+
   useEffect(() => {
     loadConversations();
     loadHiddenGroupsCount();
@@ -107,9 +119,16 @@ export default function Chat() {
         if (!prev[message.conversation_id]) return prev; // conversa ainda não foi aberta/carregada
         return { ...prev, [message.conversation_id]: [...prev[message.conversation_id], message] };
       });
-      setConversations((prev) =>
-        prev.map((c) => (c.id === message.conversation_id ? { ...c, lastMessage: message } : c))
-      );
+      setConversations((prev) => {
+        const jaExiste = prev.some((c) => c.id === message.conversation_id);
+        if (!jaExiste) {
+          // Conversa nova pra mim (ex: acabou de reabrir sozinha por ter sido fechada) —
+          // busca a lista completa de novo pra ela aparecer certinho, com nome/foto etc.
+          loadConversations();
+          return prev;
+        }
+        return prev.map((c) => (c.id === message.conversation_id ? { ...c, lastMessage: message } : c));
+      });
 
       const isMine = message.sender_id === user.id;
       const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
@@ -276,6 +295,8 @@ export default function Chat() {
         onlineUsers={onlineUsers}
         flashIds={flashIds}
         onHideGroup={hideGroup}
+        onTogglePinConversation={togglePinConversation}
+        onCloseConversation={closeConversation}
         hiddenGroupsCount={hiddenGroupsCount}
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
       />
