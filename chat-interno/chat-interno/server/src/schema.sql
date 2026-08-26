@@ -221,3 +221,22 @@ CREATE TABLE IF NOT EXISTS hidden_groups (
   hidden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, group_id)
 );
+
+-- Conversas fixadas no topo da lista (funciona pra DM e grupo, por isso guarda
+-- o ID da conversa como texto em vez de referenciar uma tabela específica).
+CREATE TABLE IF NOT EXISTS pinned_conversations (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id TEXT NOT NULL,
+  pinned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, conversation_id)
+);
+
+-- Conversas privadas (DM) que a pessoa "fechou" — some da lista, mas o histórico
+-- nunca é apagado, e volta a aparecer sozinha assim que qualquer um dos dois manda
+-- mensagem de novo (fechar não é sair, é só arrumar a casa).
+CREATE TABLE IF NOT EXISTS closed_dms (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  other_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  closed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, other_user_id)
+);
