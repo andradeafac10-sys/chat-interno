@@ -28,6 +28,25 @@ const replyPreviewText = (type, content, deleted) => {
   return "📎 Arquivo";
 };
 
+// Junta em "blocos" as mensagens seguidas da mesma pessoa, dentro do mesmo minuto —
+// igual o Discord faz. Uma resposta (reply) sempre começa um bloco novo, pra não
+// confundir quem está lendo sobre a qual mensagem ela se refere.
+function agruparEmBlocos(messages) {
+  const blocos = [];
+  for (const m of messages || []) {
+    const ultimoBloco = blocos[blocos.length - 1];
+    const ultimaMsg = ultimoBloco?.[ultimoBloco.length - 1];
+    const mesmaPessoa = ultimaMsg && !ultimaMsg.deleted && !m.deleted && ultimaMsg.sender_id === m.sender_id;
+    const mesmoMinuto = ultimaMsg && Math.abs(new Date(m.created_at) - new Date(ultimaMsg.created_at)) < 60000;
+    if (ultimoBloco && mesmaPessoa && mesmoMinuto && !m.reply_id) {
+      ultimoBloco.push(m);
+    } else {
+      blocos.push([m]);
+    }
+  }
+  return blocos;
+}
+
 export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -525,35 +544,26 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         {!loadingHistory && (messages || []).length === 0 && (
           <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
-        {(messages || []).map((m, idx) => {
-          const anterior = messages[idx - 1];
-          // Agrupa (esconde nome/foto repetidos) quando é a mesma pessoa mandando
-          // dentro do mesmo minuto — igual o Discord faz com mensagens em sequência.
-          const mesmaPessoa = anterior && !anterior.deleted && !m.deleted && anterior.sender_id === m.sender_id;
-          const mesmoMinuto = anterior && Math.abs(new Date(m.created_at) - new Date(anterior.created_at)) < 60000;
-          const showHeader = !(mesmaPessoa && mesmoMinuto && !m.reply_id);
-          return (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              mine={m.sender_id === user.id}
-              isGroup={conversation.type === "group"}
-              isAdm={isAdm}
-              currentUserId={user.id}
-              onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
-              onReply={startReply}
-              onEdit={startEdit}
-              onDelete={deleteMessage}
-              onReact={reactToMessage}
-              onOpenImage={setViewingImage}
-              highlighted={highlightedId === m.id}
-              showHeader={showHeader}
-              playingId={playingId}
-              setPlayingId={setPlayingId}
-              audioRefs={audioRefs}
-            />
-          );
-        })}
+        {agruparEmBlocos(messages).map((bloco) => (
+          <MessageBubble
+            key={bloco[0].id}
+            messages={bloco}
+            mine={bloco[0].sender_id === user.id}
+            isGroup={conversation.type === "group"}
+            isAdm={isAdm}
+            currentUserId={user.id}
+            onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
+            onReply={startReply}
+            onEdit={startEdit}
+            onDelete={deleteMessage}
+            onReact={reactToMessage}
+            onOpenImage={setViewingImage}
+            highlightedId={highlightedId}
+            playingId={playingId}
+            setPlayingId={setPlayingId}
+            audioRefs={audioRefs}
+          />
+        ))}
       </div>
 
       <div className="border-t px-3 py-3 shrink-0" style={{ background: colors.inputBarBg, borderColor: colors.headerBorder }}>
