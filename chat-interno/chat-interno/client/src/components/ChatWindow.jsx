@@ -72,6 +72,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [seconds, setSeconds] = useState(0);
   const [playingId, setPlayingId] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
   const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl } — foto escolhida, aguardando legenda antes de enviar
@@ -100,11 +102,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
   useEffect(() => {
     setLoadingHistory(true);
+    setHasMoreOlder(true);
     setReplyingTo(null);
     setEditingMessage(null);
     setDraft("");
     api.get(`/conversations/${conversation.id}/messages`).then(({ data }) => {
       setMessagesForConv(conversation.id, data.messages);
+      setHasMoreOlder(data.messages.length >= 50);
       setLoadingHistory(false);
     });
     // Já deixa o campo de digitar pronto pra escrever, sem precisar clicar nele
@@ -315,6 +319,38 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       setSearchResults(data.messages);
     } finally {
       setSearching(false);
+    }
+  };
+
+  // Carrega mensagens mais antigas quando a pessoa rola até perto do topo da conversa
+  const carregarMaisAntigas = async () => {
+    if (loadingOlder || !hasMoreOlder || !messages?.length) return;
+    setLoadingOlder(true);
+    const container = scrollRef.current;
+    const alturaAntes = container?.scrollHeight || 0;
+    try {
+      const maisAntiga = messages[0];
+      const { data } = await api.get(`/conversations/${conversation.id}/messages`, {
+        params: { before: maisAntiga.created_at },
+      });
+      if (data.messages.length === 0) {
+        setHasMoreOlder(false);
+      } else {
+        setMessagesForConv(conversation.id, [...data.messages, ...messages]);
+        setHasMoreOlder(data.messages.length >= 50);
+        // Mantém a pessoa olhando pro mesmo lugar de antes, sem "pular" a tela
+        requestAnimationFrame(() => {
+          if (container) container.scrollTop = container.scrollHeight - alturaAntes;
+        });
+      }
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
+  const handleScroll = () => {
+    if (scrollRef.current && scrollRef.current.scrollTop < 150) {
+      carregarMaisAntigas();
     }
   };
 
@@ -556,7 +592,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         </>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+        {loadingOlder && (
+          <div className="text-center text-xs py-2" style={{ color: colors.textSecondary }}>Carregando mensagens antigas...</div>
+        )}
         {!loadingHistory && (messages || []).length === 0 && (
           <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
@@ -574,6 +613,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             onDelete={deleteMessage}
             onReact={reactToMessage}
             onOpenImage={setViewingImage}
+            onJumpToMessage={jumpToMessage}
             highlightedId={highlightedId}
             naoRespondidas={naoRespondidas}
             playingId={playingId}
