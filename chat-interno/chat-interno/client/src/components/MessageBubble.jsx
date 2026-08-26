@@ -135,9 +135,14 @@ export default function MessageBubble({
                 </button>
               )}
               {isAdm && (
-                <button onClick={() => onTogglePin(primeira)} title={primeira.pinned ? "Desafixar" : "Fixar"} className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-                  {primeira.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                </button>
+                <>
+                  <button onClick={() => onDelete(primeira)} title="Apagar" className="hover:text-red-500" style={{ color: colors.textSecondary }}>
+                    <Trash2 size={13} />
+                  </button>
+                  <button onClick={() => onTogglePin(primeira)} title={primeira.pinned ? "Desafixar" : "Fixar"} className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
+                    {primeira.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -287,16 +292,19 @@ function MessageLine({
         )}
       </div>
 
-      {/* Zona do lado direito: dois cliques aqui responde a ESSA mensagem específica
-          (igual o WhatsApp), sem atrapalhar a seleção de texto do lado esquerdo. */}
-      <div
-        onDoubleClick={() => onReply(m)}
-        title="Dois cliques para responder"
-        className="w-10 shrink-0 self-stretch flex items-start justify-end pt-0.5"
-      >
+      {/* Aparece ao passar o mouse por cima dessa mensagem específica */}
+      <div className="w-14 shrink-0 self-stretch flex items-start justify-end gap-1.5 pt-0.5">
+        <button
+          onClick={() => onReply(m)}
+          title="Responder"
+          className="opacity-0 group-hover/line:opacity-100 transition-opacity hover:text-[#2E6FD9]"
+          style={{ color: colors.textSecondary }}
+        >
+          <Reply size={13} />
+        </button>
         {isAdm && (
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(m); }}
+            onClick={() => onDelete(m)}
             title="Apagar"
             className="opacity-0 group-hover/line:opacity-100 transition-opacity hover:text-red-500"
             style={{ color: colors.textSecondary }}
