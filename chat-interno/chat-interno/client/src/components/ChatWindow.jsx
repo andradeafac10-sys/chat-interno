@@ -87,8 +87,18 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       .catch(() => setGroupMembers([]));
   }, [conversation.type, conversation.groupId]);
 
+  // Só rola a tela pra baixo quando chega mensagem NOVA de verdade (mais mensagens
+  // na lista, ou a última mudou de id) — reagir, editar, fixar etc. não deve mexer
+  // na posição da tela, senão a pessoa perde o lugar que estava lendo.
+  const ultimaMensagemRef = useRef(null);
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const ultima = messages?.[messages.length - 1];
+    const ultimaAntes = ultimaMensagemRef.current;
+    const chegouMensagemNova = ultima && (!ultimaAntes || ultima.id !== ultimaAntes.id);
+    ultimaMensagemRef.current = ultima || null;
+    if (chegouMensagemNova) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    }
   }, [messages]);
 
   const mentionCandidates = groupMembers
