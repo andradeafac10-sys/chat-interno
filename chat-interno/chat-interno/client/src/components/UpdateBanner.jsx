@@ -29,7 +29,7 @@ export default function UpdateBanner() {
     };
 
     checar();
-    const intervalo = setInterval(checar, 5000); // confere a cada 5 segundos
+    const intervalo = setInterval(checar, 30000); // confere a cada 30 segundos (5s era rápido demais e ajudava a estourar o limite de pedidos numa VPN)
     return () => { cancelado = true; clearInterval(intervalo); };
   }, []);
 
