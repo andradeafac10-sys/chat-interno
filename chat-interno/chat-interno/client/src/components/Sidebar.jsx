@@ -14,7 +14,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, flashIds, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
@@ -26,7 +26,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
     .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
     .filter((c) => {
       if (tab === "groups") return c.type === "group";
-      if (tab === "unread") return flashIds?.has(c.id);
+      if (tab === "unread") return !!unreadCounts?.[c.id];
       return true;
     })
     .sort((a, b) => {
@@ -142,7 +142,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               tabIndex={0}
               onClick={() => setActiveConvId(c.id)}
               onKeyDown={(e) => e.key === "Enter" && setActiveConvId(c.id)}
-              className={`group w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left cursor-pointer ${flashIds?.has(c.id) ? "flash-new-message" : ""}`}
+              className="group w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-left cursor-pointer"
               style={{ background: active ? colors.sidebarActive : "transparent" }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || "#2E6FD9" }}>
@@ -164,7 +164,14 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                     {c.title}
                   </span>
                   {c.lastMessage && <span className="text-[10px] font-mono shrink-0 ml-1" style={{ color: colors.textSecondary }}>{fmtTime(c.lastMessage.created_at)}</span>}
-                  {flashIds?.has(c.id) && <span className="w-2 h-2 rounded-full bg-[#2E6FD9] shrink-0 ml-1" />}
+                  {unreadCounts?.[c.id] > 0 && (
+                    <span
+                      className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-bold shrink-0 ml-1 flex items-center justify-center"
+                      title={`${unreadCounts[c.id]} não lida(s)`}
+                    >
+                      {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
               </div>
