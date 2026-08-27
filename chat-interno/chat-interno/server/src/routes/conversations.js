@@ -64,6 +64,24 @@ router.get("/", requireAuth, async (req, res) => {
       })
     );
 
+    // Conversas privadas com os OUTROS operadores — como agora dá pra monitorar
+    // tudo (ADM vê conversas envolvendo operador), abrir essa comunicação direta
+    // entre operadores também.
+    const { rows: otherOperators } = await pool.query(
+      "SELECT id, name, color, avatar_url FROM users WHERE role = 'operator' AND active = true AND id != $1 ORDER BY name",
+      [user.id]
+    );
+    otherOperators.forEach((op) =>
+      conversations.push({
+        id: pairDmId(user.id, op.id),
+        type: "dm",
+        title: op.name,
+        color: op.color,
+        avatarUrl: op.avatar_url,
+        otherUserId: op.id,
+      })
+    );
+
     const { rows: groups } = await pool.query(
       `SELECT g.id, g.name, g.avatar_url, COUNT(gm2.user_id)::int AS member_count
        FROM groups g
@@ -87,13 +105,10 @@ router.get("/", requireAuth, async (req, res) => {
     conv.lastMessage = rows[0] || null;
   }
 
-  // Conversas privadas sem NENHUMA mensagem ainda ficam de fora da lista do ADM (ele
-  // ganha um painel de "online" à direita pra iniciar conversa nova com quem quiser).
-  // Operador não tem esse painel, então continua vendo todo mundo, senão perderia o
-  // jeito de falar com um ADM que ainda não conversou. Grupos sempre aparecem.
-  let resultado = user.role === "admin"
-    ? conversations.filter((c) => c.type !== "dm" || c.lastMessage)
-    : conversations;
+  // Conversas privadas sem NENHUMA mensagem ainda ficam de fora da lista pessoal —
+  // agora todo mundo (ADM e operador) tem o painel de "online" à direita pra iniciar
+  // conversa nova com quem quiser. Grupos sempre aparecem.
+  let resultado = conversations.filter((c) => c.type !== "dm" || c.lastMessage);
 
   // Conversas privadas que a pessoa "fechou" ficam de fora (o histórico continua
   // existindo — só some da lista até alguém mandar mensagem de novo).
