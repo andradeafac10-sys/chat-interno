@@ -6,6 +6,7 @@ import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
+import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
@@ -26,6 +27,7 @@ export default function Chat() {
   const [messagesByConv, setMessagesByConv] = useState({});
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
@@ -278,7 +280,7 @@ export default function Chat() {
         activeConvId={activeConvId}
         setActiveConvId={setActiveConvIdAndStopBlink}
         onNewGroup={() => setShowNewGroup(true)}
-        onOpenAccount={() => setShowAccount(true)}
+        onOpenAccount={() => (user.role === "admin" ? setShowAdminPanel(true) : setShowAccount(true))}
         onOpenUsers={() => setShowUsers(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
@@ -296,6 +298,8 @@ export default function Chat() {
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : showMonitoring ? (
         <MonitoringPage onBack={() => setShowMonitoring(false)} />
+      ) : showAdminPanel ? (
+        <AdminPanel onBack={() => setShowAdminPanel(false)} />
       ) : (
         <>
           {activeConv ? (
