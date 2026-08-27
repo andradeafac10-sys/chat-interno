@@ -22,17 +22,29 @@ const replyPreviewText = (type, content, deleted) => {
   return "📎 Arquivo";
 };
 
-// Destaca menções tipo @Nome dentro do texto
+// Destaca @menções e aplica formatação estilo WhatsApp: *negrito*, _itálico_, ~riscado~
 function comMencoes(texto) {
   if (!texto) return texto;
-  const partes = String(texto).split(/(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)/g);
-  return partes.map((parte, i) =>
-    parte.startsWith("@") ? (
-      <span key={i} className="font-semibold text-[#2E6FD9]">{parte}</span>
-    ) : (
-      parte
-    )
-  );
+  const regex = /(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)|\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~/g;
+  const partes = [];
+  let ultimo = 0;
+  let key = 0;
+  let m;
+  while ((m = regex.exec(texto)) !== null) {
+    if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
+    if (m[1]) {
+      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
+    } else if (m[2] !== undefined) {
+      partes.push(<strong key={key++}>{m[2]}</strong>);
+    } else if (m[3] !== undefined) {
+      partes.push(<em key={key++}>{m[3]}</em>);
+    } else if (m[4] !== undefined) {
+      partes.push(<s key={key++}>{m[4]}</s>);
+    }
+    ultimo = regex.lastIndex;
+  }
+  if (ultimo < texto.length) partes.push(texto.slice(ultimo));
+  return partes;
 }
 
 // Baixa o arquivo de verdade (fetch + blob) em vez de deixar o navegador abrir na
@@ -228,7 +240,7 @@ function MessageLine({
             </button>
             {m.content && (
               <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words mt-1.5 max-w-[320px]" style={{ color: colors.textPrimary }}>
-                {m.content}
+                {comMencoes(m.content)}
               </div>
             )}
           </div>
