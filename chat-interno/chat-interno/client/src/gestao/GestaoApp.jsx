@@ -2,7 +2,7 @@ import React from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
   ArrowLeft, LayoutDashboard, CalendarCheck, ClipboardList, Users,
-  CalendarDays, Repeat, Trophy, History as HistoryIcon,
+  Repeat, Trophy,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -12,10 +12,8 @@ const MENU = [
   { to: "/gestao/minha-rotina", label: "Minha Rotina", icon: CalendarCheck },
   { to: "/gestao/tarefas", label: "Tarefas", icon: ClipboardList },
   { to: "/gestao/equipe", label: "Equipe", icon: Users },
-  { to: "/gestao/cronograma", label: "Cronograma", icon: CalendarDays },
   { to: "/gestao/rotinas", label: "Rotinas", icon: Repeat },
   { to: "/gestao/ranking", label: "Ranking", icon: Trophy },
-  { to: "/gestao/historico", label: "Histórico", icon: HistoryIcon },
 ];
 
 /**
