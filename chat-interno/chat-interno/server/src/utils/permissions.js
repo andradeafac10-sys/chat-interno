@@ -35,4 +35,26 @@ async function canAccessConversation(user, conversationId) {
   return false;
 }
 
-module.exports = { canAccessConversation, pairDmId, groupConvId };
+/**
+ * O ADM pode "espiar" (monitorar) uma conversa mesmo sem participar dela?
+ * Mesma regra usada na tela de Monitoria: só quando pelo menos uma das duas
+ * pessoas é operador — ADM↔ADM nunca é monitorável, fica sempre privado.
+ */
+async function canMonitorConversation(user, conversationId) {
+  if (user.role !== "admin") return false;
+
+  if (conversationId.startsWith("dm-")) {
+    const [, a, b] = conversationId.split("-");
+    const { rows } = await pool.query(
+      "SELECT role FROM users WHERE id = ANY($1::int[])",
+      [[Number(a), Number(b)]]
+    );
+    return rows.some((r) => r.role === "operator");
+  }
+
+  if (conversationId.startsWith("group-")) return true;
+
+  return false;
+}
+
+module.exports = { canAccessConversation, canMonitorConversation, pairDmId, groupConvId };
