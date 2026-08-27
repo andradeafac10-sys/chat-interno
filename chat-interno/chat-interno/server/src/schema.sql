@@ -240,3 +240,21 @@ CREATE TABLE IF NOT EXISTS closed_dms (
   closed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, other_user_id)
 );
+
+-- ============================================================
+-- ROTINAS COMO LISTA DE AFAZERES — cada ocorrência de rotina vira
+-- uma linha simples de "feito / não feito", em vez de uma tarefa
+-- completa. Reaproveita task_recurrences/recurrence_assignees (a
+-- "receita" da rotina) já existentes.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS routine_completions (
+  id SERIAL PRIMARY KEY,
+  recurrence_id INTEGER NOT NULL REFERENCES task_recurrences(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  occurrence_date DATE NOT NULL,
+  done BOOLEAN NOT NULL DEFAULT FALSE,
+  done_at TIMESTAMPTZ,
+  UNIQUE (recurrence_id, user_id, occurrence_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_routine_completions_user_date ON routine_completions(user_id, occurrence_date);
