@@ -317,9 +317,7 @@ export default function Chat() {
               {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
             </div>
           )}
-          {user.role === "admin" && (
-            <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
-          )}
+          <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
         </>
       )}
 
