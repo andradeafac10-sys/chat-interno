@@ -20,6 +20,38 @@ function realcar(texto, termo) {
   );
 }
 
+// Calcula em que posição (x, y) da tela um caractere específico do texto do
+// campo de digitar cai — textarea não tem isso pronto, então criamos uma cópia
+// invisível idêntica (mesma fonte/espaçamento) só pra medir onde o texto "quebra".
+function posicaoDoCaractere(textarea, posicao) {
+  const div = document.createElement("div");
+  const estilo = window.getComputedStyle(textarea);
+  const propriedades = [
+    "boxSizing", "width", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+    "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth",
+    "fontFamily", "fontSize", "fontWeight", "fontStyle", "letterSpacing", "lineHeight",
+    "textTransform", "wordSpacing", "textIndent",
+  ];
+  propriedades.forEach((p) => { div.style[p] = estilo[p]; });
+  div.style.position = "absolute";
+  div.style.visibility = "hidden";
+  div.style.whiteSpace = "pre-wrap";
+  div.style.wordWrap = "break-word";
+  div.style.top = "0";
+  div.style.left = "-9999px";
+
+  div.textContent = textarea.value.substring(0, posicao);
+  const span = document.createElement("span");
+  span.textContent = textarea.value.substring(posicao) || ".";
+  div.appendChild(span);
+
+  document.body.appendChild(div);
+  const x = span.offsetLeft - textarea.scrollLeft;
+  const y = span.offsetTop - textarea.scrollTop;
+  document.body.removeChild(div);
+  return { x, y };
+}
+
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
   if (type === "text") return content;
@@ -190,11 +222,18 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   // Mostra a barrinha de formatar (B/I/S) sempre que existir um trecho selecionado
-  // dentro do campo de digitar — igual o WhatsApp faz.
+  // dentro do campo de digitar — bem em cima de onde a seleção está, igual o WhatsApp.
   const handleSelectionChange = (e) => {
     const { selectionStart, selectionEnd } = e.target;
     if (selectionStart !== selectionEnd) {
-      setSelecaoTexto({ start: selectionStart, end: selectionEnd });
+      const inicio = posicaoDoCaractere(e.target, selectionStart);
+      const fim = posicaoDoCaractere(e.target, selectionEnd);
+      setSelecaoTexto({
+        start: selectionStart,
+        end: selectionEnd,
+        x: (inicio.x + fim.x) / 2, // centraliza a barrinha entre o começo e o fim do trecho
+        y: Math.min(inicio.y, fim.y),
+      });
     } else {
       setSelecaoTexto(null);
     }
@@ -738,8 +777,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
               {selecaoTexto && (
                 <div
-                  className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-lg shadow-lg border px-1 py-1 z-30"
-                  style={{ background: colors.panelBg, borderColor: colors.border }}
+                  className="absolute flex items-center gap-0.5 rounded-lg shadow-lg border px-1 py-1 z-30"
+                  style={{
+                    background: colors.panelBg,
+                    borderColor: colors.border,
+                    left: selecaoTexto.x,
+                    top: selecaoTexto.y,
+                    transform: "translate(-50%, calc(-100% - 8px))",
+                  }}
                 >
                   <button
                     onMouseDown={(e) => { e.preventDefault(); aplicarFormatacao("*"); }}
