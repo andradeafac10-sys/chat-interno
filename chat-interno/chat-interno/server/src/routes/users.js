@@ -13,6 +13,16 @@ router.get("/", requireAuth, requireAdmin, async (req, res) => {
   res.json({ users: rows });
 });
 
+// GET /api/users/directory -> lista básica de todo mundo ativo (id, nome, foto, cargo),
+// aberta pra qualquer pessoa logada — usada só pelo painel de "quem está online".
+// Não expõe username nem outros dados de gestão de conta.
+router.get("/directory", requireAuth, async (req, res) => {
+  const { rows } = await pool.query(
+    "SELECT id, name, role, color, avatar_url FROM users WHERE active = true ORDER BY name"
+  );
+  res.json({ users: rows });
+});
+
 // GET /api/users/manage -> lista TODOS os usuários (admins + operadores) para a tela de gestão de acessos
 router.get("/manage", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
