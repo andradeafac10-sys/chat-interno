@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -76,7 +76,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
-  const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl } — foto escolhida, aguardando legenda antes de enviar
+  const [pendingUpload, setPendingUpload] = useState(null); // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -189,14 +189,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   const sendText = async () => {
-    if (pendingImage) {
+    if (pendingUpload) {
       const legenda = draft.trim();
-      const { file, previewUrl } = pendingImage;
-      setPendingImage(null);
+      const { file, kind, previewUrl } = pendingUpload;
+      setPendingUpload(null);
       setDraft("");
       resetInputHeight();
-      URL.revokeObjectURL(previewUrl);
-      await uploadFile(file, "image", undefined, legenda || undefined);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      await uploadFile(file, kind, undefined, legenda || undefined);
       return;
     }
 
@@ -231,9 +231,9 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     });
   };
 
-  const cancelarImagemPendente = () => {
-    if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
-    setPendingImage(null);
+  const cancelarUploadPendente = () => {
+    if (pendingUpload?.previewUrl) URL.revokeObjectURL(pendingUpload.previewUrl);
+    setPendingUpload(null);
     setDraft("");
     resetInputHeight();
   };
@@ -242,8 +242,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     const file = e.target.files?.[0];
     if (!file) { e.target.value = ""; return; }
 
-    if (kind === "image") {
-      setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+    // Imagem e arquivo (PDF etc.) esperam a pessoa escrever uma legenda antes de enviar.
+    // Áudio gravado tem fluxo próprio (não passa por aqui).
+    if (kind === "image" || kind === "file") {
+      setPendingUpload({ file, kind, previewUrl: kind === "image" ? URL.createObjectURL(file) : null });
       setTimeout(() => inputRef.current?.focus(), 0);
     } else {
       uploadFile(file, kind);
@@ -639,14 +641,20 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           </div>
         )}
 
-        {pendingImage && (
+        {pendingUpload && (
           <div className="flex items-center gap-3 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
-            <img src={pendingImage.previewUrl} alt="Prévia" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            {pendingUpload.kind === "image" ? (
+              <img src={pendingUpload.previewUrl} alt="Prévia" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
+                <FileIcon size={22} color="#2E6FD9" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium text-[#2E6FD9]">Enviar foto</div>
-              <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{pendingImage.file.name}</div>
+              <div className="text-[11px] font-medium text-[#2E6FD9]">{pendingUpload.kind === "image" ? "Enviar foto" : "Enviar arquivo"}</div>
+              <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{pendingUpload.file.name}</div>
             </div>
-            <button onClick={cancelarImagemPendente} className="shrink-0" style={{ color: colors.textSecondary }}>
+            <button onClick={cancelarUploadPendente} className="shrink-0" style={{ color: colors.textSecondary }}>
               <X size={16} />
             </button>
           </div>
@@ -685,7 +693,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                     if (file) setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
                   }
                 }}
-                placeholder={pendingImage ? "Escreva uma legenda (opcional)" : "Escreva uma mensagem (Shift+Enter pula linha)"}
+                placeholder={pendingUpload ? "Escreva uma legenda (opcional)" : "Escreva uma mensagem (Shift+Enter pula linha)"}
                 rows={1}
                 className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none max-h-40 overflow-y-auto"
                 style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
@@ -717,7 +725,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               )}
             </div>
 
-            {draft.trim() || pendingImage ? (
+            {draft.trim() || pendingUpload ? (
               <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2E6FD9" }}>
                 <Send size={16} />
               </button>
