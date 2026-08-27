@@ -77,6 +77,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
   const [pendingUpload, setPendingUpload] = useState(null); // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
+  const [selecaoTexto, setSelecaoTexto] = useState(null); // { start, end } — trecho selecionado no campo de digitar, pra mostrar B/I/S
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -186,6 +187,36 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
   const resetInputHeight = () => {
     if (inputRef.current) inputRef.current.style.height = "auto";
+  };
+
+  // Mostra a barrinha de formatar (B/I/S) sempre que existir um trecho selecionado
+  // dentro do campo de digitar — igual o WhatsApp faz.
+  const handleSelectionChange = (e) => {
+    const { selectionStart, selectionEnd } = e.target;
+    if (selectionStart !== selectionEnd) {
+      setSelecaoTexto({ start: selectionStart, end: selectionEnd });
+    } else {
+      setSelecaoTexto(null);
+    }
+  };
+
+  // Envolve o trecho selecionado com o marcador (*negrito*, _itálico_, ~riscado~)
+  const aplicarFormatacao = (marcador) => {
+    if (!selecaoTexto || !inputRef.current) return;
+    const { start, end } = selecaoTexto;
+    const selecionado = draft.slice(start, end);
+    const novoTexto = draft.slice(0, start) + marcador + selecionado + marcador + draft.slice(end);
+    setDraft(novoTexto);
+    setSelecaoTexto(null);
+
+    // Devolve o foco e seleciona o texto (agora com os marcadores) pra pessoa
+    // poder aplicar outro estilo em seguida, se quiser
+    setTimeout(() => {
+      inputRef.current?.focus();
+      const novoInicio = start + marcador.length;
+      const novoFim = novoInicio + selecionado.length;
+      inputRef.current?.setSelectionRange(novoInicio, novoFim);
+    }, 0);
   };
 
   const sendText = async () => {
@@ -685,12 +716,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                 value={draft}
                 onChange={handleDraftChange}
                 onKeyDown={handleInputKeyDown}
+                onSelect={handleSelectionChange}
+                onBlur={() => setSelecaoTexto(null)}
                 onPaste={(e) => {
                   const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
                   if (item) {
                     e.preventDefault();
                     const file = item.getAsFile();
-                    if (file) setPendingImage({ file, previewUrl: URL.createObjectURL(file) });
+                    if (file) setPendingUpload({ file, kind: "image", previewUrl: URL.createObjectURL(file) });
                   }
                 }}
                 placeholder={pendingUpload ? "Escreva uma legenda (opcional)" : "Escreva uma mensagem (Shift+Enter pula linha)"}
@@ -702,6 +735,38 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                   e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
                 }}
               />
+
+              {selecaoTexto && (
+                <div
+                  className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-lg shadow-lg border px-1 py-1 z-30"
+                  style={{ background: colors.panelBg, borderColor: colors.border }}
+                >
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); aplicarFormatacao("*"); }}
+                    title="Negrito"
+                    className="w-8 h-8 rounded flex items-center justify-center font-bold text-[14px] hover:bg-black/5"
+                    style={{ color: colors.textPrimary }}
+                  >
+                    B
+                  </button>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); aplicarFormatacao("_"); }}
+                    title="Itálico"
+                    className="w-8 h-8 rounded flex items-center justify-center italic text-[14px] hover:bg-black/5"
+                    style={{ color: colors.textPrimary }}
+                  >
+                    I
+                  </button>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); aplicarFormatacao("~"); }}
+                    title="Riscado"
+                    className="w-8 h-8 rounded flex items-center justify-center line-through text-[14px] hover:bg-black/5"
+                    style={{ color: colors.textPrimary }}
+                  >
+                    S
+                  </button>
+                </div>
+              )}
 
               {showMentions && mentionCandidates.length > 0 && (
                 <div
