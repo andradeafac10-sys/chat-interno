@@ -58,4 +58,8 @@ export const gestaoApi = {
   updateRecurrence: (id, payload) => request(`/recurrences/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteRecurrence: (id) => request(`/recurrences/${id}`, { method: 'DELETE' }),
   generateOccurrencesNow: () => request('/recurrences/generate', { method: 'POST' }),
+  minhasRotinas: () => request('/recurrences/minhas'),
+  marcarRotina: (completionId, done) =>
+    request(`/recurrences/completions/${completionId}`, { method: 'PATCH', body: JSON.stringify({ done }) }),
+  ranking: (periodo) => request(`/recurrences/ranking/dados?periodo=${periodo}`),
 };
