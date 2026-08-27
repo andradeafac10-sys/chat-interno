@@ -15,8 +15,17 @@ import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
 import { playNotificationSound } from "../sound";
+import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
 const ORIGINAL_TITLE = "Chat Nacional";
+
+// Resumo curto do conteúdo, pra mostrar na notificação do sistema
+function previaDaMensagem(m) {
+  if (m.type === "text") return m.content;
+  if (m.type === "image") return m.content ? `📷 ${m.content}` : "📷 Foto";
+  if (m.type === "audio") return "🎤 Áudio";
+  return "📎 Arquivo";
+}
 const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
@@ -47,6 +56,11 @@ export default function Chat() {
     document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
   }, [unreadCounts]);
 
+  // Pede permissão de notificação do sistema uma vez, assim que o chat abre
+  useEffect(() => {
+    pedirPermissaoNotificacao();
+  }, []);
+
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
     setConversations(data.conversations);
@@ -72,8 +86,7 @@ export default function Chat() {
     loadConversations();
   }, [loadConversations]);
 
-  const closeConversation = useCallback(async (conversationId, title) => {
-    if (!window.confirm(`Fechar a conversa com "${title}"? O histórico continua salvo — ela volta a aparecer se algum dos dois mandar mensagem de novo.`)) return;
+  const closeConversation = useCallback(async (conversationId) => {
     await api.post(`/conversations/${conversationId}/close`);
     if (activeConvIdRef.current === conversationId) setActiveConvId(null);
     loadConversations();
@@ -129,6 +142,11 @@ export default function Chat() {
       if (!isMine && !isViewingIt) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
+        mostrarNotificacaoDesktop({
+          titulo: message.sender_name || "Nova mensagem",
+          corpo: previaDaMensagem(message),
+          onClick: () => setActiveConvIdAndStopBlink(message.conversation_id),
+        });
       }
     };
 
