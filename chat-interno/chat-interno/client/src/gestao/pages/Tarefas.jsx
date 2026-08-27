@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
+import { useAuth } from '../../context/AuthContext';
 import TaskFormModal from '../components/TaskFormModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 
@@ -18,6 +19,7 @@ const PRIORITY_COLORS = { low: '#6b7280', medium: '#d97706', high: '#dc2626' };
 const NAVY = '#0f2a4a';
 
 export default function Tarefas() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function Tarefas() {
     setLoading(true);
     setError('');
     try {
-      const params = {};
+      const params = { assignee_id: user.id };
       if (filter === 'overdue') params.overdue = '1';
       else if (filter !== 'all') params.status = filter;
 
@@ -56,7 +58,7 @@ export default function Tarefas() {
 
   return (
     <div>
-      <PageHeader title="Tarefas" subtitle="Acompanhe e organize as tarefas da equipe" />
+      <PageHeader title="Minhas tarefas" subtitle="Só as suas — você pode criar tarefas para outras pessoas também" />
 
       <div style={{ padding: '0 24px' }}>
         <div style={styles.topRow}>
