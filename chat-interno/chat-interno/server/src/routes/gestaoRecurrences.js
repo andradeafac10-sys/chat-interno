@@ -1,7 +1,6 @@
 // server/src/routes/gestaoRecurrences.js
-// Rotinas (tarefas recorrentes) do Painel Gestão. Isolado do resto do sistema.
-// Cada dia que a rotina deve acontecer vira uma tarefa de verdade na tabela "tasks",
-// ligada de volta pela coluna recurrence_id — nunca duplica graças ao índice único.
+// Rotinas do Painel Gestão — cadastro geral (a "receita") + lista de afazeres
+// diária por pessoa (feito/não feito), isolado do resto do sistema.
 
 const express = require('express');
 const router = express.Router();
@@ -29,25 +28,20 @@ function somarDias(date, n) {
 
 // A rotina "bate" com esse dia?
 function diaCombina(recorrencia, date) {
-  const diaSemana = date.getDay(); // 0=domingo ... 6=sábado
+  const diaSemana = date.getDay();
   switch (recorrencia.recurrence_type) {
-    case 'daily':
-      return true;
-    case 'weekdays':
-      return diaSemana >= 1 && diaSemana <= 5;
-    case 'specific_days':
-      return (recorrencia.days_of_week || []).includes(diaSemana);
-    case 'monthly':
-      return date.getDate() === recorrencia.day_of_month;
-    default:
-      return false;
+    case 'daily': return true;
+    case 'weekdays': return diaSemana >= 1 && diaSemana <= 5;
+    case 'specific_days': return (recorrencia.days_of_week || []).includes(diaSemana);
+    case 'monthly': return date.getDate() === recorrencia.day_of_month;
+    default: return false;
   }
 }
 
 /**
- * Gera as ocorrências (tarefas de verdade) dos próximos DIAS_A_FRENTE dias
- * para uma rotina específica. Pode ser chamada quantas vezes for —
- * o índice único em (recurrence_id, occurrence_date) garante que nunca duplica.
+ * Gera as linhas de "a fazer" (routine_completions) dos próximos dias, uma por
+ * responsável, pra cada dia que a rotina deveria acontecer. Pode rodar quantas
+ * vezes for — o índice único (recurrence_id, user_id, occurrence_date) impede duplicar.
  */
 async function gerarOcorrenciasDaRotina(recorrencia) {
   const hoje = new Date();
@@ -60,50 +54,31 @@ async function gerarOcorrenciasDaRotina(recorrencia) {
     'SELECT user_id FROM recurrence_assignees WHERE recurrence_id = $1',
     [recorrencia.id]
   );
+  if (assignees.rows.length === 0) return 0;
 
   let criadas = 0;
   for (let d = new Date(inicio); d <= fimJanela; d = somarDias(d, 1)) {
     if (fimRotina && d > fimRotina) break;
     if (!diaCombina(recorrencia, d)) continue;
 
-    const horario = recorrencia.start_time || '09:00:00';
-    const [hh, mm] = String(horario).split(':');
-    const dueDate = new Date(d);
-    dueDate.setHours(Number(hh) || 9, Number(mm) || 0, 0, 0);
-
-    const inserted = await pool.query(
-      `INSERT INTO tasks (title, description, priority, due_date, created_by, recurrence_id, occurrence_date, progress_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'manual')
-       ON CONFLICT (recurrence_id, occurrence_date) WHERE recurrence_id IS NOT NULL DO NOTHING
-       RETURNING id`,
-      [recorrencia.title, recorrencia.description, recorrencia.priority, dueDate.toISOString(), recorrencia.created_by, recorrencia.id, chaveDia(d)]
-    );
-
-    if (inserted.rows[0]) {
-      criadas++;
-      const taskId = inserted.rows[0].id;
-      for (const a of assignees.rows) {
-        await pool.query(
-          'INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [taskId, a.user_id]
-        );
-      }
-      await pool.query(
-        `INSERT INTO task_history (task_id, user_id, action, details) VALUES ($1, $2, 'created', $3)`,
-        [taskId, recorrencia.created_by, JSON.stringify({ gerada_pela_rotina: recorrencia.id, dia: chaveDia(d) })]
+    for (const a of assignees.rows) {
+      const resultado = await pool.query(
+        `INSERT INTO routine_completions (recurrence_id, user_id, occurrence_date)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (recurrence_id, user_id, occurrence_date) DO NOTHING
+         RETURNING id`,
+        [recorrencia.id, a.user_id, chaveDia(d)]
       );
+      if (resultado.rows[0]) criadas++;
     }
   }
   return criadas;
 }
 
-/** Gera ocorrências de TODAS as rotinas ativas. Chamada pelo servidor sozinho e também sob demanda. */
 async function gerarTodasAsOcorrencias() {
   const { rows } = await pool.query('SELECT * FROM task_recurrences WHERE active = TRUE');
   let total = 0;
-  for (const r of rows) {
-    total += await gerarOcorrenciasDaRotina(r);
-  }
+  for (const r of rows) total += await gerarOcorrenciasDaRotina(r);
   return total;
 }
 
@@ -121,18 +96,11 @@ async function hydrateRecurrence(id) {
      JOIN users usr ON usr.id = ra.user_id WHERE ra.recurrence_id = $1 ORDER BY usr.name`,
     [id]
   );
-  const proximas = await pool.query(
-    `SELECT id, title, due_date, status FROM tasks
-     WHERE recurrence_id = $1 AND occurrence_date >= CURRENT_DATE
-     ORDER BY occurrence_date ASC LIMIT 5`,
-    [id]
-  );
-
-  return { ...rec, assignees: assignees.rows, proximas_ocorrencias: proximas.rows };
+  return { ...rec, assignees: assignees.rows };
 }
 
 // -------------------------------------------------------------
-// GET /api/gestao/recurrences — lista todas as rotinas
+// GET /api/gestao/recurrences — cadastro geral de rotinas (visível a qualquer ADM)
 // -------------------------------------------------------------
 router.get('/', async (req, res) => {
   try {
@@ -147,14 +115,11 @@ router.get('/', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// POST /api/gestao/recurrences — criar rotina (já gera as ocorrências na hora)
+// POST /api/gestao/recurrences — criar rotina (já gera as próximas ocorrências)
 // -------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const {
-      title, description, priority, recurrence_type,
-      days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids,
-    } = req.body;
+    const { title, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
 
     if (!title || !title.trim()) return res.status(400).json({ error: 'Título é obrigatório' });
     if (!['daily', 'weekdays', 'specific_days', 'monthly'].includes(recurrence_type)) {
@@ -166,13 +131,16 @@ router.post('/', async (req, res) => {
     if (recurrence_type === 'monthly' && !day_of_month) {
       return res.status(400).json({ error: 'Escolha o dia do mês' });
     }
+    if (!Array.isArray(assignee_ids) || assignee_ids.length === 0) {
+      return res.status(400).json({ error: 'Escolha ao menos um responsável' });
+    }
 
     const result = await pool.query(
       `INSERT INTO task_recurrences
-        (title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+        (title, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
+       VALUES ($1,'medium',$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
       [
-        title.trim(), description || null, priority || 'medium', recurrence_type,
+        title.trim(), recurrence_type,
         recurrence_type === 'specific_days' ? days_of_week : [],
         recurrence_type === 'monthly' ? day_of_month : null,
         start_time || null, start_date || new Date().toISOString().slice(0, 10), end_date || null,
@@ -181,20 +149,17 @@ router.post('/', async (req, res) => {
     );
     const recurrenceId = result.rows[0].id;
 
-    if (Array.isArray(assignee_ids)) {
-      for (const userId of assignee_ids) {
-        await pool.query(
-          'INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [recurrenceId, userId]
-        );
-      }
+    for (const userId of assignee_ids) {
+      await pool.query(
+        'INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [recurrenceId, userId]
+      );
     }
 
     const { rows: recRows } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [recurrenceId]);
     const criadas = await gerarOcorrenciasDaRotina(recRows[0]);
 
-    const recorrencia = await hydrateRecurrence(recurrenceId);
-    res.status(201).json({ recurrence: recorrencia, ocorrencias_criadas: criadas });
+    res.status(201).json({ recurrence: await hydrateRecurrence(recurrenceId), ocorrencias_criadas: criadas });
   } catch (err) {
     console.error('Erro ao criar rotina:', err);
     res.status(500).json({ error: 'Erro ao criar rotina' });
@@ -202,7 +167,7 @@ router.post('/', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// PATCH /api/gestao/recurrences/:id — editar (não mexe nas tarefas já geradas)
+// PATCH /api/gestao/recurrences/:id — editar / pausar / reativar
 // -------------------------------------------------------------
 router.patch('/:id', async (req, res) => {
   try {
@@ -210,10 +175,7 @@ router.patch('/:id', async (req, res) => {
     const existing = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
     if (!existing.rows[0]) return res.status(404).json({ error: 'Rotina não encontrada' });
 
-    const {
-      title, description, priority, recurrence_type,
-      days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids,
-    } = req.body;
+    const { title, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
 
     const fields = [];
     const params = [];
@@ -221,8 +183,6 @@ router.patch('/:id', async (req, res) => {
     const set = (coluna, valor) => { fields.push(`${coluna} = $${i++}`); params.push(valor); };
 
     if (title !== undefined) set('title', title.trim());
-    if (description !== undefined) set('description', description);
-    if (priority !== undefined) set('priority', priority);
     if (recurrence_type !== undefined) set('recurrence_type', recurrence_type);
     if (days_of_week !== undefined) set('days_of_week', days_of_week);
     if (day_of_month !== undefined) set('day_of_month', day_of_month);
@@ -247,12 +207,10 @@ router.patch('/:id', async (req, res) => {
       }
     }
 
-    // Se continua ativa, aproveita e já gera qualquer ocorrência nova que passou a valer
     const { rows: atualizada } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
     if (atualizada[0].active) await gerarOcorrenciasDaRotina(atualizada[0]);
 
-    const recorrencia = await hydrateRecurrence(id);
-    res.json({ recurrence: recorrencia });
+    res.json({ recurrence: await hydrateRecurrence(id) });
   } catch (err) {
     console.error('Erro ao atualizar rotina:', err);
     res.status(500).json({ error: 'Erro ao atualizar rotina' });
@@ -261,7 +219,6 @@ router.patch('/:id', async (req, res) => {
 
 // -------------------------------------------------------------
 // DELETE /api/gestao/recurrences/:id
-// As tarefas já geradas continuam existindo normalmente (só perdem o vínculo com a rotina).
 // -------------------------------------------------------------
 router.delete('/:id', async (req, res) => {
   try {
@@ -275,7 +232,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// POST /api/gestao/recurrences/generate — gera na hora (botão manual na tela)
+// POST /api/gestao/recurrences/generate — gera na hora (botão manual)
 // -------------------------------------------------------------
 router.post('/generate', async (req, res) => {
   try {
@@ -284,6 +241,97 @@ router.post('/generate', async (req, res) => {
   } catch (err) {
     console.error('Erro ao gerar ocorrências:', err);
     res.status(500).json({ error: 'Erro ao gerar ocorrências' });
+  }
+});
+
+// -------------------------------------------------------------
+// GET /api/gestao/recurrences/minhas — "Minha Rotina": só as MINHAS ocorrências,
+// de hoje (e um resumo dos últimos dias) — nunca as de outra pessoa.
+// -------------------------------------------------------------
+router.get('/minhas', async (req, res) => {
+  try {
+    const hoje = chaveDia(new Date());
+    const { rows } = await pool.query(
+      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, r.id AS recurrence_id, r.title, r.start_time
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE rc.user_id = $1 AND rc.occurrence_date = $2
+       ORDER BY r.start_time NULLS LAST, r.title`,
+      [req.user.id, hoje]
+    );
+
+    // Resumo dos últimos 7 dias (pra pessoa ver como andou a semana)
+    const { rows: semana } = await pool.query(
+      `SELECT occurrence_date, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE done)::int AS feitas
+       FROM routine_completions
+       WHERE user_id = $1 AND occurrence_date BETWEEN $2 AND $3
+       GROUP BY occurrence_date ORDER BY occurrence_date`,
+      [req.user.id, chaveDia(somarDias(new Date(), -6)), hoje]
+    );
+
+    res.json({ hoje: rows, resumoSemana: semana });
+  } catch (err) {
+    console.error('Erro ao buscar minhas rotinas:', err);
+    res.status(500).json({ error: 'Erro ao buscar suas rotinas' });
+  }
+});
+
+// -------------------------------------------------------------
+// PATCH /api/gestao/recurrences/completions/:id — marcar feito / não feito
+// (só a própria pessoa marca a própria rotina)
+// -------------------------------------------------------------
+router.patch('/completions/:id', async (req, res) => {
+  try {
+    const { done } = req.body;
+    const { rows } = await pool.query(
+      `UPDATE routine_completions SET done = $1, done_at = $2
+       WHERE id = $3 AND user_id = $4 RETURNING *`,
+      [!!done, done ? new Date() : null, req.params.id, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Rotina não encontrada ou não é sua.' });
+    res.json({ completion: rows[0] });
+  } catch (err) {
+    console.error('Erro ao marcar rotina:', err);
+    res.status(500).json({ error: 'Erro ao marcar rotina' });
+  }
+});
+
+// -------------------------------------------------------------
+// GET /api/gestao/recurrences/ranking?periodo=day|week|month — ranking de
+// cumprimento das rotinas (feitas ÷ previstas, contando não marcadas como
+// "não feita" assim que o dia já passou).
+// -------------------------------------------------------------
+router.get('/ranking/dados', async (req, res) => {
+  try {
+    const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
+    const hoje = new Date();
+    let dataInicio;
+    if (periodo === 'day') dataInicio = chaveDia(hoje);
+    else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
+    else dataInicio = chaveDia(somarDias(hoje, -29));
+
+    // Só considera dias que já passaram (ou hoje) — não faz sentido cobrar rotina do futuro
+    const { rows } = await pool.query(
+      `SELECT u.id, u.name, u.avatar_url, u.color,
+              COUNT(rc.*)::int AS total,
+              COUNT(*) FILTER (WHERE rc.done)::int AS feitas
+       FROM routine_completions rc
+       JOIN users u ON u.id = rc.user_id
+       WHERE rc.occurrence_date >= $1 AND rc.occurrence_date <= $2
+       GROUP BY u.id
+       ORDER BY (COUNT(*) FILTER (WHERE rc.done))::float / GREATEST(COUNT(rc.*), 1) DESC, feitas DESC`,
+      [dataInicio, chaveDia(hoje)]
+    );
+
+    const ranking = rows.map((r) => ({
+      ...r,
+      percentual: r.total > 0 ? Math.round((r.feitas / r.total) * 100) : 0,
+    }));
+
+    res.json({ periodo, ranking });
+  } catch (err) {
+    console.error('Erro ao montar ranking:', err);
+    res.status(500).json({ error: 'Erro ao montar ranking' });
   }
 });
 
