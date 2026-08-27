@@ -136,6 +136,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   useEffect(() => {
     setLoadingHistory(true);
     setHasMoreOlder(true);
+    scrollProntoRef.current = false; // ainda não pode "carregar mais antigas" até rolar pro final primeiro
     setReplyingTo(null);
     setEditingMessage(null);
     setDraft("");
@@ -163,13 +164,19 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   // na lista, ou a última mudou de id) — reagir, editar, fixar etc. não deve mexer
   // na posição da tela, senão a pessoa perde o lugar que estava lendo.
   const ultimaMensagemRef = useRef(null);
+  const scrollProntoRef = useRef(false); // só libera "carregar mais antigas ao rolar pra cima" DEPOIS de já ter rolado pro final uma vez
   useEffect(() => {
     const ultima = messages?.[messages.length - 1];
     const ultimaAntes = ultimaMensagemRef.current;
     const chegouMensagemNova = ultima && (!ultimaAntes || ultima.id !== ultimaAntes.id);
     ultimaMensagemRef.current = ultima || null;
     if (chegouMensagemNova) {
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      const primeiraVezNessaConversa = !scrollProntoRef.current;
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: primeiraVezNessaConversa ? "auto" : "smooth",
+      });
+      scrollProntoRef.current = true;
     }
   }, [messages]);
 
@@ -421,6 +428,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   const handleScroll = () => {
+    // Enquanto a rolagem inicial pro final da conversa ainda não aconteceu, ignora
+    // — senão a tela "acha" que está no topo (ainda vazia) e carrega mensagens
+    // antigas antes da hora, deixando a pessoa no meio da conversa em vez do final.
+    if (!scrollProntoRef.current) return;
     if (scrollRef.current && scrollRef.current.scrollTop < 150) {
       carregarMaisAntigas();
     }
