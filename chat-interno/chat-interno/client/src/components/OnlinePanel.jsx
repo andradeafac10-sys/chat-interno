@@ -21,7 +21,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    api.get("/users/manage").then(({ data }) => setUsers(data.users.filter((u) => u.id !== me.id)));
+    api.get("/users/directory").then(({ data }) => setUsers(data.users.filter((u) => u.id !== me.id)));
   }, [me.id]);
 
   const online = users.filter((u) => onlineUsers?.has(u.id));
