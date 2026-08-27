@@ -2,12 +2,6 @@
 import { useEffect, useState } from 'react';
 import { gestaoApi } from '../gestaoApi';
 
-const PRIORITIES = [
-  { value: 'low', label: 'Baixa' },
-  { value: 'medium', label: 'Média' },
-  { value: 'high', label: 'Alta' },
-];
-
 const TIPOS = [
   { value: 'daily', label: 'Diariamente' },
   { value: 'weekdays', label: 'Segunda a sexta' },
@@ -23,8 +17,6 @@ const DIAS_SEMANA = [
 export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   const isEditing = !!recurrence;
   const [title, setTitle] = useState(recurrence?.title || '');
-  const [description, setDescription] = useState(recurrence?.description || '');
-  const [priority, setPriority] = useState(recurrence?.priority || 'medium');
   const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'weekdays');
   const [daysOfWeek, setDaysOfWeek] = useState(new Set(recurrence?.days_of_week || []));
   const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
@@ -62,18 +54,17 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Escreve um título pra rotina.');
+    if (!title.trim()) return setError('Escreve o que precisa ser feito.');
     if (recurrenceType === 'specific_days' && daysOfWeek.size === 0) {
       return setError('Escolhe pelo menos um dia da semana.');
     }
+    if (assignees.size === 0) return setError('Escolhe pelo menos um responsável.');
 
     setSaving(true);
     setError('');
 
     const payload = {
       title: title.trim(),
-      description: description.trim() || null,
-      priority,
       recurrence_type: recurrenceType,
       days_of_week: recurrenceType === 'specific_days' ? Array.from(daysOfWeek) : [],
       day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
@@ -103,7 +94,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
         </div>
 
         <form onSubmit={handleSubmit} style={styles.body}>
-          <label style={styles.label}>Título</label>
+          <label style={styles.label}>O que precisa ser feito</label>
           <input
             style={styles.input}
             value={title}
@@ -111,27 +102,6 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
             placeholder="Ex: Conferir pagamentos"
             autoFocus
           />
-
-          <label style={styles.label}>Descrição</label>
-          <textarea
-            style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detalhes (opcional)"
-          />
-
-          <div style={styles.row}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Prioridade</label>
-              <select style={styles.input} value={priority} onChange={(e) => setPriority(e.target.value)}>
-                {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Horário</label>
-              <input type="time" style={styles.input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            </div>
-          </div>
 
           <label style={styles.label}>Repetição</label>
           <select style={styles.input} value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value)}>
@@ -163,6 +133,9 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
             </>
           )}
 
+          <label style={styles.label}>Horário (opcional, só pra organizar)</label>
+          <input type="time" style={styles.input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+
           <div style={styles.row}>
             <div style={{ flex: 1 }}>
               <label style={styles.label}>Data de início</label>
@@ -174,7 +147,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
             </div>
           </div>
 
-          <label style={styles.label}>Responsáveis</label>
+          <label style={styles.label}>Quem vai cumprir essa rotina</label>
           {loadingUsers ? (
             <p style={styles.hint}>Carregando...</p>
           ) : (
@@ -190,7 +163,8 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
           )}
 
           <p style={styles.avisoTexto}>
-            As tarefas dos próximos 14 dias são geradas automaticamente assim que você salva.
+            Se marcar mais de uma pessoa, cada uma tem a própria lista pra marcar como feita —
+            não é uma rotina compartilhada, é uma cópia pra cada responsável.
           </p>
 
           {error && <p style={styles.error}>{error}</p>}
@@ -208,7 +182,6 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
 }
 
 const NAVY = '#0f2a4a';
-const NAVY_LIGHT = '#1c4270';
 
 const styles = {
   overlay: {
@@ -216,7 +189,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
   },
   modal: {
-    background: '#fff', borderRadius: 12, width: '90%', maxWidth: 520,
+    background: '#fff', borderRadius: 12, width: '90%', maxWidth: 480,
     maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
   },
   header: {
