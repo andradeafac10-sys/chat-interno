@@ -54,7 +54,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
           <img
             src={fileUrl(announcement.image_url)}
             alt="Comunicado"
-            className="w-full max-h-64 object-cover"
+            className="w-full max-h-[70vh] object-contain bg-black"
             onError={(e) => { e.target.style.display = "none"; }}
           />
         )}
@@ -72,7 +72,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
             )}
           </div>
 
-          <p className="text-slate-800 text-[15px] whitespace-pre-wrap leading-relaxed">{announcement.message}</p>
+          <p className="text-slate-800 text-[15px] whitespace-pre-wrap leading-relaxed select-text">{announcement.message}</p>
           <div className="text-[12px] text-slate-400 mt-4 mb-5">
             {announcement.created_by_name} · {new Date(announcement.created_at).toLocaleString("pt-BR")}
           </div>
