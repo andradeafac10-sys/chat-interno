@@ -119,7 +119,7 @@ router.get('/', async (req, res) => {
 // -------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { title, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
+    const { title, description, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
 
     if (!title || !title.trim()) return res.status(400).json({ error: 'Título é obrigatório' });
     if (!['daily', 'weekdays', 'specific_days', 'monthly'].includes(recurrence_type)) {
@@ -137,10 +137,10 @@ router.post('/', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO task_recurrences
-        (title, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
-       VALUES ($1,'medium',$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+        (title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
+       VALUES ($1,$2,'medium',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
       [
-        title.trim(), recurrence_type,
+        title.trim(), description || null, recurrence_type,
         recurrence_type === 'specific_days' ? days_of_week : [],
         recurrence_type === 'monthly' ? day_of_month : null,
         start_time || null, start_date || new Date().toISOString().slice(0, 10), end_date || null,
@@ -156,6 +156,17 @@ router.post('/', async (req, res) => {
       );
     }
 
+    const io = req.app.get('io');
+    if (io) {
+      assignee_ids
+        .filter((uid) => uid !== req.user.id)
+        .forEach((uid) => {
+          io.to(`user-${uid}`).emit('gestao:notify', {
+            titulo: 'Nova rotina',
+            corpo: `${req.user.name} te colocou em: ${title.trim()}`,
+          });
+        });
+    }
     const { rows: recRows } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [recurrenceId]);
     const criadas = await gerarOcorrenciasDaRotina(recRows[0]);
 
@@ -175,7 +186,7 @@ router.patch('/:id', async (req, res) => {
     const existing = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
     if (!existing.rows[0]) return res.status(404).json({ error: 'Rotina não encontrada' });
 
-    const { title, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
+    const { title, description, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
 
     const fields = [];
     const params = [];
@@ -183,6 +194,7 @@ router.patch('/:id', async (req, res) => {
     const set = (coluna, valor) => { fields.push(`${coluna} = $${i++}`); params.push(valor); };
 
     if (title !== undefined) set('title', title.trim());
+    if (description !== undefined) set('description', description);
     if (recurrence_type !== undefined) set('recurrence_type', recurrence_type);
     if (days_of_week !== undefined) set('days_of_week', days_of_week);
     if (day_of_month !== undefined) set('day_of_month', day_of_month);
@@ -252,7 +264,7 @@ router.get('/minhas', async (req, res) => {
   try {
     const hoje = chaveDia(new Date());
     const { rows } = await pool.query(
-      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, r.id AS recurrence_id, r.title, r.start_time
+      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, r.id AS recurrence_id, r.title, r.description, r.start_time
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        WHERE rc.user_id = $1 AND rc.occurrence_date = $2
@@ -282,11 +294,16 @@ router.get('/minhas', async (req, res) => {
 // -------------------------------------------------------------
 router.patch('/completions/:id', async (req, res) => {
   try {
-    const { done } = req.body;
+    const { done, nota } = req.body;
+    const campos = ['done = $1', 'done_at = $2'];
+    const valores = [!!done, done ? new Date() : null];
+    let i = 3;
+    if (nota !== undefined) { campos.push(`nota = $${i++}`); valores.push(nota || null); }
+    valores.push(req.params.id, req.user.id);
     const { rows } = await pool.query(
-      `UPDATE routine_completions SET done = $1, done_at = $2
-       WHERE id = $3 AND user_id = $4 RETURNING *`,
-      [!!done, done ? new Date() : null, req.params.id, req.user.id]
+      `UPDATE routine_completions SET ${campos.join(', ')}
+       WHERE id = $${i++} AND user_id = $${i} RETURNING *`,
+      valores
     );
     if (!rows[0]) return res.status(404).json({ error: 'Rotina não encontrada ou não é sua.' });
     res.json({ completion: rows[0] });
@@ -335,4 +352,35 @@ router.get('/ranking/dados', async (req, res) => {
   }
 });
 
-module.exports = { router, gerarTodasAsOcorrencias };
+/**
+ * Mesma ideia do lembrete de tarefa, mas pra rotina: junta a data da ocorrência
+ * com o horário cadastrado na rotina, e avisa 15min e depois 5min antes.
+ */
+async function verificarLembretesRotinas(io) {
+  const janelas = [
+    { coluna: 'reminder_15_sent', de: '14 minutes', ate: '16 minutes', texto: 'Faltam 15 minutos' },
+    { coluna: 'reminder_5_sent', de: '4 minutes', ate: '6 minutes', texto: 'Faltam 5 minutos' },
+  ];
+
+  for (const j of janelas) {
+    const { rows } = await pool.query(
+      `SELECT rc.id, rc.user_id, r.title
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE r.start_time IS NOT NULL AND rc.done = false AND rc.${j.coluna} = false
+         AND (rc.occurrence_date + r.start_time) BETWEEN now() + interval '${j.de}' AND now() + interval '${j.ate}'`
+    );
+    if (rows.length === 0) continue;
+
+    for (const r of rows) {
+      io?.to(`user-${r.user_id}`).emit('gestao:notify', {
+        titulo: 'Lembrete de rotina',
+        corpo: `${j.texto}: ${r.title}`,
+      });
+    }
+    const ids = [...new Set(rows.map((r) => r.id))];
+    await pool.query(`UPDATE routine_completions SET ${j.coluna} = true WHERE id = ANY($1::int[])`, [ids]);
+  }
+}
+
+module.exports = { router, gerarTodasAsOcorrencias, verificarLembretesRotinas };
