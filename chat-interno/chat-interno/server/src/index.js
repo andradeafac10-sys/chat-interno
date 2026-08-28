@@ -37,7 +37,10 @@ app.use(express.json({ limit: "2mb" }));
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 3000 });
 app.use("/api", limiter);
 
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+// maxAge: arquivos enviados nunca mudam de conteúdo (cada envio tem nome único),
+// então pode guardar em cache por bastante tempo — evita recarregar a mesma
+// imagem toda vez que a tela atualiza.
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"), { maxAge: "7d", immutable: true }));
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 // Muda toda vez que o servidor reinicia (ou seja, toda vez que sai uma atualização nova).
