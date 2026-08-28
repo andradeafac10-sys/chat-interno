@@ -1,18 +1,24 @@
-// Toca um "blip" curto sem precisar de nenhum arquivo de áudio externo.
+// Toca um som de duas notas curtas, no estilo do "pop" de mensagem do WhatsApp.
 export function playNotificationSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.setValueAtTime(880, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15);
-    g.gain.setValueAtTime(0.18, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + 0.35);
+    const notas = [
+      { freq: 1046, inicio: 0, duracao: 0.09 },  // primeira nota, mais aguda
+      { freq: 1318, inicio: 0.07, duracao: 0.13 }, // segunda nota, um pouco mais alta e mais longa
+    ];
+    notas.forEach(({ freq, inicio, duracao }) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq, ctx.currentTime + inicio);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + inicio);
+      g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + inicio + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + inicio + duracao);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(ctx.currentTime + inicio);
+      o.stop(ctx.currentTime + inicio + duracao);
+    });
   } catch (err) {
     // navegador bloqueou áudio automático (comum antes da 1a interação do usuário) — sem problema, ignora
   }
