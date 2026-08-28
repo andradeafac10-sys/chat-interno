@@ -47,3 +47,27 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(request)) // só usa o cache se a rede falhar (ex: sem internet)
   );
 });
+
+// Clicar na notificação foca o app e avisa a página pra abrir a conversa certa
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const conversationId = event.notification.data?.conversationId;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((lista) => {
+      const jaAberto = lista.find((c) => "focus" in c);
+      if (jaAberto) {
+        jaAberto.focus();
+        if (conversationId) jaAberto.postMessage({ type: "open-conversation", conversationId });
+        return;
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow("/").then((novaJanela) => {
+          if (novaJanela && conversationId) {
+            setTimeout(() => novaJanela.postMessage({ type: "open-conversation", conversationId }), 1500);
+          }
+        });
+      }
+    })
+  );
+});
