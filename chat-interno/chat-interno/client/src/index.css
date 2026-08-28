@@ -5,6 +5,28 @@
 html, body, #root { height: 100%; margin: 0; }
 body { background: #111B21; }
 
+/* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
+   do navegador — mais discreta e combinando com o resto da interface. */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #2E6FD9 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #2E6FD9;
+  border-radius: 999px;
+  opacity: 0.5;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #1e4fa0;
+}
+
 /* Fundo do comunicado geral piscando em vermelho pra chamar atenção */
 @keyframes announcement-alert {
   0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
