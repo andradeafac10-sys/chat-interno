@@ -267,3 +267,14 @@ CREATE TABLE IF NOT EXISTS conversation_reads (
   last_read_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, conversation_id)
 );
+
+-- Campo pra a pessoa relatar algo sobre aquele dia da rotina (ex: "não deu tempo
+-- porque o sistema caiu"), junto com marcar feito/não feito.
+ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS nota TEXT;
+
+-- Controla se já mandou o lembrete de 15min/5min antes do horário, pra nunca
+-- mandar duas vezes o mesmo aviso.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_15_sent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_5_sent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS reminder_15_sent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS reminder_5_sent BOOLEAN NOT NULL DEFAULT FALSE;
