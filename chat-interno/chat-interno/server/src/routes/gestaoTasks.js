@@ -251,6 +251,19 @@ router.post('/', async (req, res) => {
           [taskId, userId]
         );
       }
+      // Avisa cada responsável (menos quem criou, se estiver na lista) que ganhou uma tarefa nova —
+      // igual uma notificação de mensagem, usando a mesma sala pessoal do chat.
+      const io = req.app.get('io');
+      if (io) {
+        assignee_ids
+          .filter((uid) => uid !== req.user.id)
+          .forEach((uid) => {
+            io.to(`user-${uid}`).emit('gestao:notify', {
+              titulo: 'Nova tarefa',
+              corpo: `${req.user.name} te atribuiu: ${title.trim()}`,
+            });
+          });
+      }
     }
 
     if (Array.isArray(checklist_items)) {
@@ -436,4 +449,37 @@ router.post('/:id/comments', async (req, res) => {
   }
 });
 
+/**
+ * Confere tarefas com prazo chegando perto (15min e depois 5min antes) e avisa
+ * cada responsável — igual uma notificação de mensagem. Chamada periodicamente
+ * pelo servidor (ver index.js). Nunca manda o mesmo aviso duas vezes.
+ */
+async function verificarLembretesTarefas(io) {
+  const janelas = [
+    { coluna: 'reminder_15_sent', de: '14 minutes', ate: '16 minutes', texto: 'Faltam 15 minutos' },
+    { coluna: 'reminder_5_sent', de: '4 minutes', ate: '6 minutes', texto: 'Faltam 5 minutos' },
+  ];
+
+  for (const j of janelas) {
+    const { rows } = await pool.query(
+      `SELECT t.id, t.title, ta.user_id
+       FROM tasks t
+       JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE t.due_date IS NOT NULL AND t.status != 'done' AND t.${j.coluna} = false
+         AND t.due_date BETWEEN now() + interval '${j.de}' AND now() + interval '${j.ate}'`
+    );
+    if (rows.length === 0) continue;
+
+    for (const r of rows) {
+      io?.to(`user-${r.user_id}`).emit('gestao:notify', {
+        titulo: 'Lembrete de tarefa',
+        corpo: `${j.texto}: ${r.title}`,
+      });
+    }
+    const ids = [...new Set(rows.map((r) => r.id))];
+    await pool.query(`UPDATE tasks SET ${j.coluna} = true WHERE id = ANY($1::int[])`, [ids]);
+  }
+}
+
 module.exports = router;
+module.exports.verificarLembretesTarefas = verificarLembretesTarefas;
