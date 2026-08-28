@@ -9,7 +9,6 @@ import GestaoApp from "./gestao/GestaoApp";
 import VisaoGeral from "./gestao/pages/VisaoGeral";
 import MinhaRotina from "./gestao/pages/MinhaRotina";
 import Tarefas from "./gestao/pages/Tarefas";
-import Equipe from "./gestao/pages/Equipe";
 import Rotinas from "./gestao/pages/Rotinas";
 import Ranking from "./gestao/pages/Ranking";
 
@@ -46,7 +45,6 @@ export default function App() {
               <Route index element={<VisaoGeral />} />
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
-              <Route path="equipe" element={<Equipe />} />
               <Route path="rotinas" element={<Rotinas />} />
               <Route path="ranking" element={<Ranking />} />
             </Route>
