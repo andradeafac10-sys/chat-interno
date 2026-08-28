@@ -118,6 +118,8 @@ export default function Rotinas() {
                 </span>
               </div>
 
+              {r.description && <p style={styles.cardDescricao}>{r.description}</p>}
+
               <div style={styles.cardMeta}>
                 <span>🔁 {descreverRepeticao(r)}</span>
                 {r.start_time && <span>· às {r.start_time.slice(0, 5)}</span>}
@@ -181,6 +183,7 @@ const styles = {
     background: '#f3f4f6', color: '#6b7280', fontSize: 10, fontWeight: 700,
     padding: '2px 8px', borderRadius: 999,
   },
+  cardDescricao: { fontSize: 13, color: '#4b5563', margin: '6px 0 0' },
   cardMeta: { fontSize: 12, color: '#6b7280', marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' },
   assigneesRow: { display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' },
   assigneeChip: { background: '#eef2f7', color: '#1c4270', fontSize: 11, padding: '3px 9px', borderRadius: 999 },
