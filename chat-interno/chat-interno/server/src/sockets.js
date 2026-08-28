@@ -48,6 +48,12 @@ function setupSockets(io) {
     } else {
       const { rows: admins } = await pool.query("SELECT id FROM users WHERE role = 'admin'");
       admins.forEach((adm) => socket.join(`conv-${pairDmId(user.id, adm.id)}`));
+      // Operador também precisa entrar na sala de conversa com OUTROS operadores,
+      // senão mensagem entre dois operadores só aparece depois de dar F5.
+      const { rows: otherOperators } = await pool.query(
+        "SELECT id FROM users WHERE role = 'operator' AND id != $1", [user.id]
+      );
+      otherOperators.forEach((op) => socket.join(`conv-${pairDmId(user.id, op.id)}`));
       const { rows: groups } = await pool.query(
         "SELECT group_id FROM group_members WHERE user_id = $1",
         [user.id]
@@ -64,6 +70,14 @@ function setupSockets(io) {
       if (rows.length > 0 || user.role === "admin") {
         socket.join(`conv-${groupConvId(groupId)}`);
       }
+    });
+
+    // "Fulano está digitando..." — só repassa pra sala da conversa, sem guardar nada
+    socket.on("typing:start", (conversationId) => {
+      socket.to(`conv-${conversationId}`).emit("typing:start", { conversationId, userId: user.id, userName: user.name });
+    });
+    socket.on("typing:stop", (conversationId) => {
+      socket.to(`conv-${conversationId}`).emit("typing:stop", { conversationId, userId: user.id });
     });
 
     // Presença online: avisa todo mundo que essa pessoa ficou online (se for a primeira aba dela)
