@@ -104,13 +104,6 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         </div>
       )}
 
-      {!isAdm && (
-        <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg border px-2.5 py-2" style={{ background: colors.inputFieldBg, borderColor: colors.border }}>
-          <Lock size={13} className="mt-0.5 shrink-0" style={{ color: colors.textSecondary }} />
-          <p className="text-[11px] leading-tight" style={{ color: colors.textSecondary }}>Você só conversa com o ADM e com os grupos em que foi adicionado.</p>
-        </div>
-      )}
-
       {isAdm && (
         <div className="px-3 pb-2 flex flex-col gap-1.5">
           <button
@@ -120,15 +113,18 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
           >
             <Plus size={15} /> Novo grupo
           </button>
-          {hiddenGroupsCount > 0 && (
-            <button
-              onClick={onOpenHiddenGroups}
-              className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium py-1"
-              style={{ color: colors.textSecondary }}
-            >
-              <EyeOff size={12} /> {hiddenGroupsCount} grupo(s) oculto(s) — mostrar
-            </button>
-          )}
+        </div>
+      )}
+
+      {hiddenGroupsCount > 0 && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={onOpenHiddenGroups}
+            className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium py-1"
+            style={{ color: colors.textSecondary }}
+          >
+            <EyeOff size={12} /> {hiddenGroupsCount} grupo(s) oculto(s) — mostrar
+          </button>
         </div>
       )}
 
