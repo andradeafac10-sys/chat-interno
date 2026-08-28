@@ -38,14 +38,15 @@ router.get("/", requireAuth, async (req, res) => {
     );
 
     const { rows: groups } = await pool.query(
-      `SELECT g.id, g.name, g.avatar_url, COUNT(gm.user_id)::int AS member_count
+      `SELECT g.id, g.name, g.avatar_url, COUNT(gm.user_id)::int AS member_count,
+              EXISTS(SELECT 1 FROM group_members gm2 WHERE gm2.group_id = g.id AND gm2.user_id = $1) AS is_member
        FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
        WHERE NOT EXISTS (SELECT 1 FROM hidden_groups hg WHERE hg.group_id = g.id AND hg.user_id = $1)
        GROUP BY g.id ORDER BY g.name`,
       [user.id]
     );
     groups.forEach((g) =>
-      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
+      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id, isMember: g.is_member })
     );
   } else {
     // Conversas privadas com CADA ADM ativo
@@ -92,7 +93,7 @@ router.get("/", requireAuth, async (req, res) => {
       [user.id]
     );
     groups.forEach((g) =>
-      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id })
+      conversations.push({ id: groupConvId(g.id), type: "group", title: g.name, avatarUrl: g.avatar_url, memberCount: g.member_count, groupId: g.id, isMember: true })
     );
   }
 
@@ -135,10 +136,35 @@ router.get("/", requireAuth, async (req, res) => {
     return dataB - dataA;
   });
 
+  // Quantas mensagens não lidas em cada conversa — calculado no servidor,
+  // então sobrevive a dar F5 (antes só existia na memória da tela).
+  for (const conv of resultado) {
+    const { rows: naoLidas } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM messages m
+       WHERE m.conversation_id = $1 AND m.sender_id != $2 AND m.deleted = false
+         AND m.created_at > COALESCE(
+           (SELECT last_read_at FROM conversation_reads WHERE user_id = $2 AND conversation_id = $1),
+           'epoch'::timestamptz
+         )`,
+      [conv.id, user.id]
+    );
+    conv.unreadCount = naoLidas[0].total;
+  }
+
   res.json({ conversations: resultado });
 });
 
 // POST /api/conversations/:id/pin -> fixa uma conversa no topo da lista (pessoal, não afeta ninguém mais)
+// POST /api/conversations/:id/read -> marca como lida até agora (some o contador de não lidas)
+router.post("/:id/read", requireAuth, async (req, res) => {
+  await pool.query(
+    `INSERT INTO conversation_reads (user_id, conversation_id, last_read_at) VALUES ($1, $2, now())
+     ON CONFLICT (user_id, conversation_id) DO UPDATE SET last_read_at = now()`,
+    [req.user.id, req.params.id]
+  );
+  res.json({ ok: true });
+});
+
 router.post("/:id/pin", requireAuth, async (req, res) => {
   await pool.query(
     "INSERT INTO pinned_conversations (user_id, conversation_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
