@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil, Search } from "lucide-react";
 import { api } from "../api";
 
 const COLORS = ["#2E6FD9", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
@@ -7,6 +7,7 @@ const COLORS = ["#2E6FD9", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"
 export default function Users({ onBack }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
@@ -20,6 +21,8 @@ export default function Users({ onBack }) {
   };
 
   useEffect(() => { load(); }, []);
+
+  const usersFiltrados = users.filter((u) => u.name.toLowerCase().includes(busca.trim().toLowerCase()));
 
   const toggleActive = async (u) => {
     await api.patch(`/users/${u.id}/active`, { active: !u.active });
@@ -42,12 +45,27 @@ export default function Users({ onBack }) {
         </button>
       </div>
 
+      <div className="px-4 pt-4">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar pessoa pelo nome..."
+            className="w-full bg-white border border-[#D1D7DB] rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          />
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-slate-400 text-sm">Carregando...</div>
         ) : (
           <div className="bg-white rounded-xl border border-[#D1D7DB] overflow-hidden">
-            {users.map((u) => (
+            {usersFiltrados.length === 0 && (
+              <div className="text-slate-400 text-sm p-4 text-center">Ninguém encontrado com esse nome.</div>
+            )}
+            {usersFiltrados.map((u) => (
               <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b border-[#EFEAE2] last:border-0">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style={{ background: u.color }}>
                   {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
