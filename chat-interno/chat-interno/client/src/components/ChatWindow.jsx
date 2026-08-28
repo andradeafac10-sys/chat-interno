@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search } from "lucide-react";
 import { api, fileUrl } from "../api";
+import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import MessageBubble from "./MessageBubble";
@@ -113,6 +114,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [quemEstaDigitando, setQuemEstaDigitando] = useState(null); // nome de quem está digitando nessa conversa, ou null
+  const typingTimeoutRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPinnedPanel, setShowPinnedPanel] = useState(false);
   const [pinnedList, setPinnedList] = useState([]);
@@ -137,6 +140,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     setLoadingHistory(true);
     setHasMoreOlder(true);
     scrollProntoRef.current = false; // ainda não pode "carregar mais antigas" até rolar pro final primeiro
+    setQuemEstaDigitando(null);
     setReplyingTo(null);
     setEditingMessage(null);
     setDraft("");
@@ -188,6 +192,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const handleDraftChange = (e) => {
     const value = e.target.value;
     setDraft(value);
+    avisarQueEstaDigitando();
 
     const cursor = e.target.selectionStart;
     const antesDoCursor = value.slice(0, cursor);
@@ -228,6 +233,49 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     if (inputRef.current) inputRef.current.style.height = "auto";
   };
 
+  // Avisa (no máximo a cada 2s) que a pessoa está digitando, e agenda o "parou de digitar"
+  const avisarQueEstaDigitando = () => {
+    const socket = getSocket();
+    if (!socket) return;
+    if (!typingTimeoutRef.current) {
+      socket.emit("typing:start", conversation.id);
+    } else {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("typing:stop", conversation.id);
+      typingTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  // Escuta quem está digitando NESSA conversa (só mostra uma pessoa por vez, é suficiente)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const digitandoTimeouts = {};
+
+    const onStart = ({ conversationId, userId, userName }) => {
+      if (conversationId !== conversation.id) return;
+      setQuemEstaDigitando(userName);
+      clearTimeout(digitandoTimeouts[userId]);
+      // Se não vier o "parou" em até 4s (ex: a pessoa fechou a aba), some sozinho
+      digitandoTimeouts[userId] = setTimeout(() => setQuemEstaDigitando(null), 4000);
+    };
+    const onStop = ({ conversationId, userId }) => {
+      if (conversationId !== conversation.id) return;
+      clearTimeout(digitandoTimeouts[userId]);
+      setQuemEstaDigitando(null);
+    };
+
+    socket.on("typing:start", onStart);
+    socket.on("typing:stop", onStop);
+    return () => {
+      socket.off("typing:start", onStart);
+      socket.off("typing:stop", onStop);
+      Object.values(digitandoTimeouts).forEach(clearTimeout);
+    };
+  }, [conversation.id]);
+
   // Mostra a barrinha de formatar (B/I/S) sempre que existir um trecho selecionado
   // dentro do campo de digitar — bem em cima de onde a seleção está, igual o WhatsApp.
   const handleSelectionChange = (e) => {
@@ -266,6 +314,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   const sendText = async () => {
+    // Manda embora o texto: já para de avisar "digitando" na hora, sem esperar o tempo normal
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+      getSocket()?.emit("typing:stop", conversation.id);
+    }
+
     if (pendingUpload) {
       const legenda = draft.trim();
       const { file, kind, previewUrl } = pendingUpload;
@@ -319,13 +374,17 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     const file = e.target.files?.[0];
     if (!file) { e.target.value = ""; return; }
 
-    // Imagem e arquivo (PDF etc.) esperam a pessoa escrever uma legenda antes de enviar.
+    // Qualquer imagem sempre é tratada como imagem (abre na tela), não importa
+    // qual dos dois botões a pessoa usou pra escolher o arquivo.
+    const kindReal = file.type.startsWith("image/") ? "image" : kind;
+
+    // Imagem e arquivo (PDF) esperam a pessoa escrever uma legenda antes de enviar.
     // Áudio gravado tem fluxo próprio (não passa por aqui).
-    if (kind === "image" || kind === "file") {
-      setPendingUpload({ file, kind, previewUrl: kind === "image" ? URL.createObjectURL(file) : null });
+    if (kindReal === "image" || kindReal === "file") {
+      setPendingUpload({ file, kind: kindReal, previewUrl: kindReal === "image" ? URL.createObjectURL(file) : null });
       setTimeout(() => inputRef.current?.focus(), 0);
     } else {
-      uploadFile(file, kind);
+      uploadFile(file, kindReal);
     }
     e.target.value = "";
   };
@@ -507,7 +566,11 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           {conversation.type === "group" ? (
             <div className="text-[11px]" style={{ color: colors.textSecondary }}>{conversation.memberCount} membro(s)</div>
           ) : (
-            <div className="text-[11px]" style={{ color: colors.textSecondary }}>{isOnline ? "online" : ""}</div>
+            <div className="text-[11px]" style={{ color: colors.textSecondary }}>
+              {quemEstaDigitando ? (
+                <span className="text-[#2E6FD9] italic">{quemEstaDigitando} está digitando...</span>
+              ) : isOnline ? "online" : ""}
+            </div>
           )}
         </div>
         <span
@@ -758,7 +821,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               <Paperclip size={19} />
             </button>
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, "image")} />
-            <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handlePick(e, "file")} />
+            <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <div className="flex-1 relative">
               <textarea
