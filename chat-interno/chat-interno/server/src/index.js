@@ -57,7 +57,8 @@ app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/gestao", gestaoRoutes);
 const gestaoTasksRoutes = require("./routes/gestaoTasks");
 app.use("/api/gestao/tasks", gestaoTasksRoutes);
-const { router: gestaoRecurrencesRoutes, gerarTodasAsOcorrencias } = require("./routes/gestaoRecurrences");
+const { verificarLembretesTarefas } = gestaoTasksRoutes;
+const { router: gestaoRecurrencesRoutes, gerarTodasAsOcorrencias, verificarLembretesRotinas } = require("./routes/gestaoRecurrences");
 app.use("/api/gestao/recurrences", gestaoRecurrencesRoutes);
 
 setupSockets(io);
@@ -74,6 +75,13 @@ setInterval(() => {
     .then((n) => n > 0 && console.log(`[rotinas] ${n} ocorrência(s) gerada(s).`))
     .catch((err) => console.error("[rotinas] erro ao gerar ocorrências:", err));
 }, 6 * 60 * 60 * 1000);
+
+// Confere lembretes de tarefa/rotina a cada minuto — janela de 14-16min e 4-6min
+// é o suficiente pra pegar mesmo rodando só uma vez por minuto, sem duplicar aviso.
+setInterval(() => {
+  verificarLembretesTarefas(io).catch((err) => console.error("[lembretes] erro ao conferir tarefas:", err));
+  verificarLembretesRotinas(io).catch((err) => console.error("[lembretes] erro ao conferir rotinas:", err));
+}, 60 * 1000);
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
