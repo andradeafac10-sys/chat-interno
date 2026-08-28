@@ -49,6 +49,9 @@ export default function Chat() {
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
+  const conversationsRef = useRef(conversations);
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
   // Título da aba mostra a quantidade de mensagens não lidas, igual o WhatsApp —
   // não pisca mais, só atualiza o número.
   useEffect(() => {
@@ -61,10 +64,31 @@ export default function Chat() {
     pedirPermissaoNotificacao();
   }, []);
 
+  // Quando a pessoa clica na notificação do Windows, o service worker avisa
+  // a página aqui pra abrir a conversa certa
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handler = (event) => {
+      if (event.data?.type === "open-conversation" && event.data.conversationId) {
+        setActiveConvIdAndStopBlink(event.data.conversationId);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, []);
+
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
     setConversations(data.conversations);
     setActiveConvId((prev) => prev || data.conversations[0]?.id || null);
+    // A contagem de não lidas agora vem pronta do servidor — sobrevive a um F5,
+    // diferente de antes que só existia na memória da tela.
+    setUnreadCounts(
+      data.conversations.reduce((acc, c) => {
+        if (c.unreadCount > 0) acc[c.id] = c.unreadCount;
+        return acc;
+      }, {})
+    );
   }, []);
 
   const loadHiddenGroupsCount = useCallback(async () => {
@@ -96,6 +120,17 @@ export default function Chat() {
     loadConversations();
     loadHiddenGroupsCount();
   }, [loadConversations, loadHiddenGroupsCount]);
+
+  // Rede de segurança: mesmo com o tempo real funcionando, atualiza a lista de
+  // conversas sozinha de tempos em tempos — assim, mesmo que algum evento se perca
+  // por qualquer motivo, o app se corrige sozinho em poucos segundos, sem precisar
+  // que a pessoa dê F5 manualmente.
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      loadConversations();
+    }, 15000);
+    return () => clearInterval(intervalo);
+  }, [loadConversations]);
 
   // Além de escutar em tempo real (socket), confere sozinho de tempos em tempos
   // se saiu um comunicado novo — assim ninguém depende só da conexão em tempo real
@@ -139,13 +174,18 @@ export default function Chat() {
 
       const isMine = message.sender_id === user.id;
       const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
-      if (!isMine && !isViewingIt) {
+      const conv = conversationsRef.current.find((c) => c.id === message.conversation_id);
+      // Só avisa (som + notificação) se for uma conversa que a pessoa participa de
+      // verdade — ADM entra em todo grupo pra poder monitorar, mas isso não deveria
+      // gerar barulho de grupo que ele nunca participou de fato.
+      const souParticipante = !conv || conv.type !== "group" || conv.isMember !== false;
+      if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
         mostrarNotificacaoDesktop({
           titulo: message.sender_name || "Nova mensagem",
           corpo: previaDaMensagem(message),
-          onClick: () => setActiveConvIdAndStopBlink(message.conversation_id),
+          conversationId: message.conversation_id,
         });
       }
     };
@@ -280,6 +320,7 @@ export default function Chat() {
       delete next[id];
       return next;
     });
+    if (id) api.post(`/conversations/${id}/read`).catch(() => {}); // avisa o servidor, pra sobreviver a um F5
   };
 
   // Abre (ou começa) uma conversa a partir do painel de "online", mesmo que
