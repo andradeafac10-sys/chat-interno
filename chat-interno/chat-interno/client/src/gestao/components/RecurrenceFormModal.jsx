@@ -17,6 +17,7 @@ const DIAS_SEMANA = [
 export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   const isEditing = !!recurrence;
   const [title, setTitle] = useState(recurrence?.title || '');
+  const [description, setDescription] = useState(recurrence?.description || '');
   const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'weekdays');
   const [daysOfWeek, setDaysOfWeek] = useState(new Set(recurrence?.days_of_week || []));
   const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
@@ -65,6 +66,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
 
     const payload = {
       title: title.trim(),
+      description: description.trim() || null,
       recurrence_type: recurrenceType,
       days_of_week: recurrenceType === 'specific_days' ? Array.from(daysOfWeek) : [],
       day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
@@ -101,6 +103,14 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Ex: Conferir pagamentos"
             autoFocus
+          />
+
+          <label style={styles.label}>Descrição (opcional)</label>
+          <textarea
+            style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Detalhes de como fazer, o que conferir etc."
           />
 
           <label style={styles.label}>Repetição</label>
