@@ -59,6 +59,23 @@ export default function Chat() {
     document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
   }, [unreadCounts]);
 
+  // Quando a aba volta a ficar visível (a pessoa estava numa aba diferente,
+  // ou o computador "dormiu"), busca tudo de novo — reforço extra pro mesmo
+  // problema do "preciso dar F5 depois de ficar um tempo parado".
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      loadConversations();
+      if (activeConvIdRef.current) {
+        api.get(`/conversations/${activeConvIdRef.current}/messages`)
+          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadConversations]);
+
   // Pede permissão de notificação do sistema uma vez, assim que o chat abre
   useEffect(() => {
     pedirPermissaoNotificacao();
@@ -81,11 +98,13 @@ export default function Chat() {
     const { data } = await api.get("/conversations");
     setConversations(data.conversations);
     setActiveConvId((prev) => prev || data.conversations[0]?.id || null);
-    // A contagem de não lidas agora vem pronta do servidor — sobrevive a um F5,
-    // diferente de antes que só existia na memória da tela.
+    // A contagem de não lidas vem do servidor (sobrevive a F5) — mas só conta
+    // conversas que são realmente "minhas" (DM ou grupo que participo de verdade),
+    // não grupos que o ADM só enxerga pra poder monitorar.
     setUnreadCounts(
       data.conversations.reduce((acc, c) => {
-        if (c.unreadCount > 0) acc[c.id] = c.unreadCount;
+        const éMinha = c.type !== "group" || c.isMember !== false;
+        if (éMinha && c.unreadCount > 0) acc[c.id] = c.unreadCount;
         return acc;
       }, {})
     );
@@ -158,6 +177,19 @@ export default function Chat() {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
+
+    // Sempre que a conexão volta (voltou de "dormindo", trocou de rede, ficou
+    // muito tempo em segundo plano etc.), busca tudo de novo sozinho — assim
+    // nunca depende da pessoa lembrar de dar F5 depois de ficar um tempo fora.
+    const onConnect = () => {
+      loadConversations();
+      if (activeConvIdRef.current) {
+        api.get(`/conversations/${activeConvIdRef.current}/messages`)
+          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
+          .catch(() => {});
+      }
+    };
+    socket.on("connect", onConnect);
 
     const onNewMessage = (message) => {
       setMessagesByConv((prev) => {
@@ -300,6 +332,7 @@ export default function Chat() {
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("gestao:notify", onGestaoNotify);
+      socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
       socket.off("message:deleted", onDeleted);
@@ -422,6 +455,7 @@ export default function Chat() {
       )}
 
       <AnnouncementOverlay
+        key={announcement?.id || "nenhum"}
         announcement={announcement}
         onClose={() => {
           if (announcement) localStorage.setItem(DISMISSED_KEY, String(announcement.id));
