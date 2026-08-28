@@ -27,14 +27,26 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    definirImagem(file);
+    e.target.value = "";
+  };
+
+  const definirImagem = (file) => {
     if (!file.type.startsWith("image/")) {
       setError("Só é possível anexar uma imagem (foto) no comunicado.");
-      e.target.value = "";
       return;
     }
     setError("");
     setImage(file);
     setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handlePasteImage = (e) => {
+    const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    const file = item.getAsFile();
+    if (file) definirImagem(file);
   };
 
   const submit = async (e) => {
@@ -135,9 +147,10 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            onPaste={handlePasteImage}
             rows={4}
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none"
-            placeholder="Escreva o comunicado..."
+            placeholder="Escreva o comunicado... (dá pra colar uma imagem aqui também)"
             required
           />
 
