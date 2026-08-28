@@ -273,7 +273,15 @@ export default function Chat() {
       });
     };
 
+    // Nova tarefa/rotina atribuída — usa o mesmo som e notificação do sistema que
+    // já existe pra mensagem de chat, pra ninguém precisar de um aviso separado.
+    const onGestaoNotify = ({ titulo, corpo }) => {
+      playNotificationSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
     socket.on("message:new", onNewMessage);
+    socket.on("gestao:notify", onGestaoNotify);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
@@ -291,6 +299,7 @@ export default function Chat() {
 
     return () => {
       socket.off("message:new", onNewMessage);
+      socket.off("gestao:notify", onGestaoNotify);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
       socket.off("message:deleted", onDeleted);
