@@ -11,6 +11,7 @@ export default function MinhaRotina() {
   const [resumoSemana, setResumoSemana] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [abertoId, setAbertoId] = useState(null); // qual item tem o campo de relato aberto
 
   async function load() {
     setLoading(true);
@@ -36,6 +37,18 @@ export default function MinhaRotina() {
     } catch (err) {
       alert(err.message || 'Não consegui marcar essa rotina.');
       setHoje((prev) => prev.map((i) => (i.id === item.id ? { ...i, done: !done } : i)));
+    }
+  }
+
+  function mudarNotaLocal(itemId, nota) {
+    setHoje((prev) => prev.map((i) => (i.id === itemId ? { ...i, nota } : i)));
+  }
+
+  async function salvarNota(item) {
+    try {
+      await gestaoApi.marcarRotina(item.id, item.done, item.nota || '');
+    } catch (err) {
+      alert(err.message || 'Não consegui salvar o relato.');
     }
   }
 
@@ -67,18 +80,43 @@ export default function MinhaRotina() {
                 <p style={styles.hint}>Nenhuma rotina pra hoje. 🎉</p>
               )}
               {hoje.map((item) => (
-                <label key={item.id} style={{ ...styles.item, opacity: item.done ? 0.6 : 1 }}>
-                  <input
-                    type="checkbox"
-                    checked={item.done}
-                    onChange={(e) => marcar(item, e.target.checked)}
-                    style={styles.checkbox}
-                  />
-                  <span style={{ ...styles.itemTexto, textDecoration: item.done ? 'line-through' : 'none' }}>
-                    {item.title}
-                  </span>
-                  {item.start_time && <span style={styles.itemHora}>{item.start_time.slice(0, 5)}</span>}
-                </label>
+                <div key={item.id} style={{ ...styles.item, opacity: item.done ? 0.75 : 1 }}>
+                  <div style={styles.itemLinha}>
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={(e) => marcar(item, e.target.checked)}
+                      style={styles.checkbox}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ ...styles.itemTexto, textDecoration: item.done ? 'line-through' : 'none' }}>
+                        {item.title}
+                      </div>
+                      {item.description && <div style={styles.itemDescricao}>{item.description}</div>}
+                    </div>
+                    {item.start_time && <span style={styles.itemHora}>{item.start_time.slice(0, 5)}</span>}
+                    <button
+                      onClick={() => setAbertoId(abertoId === item.id ? null : item.id)}
+                      title="Relatar algo sobre essa rotina"
+                      style={styles.notaBtn}
+                    >
+                      💬{item.nota ? ' •' : ''}
+                    </button>
+                  </div>
+
+                  {abertoId === item.id && (
+                    <div style={styles.notaBox}>
+                      <textarea
+                        value={item.nota || ''}
+                        onChange={(e) => mudarNotaLocal(item.id, e.target.value)}
+                        onBlur={() => salvarNota(item)}
+                        placeholder="Relatar algo sobre essa rotina (opcional)..."
+                        style={styles.notaTextarea}
+                        rows={2}
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -124,12 +162,21 @@ const styles = {
   progressInner: { height: '100%', background: NAVY, transition: 'width 0.2s' },
   lista: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 },
   item: {
-    display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid #e5e7eb',
-    borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px',
   },
+  itemLinha: { display: 'flex', alignItems: 'center', gap: 10 },
   checkbox: { width: 18, height: 18, cursor: 'pointer', accentColor: NAVY, flexShrink: 0 },
-  itemTexto: { fontSize: 14, color: '#111827', flex: 1 },
-  itemHora: { fontSize: 12, color: '#6b7280' },
+  itemTexto: { fontSize: 14, color: '#111827' },
+  itemDescricao: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  itemHora: { fontSize: 12, color: '#6b7280', flexShrink: 0 },
+  notaBtn: {
+    background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 4, flexShrink: 0,
+  },
+  notaBox: { marginTop: 8, paddingLeft: 28 },
+  notaTextarea: {
+    width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px',
+    fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+  },
   semanaTitulo: { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 },
   semanaRow: { display: 'flex', gap: 8 },
   semanaDia: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
