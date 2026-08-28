@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, SmilePlus } from "lucide-react";
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
+import { formatarTexto } from "../textFormat";
 
 const REACOES = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -21,51 +22,6 @@ const replyPreviewText = (type, content, deleted) => {
   if (type === "audio") return "🎤 Áudio";
   return "📎 Arquivo";
 };
-
-// Destaca @menções e aplica formatação estilo WhatsApp: *negrito*, _itálico_, ~riscado~
-function comMencoes(texto) {
-  if (!texto) return texto;
-  const regex = /(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)|\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-  const partes = [];
-  let ultimo = 0;
-  let key = 0;
-  let m;
-  while ((m = regex.exec(texto)) !== null) {
-    if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
-    if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
-    } else if (m[2] !== undefined) {
-      partes.push(<strong key={key++}>{m[2]}</strong>);
-    } else if (m[3] !== undefined) {
-      partes.push(<em key={key++}>{m[3]}</em>);
-    } else if (m[4] !== undefined) {
-      partes.push(<s key={key++}>{m[4]}</s>);
-    } else if (m[5] !== undefined) {
-      // Tira pontuação do final que provavelmente é da frase, não do link (ex: "olha o site.")
-      let url = m[5];
-      let sufixo = "";
-      const pontuacaoFinal = url.match(/^(.*?)([.,;:!?)\]]+)$/);
-      if (pontuacaoFinal) { url = pontuacaoFinal[1]; sufixo = pontuacaoFinal[2]; }
-      const href = url.startsWith("http") ? url : `https://${url}`;
-      partes.push(
-        <a
-          key={key++}
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2E6FD9] break-all"
-        >
-          {url}
-        </a>
-      );
-      if (sufixo) partes.push(sufixo);
-    }
-    ultimo = regex.lastIndex;
-  }
-  if (ultimo < texto.length) partes.push(texto.slice(ultimo));
-  return partes;
-}
 
 // Baixa o arquivo de verdade (fetch + blob) em vez de deixar o navegador abrir na
 // própria aba — o atributo "download" do HTML não funciona entre domínios diferentes
@@ -184,12 +140,16 @@ export default function MessageBubble({
           <MessageLine
             key={m.id}
             m={m}
+            mine={mine}
             isAdm={isAdm}
             currentUserId={currentUserId}
             colors={colors}
             highlighted={highlightedId === m.id}
             precisaResposta={naoRespondidas?.has(m.id)}
             onReply={onReply}
+            onEdit={onEdit}
+            onReact={onReact}
+            onTogglePin={onTogglePin}
             onDelete={onDelete}
             onOpenImage={onOpenImage}
             onJumpToMessage={onJumpToMessage}
@@ -204,10 +164,31 @@ export default function MessageBubble({
 }
 
 function MessageLine({
-  m, isAdm, currentUserId, colors, highlighted, precisaResposta,
-  onReply, onDelete, onOpenImage, onJumpToMessage,
+  m, mine, isAdm, currentUserId, colors, highlighted, precisaResposta,
+  onReply, onEdit, onReact, onTogglePin, onDelete, onOpenImage, onJumpToMessage,
   playingId, setPlayingId, audioRefs,
 }) {
+  const [menuPos, setMenuPos] = useState(null); // { x, y } — onde o menu de botão direito abriu
+
+  useEffect(() => {
+    if (!menuPos) return;
+    const fechar = () => setMenuPos(null);
+    window.addEventListener("click", fechar);
+    window.addEventListener("scroll", fechar, true);
+    window.addEventListener("contextmenu", fechar);
+    return () => {
+      window.removeEventListener("click", fechar);
+      window.removeEventListener("scroll", fechar, true);
+      window.removeEventListener("contextmenu", fechar);
+    };
+  }, [menuPos]);
+
+  const abrirMenu = (e) => {
+    e.preventDefault();
+    // Fecha o menu de outra linha, se algum estava aberto, e abre o dessa
+    setTimeout(() => setMenuPos({ x: e.clientX, y: e.clientY }), 0);
+  };
+
   const reactionCounts = (m.reactions || []).reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
     return acc;
@@ -225,6 +206,7 @@ function MessageLine({
   return (
     <div
       id={`msg-${m.id}`}
+      onContextMenu={abrirMenu}
       className="group/line relative flex items-start justify-between gap-2 py-[3px] px-1.5 -mx-1 rounded transition-colors"
       style={{
         background: highlighted ? "rgba(46,111,217,0.2)" : "transparent",
@@ -247,7 +229,7 @@ function MessageLine({
 
         {m.type === "text" && (
           <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words flex items-center gap-1.5 flex-wrap" style={{ color: colors.textPrimary }}>
-            {comMencoes(m.content)}
+            {formatarTexto(m.content)}
             {m.edited && <span className="text-[10px] italic shrink-0" style={{ color: colors.textSecondary }}>(editado)</span>}
             {m.pinned && <Pin size={11} className="text-[#2E6FD9] shrink-0" />}
           </div>
@@ -260,7 +242,7 @@ function MessageLine({
             </button>
             {m.content && (
               <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words mt-1.5 max-w-[320px]" style={{ color: colors.textPrimary }}>
-                {comMencoes(m.content)}
+                {formatarTexto(m.content)}
               </div>
             )}
           </div>
@@ -331,6 +313,61 @@ function MessageLine({
         title="Dois cliques para responder"
         className="w-10 shrink-0 self-stretch"
       />
+
+      {/* Menu de botão direito — aparece bem em cima de onde clicou, com as ações
+          agindo sobre ESSA mensagem específica (não só a primeira do bloco). */}
+      {menuPos && !m.deleted && (
+        <div
+          className="fixed rounded-lg shadow-2xl border py-1.5 z-50 min-w-[170px]"
+          style={{ left: menuPos.x, top: menuPos.y, background: colors.panelBg, borderColor: colors.border }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border-b" style={{ borderColor: colors.border }}>
+            {REACOES.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => { onReact(m, emoji); setMenuPos(null); }}
+                className="text-[17px] hover:scale-125 transition-transform"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => { onReply(m); setMenuPos(null); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
+            style={{ color: colors.textPrimary }}
+          >
+            <Reply size={14} /> Responder
+          </button>
+          {mine && m.type === "text" && (
+            <button
+              onClick={() => { onEdit(m); setMenuPos(null); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
+              style={{ color: colors.textPrimary }}
+            >
+              <Pencil size={14} /> Editar
+            </button>
+          )}
+          {isAdm && (
+            <>
+              <button
+                onClick={() => { onTogglePin(m); setMenuPos(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
+                style={{ color: colors.textPrimary }}
+              >
+                {m.pinned ? <PinOff size={14} /> : <Pin size={14} />} {m.pinned ? "Desafixar" : "Fixar"}
+              </button>
+              <button
+                onClick={() => { onDelete(m); setMenuPos(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left text-red-500"
+              >
+                <Trash2 size={14} /> Apagar
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
