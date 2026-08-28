@@ -61,16 +61,18 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
   };
 
   const handleAttachmentPick = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setUploadingAttachment(true);
-    const form = new FormData();
-    form.append("file", file);
-    form.append("kind", file.type.startsWith("image/") ? "image" : "file");
     try {
-      await api.post(`/groups/${groupId}/attachments`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("kind", file.type.startsWith("image/") ? "image" : "file");
+        await api.post(`/groups/${groupId}/attachments`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
       load();
     } finally {
       setUploadingAttachment(false);
@@ -169,7 +171,7 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
                 <Paperclip size={12} /> {uploadingAttachment ? "Enviando..." : "Adicionar"}
               </button>
             )}
-            {isAdm && <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentPick} />}
+            {isAdm && <input ref={attachmentInputRef} type="file" multiple className="hidden" onChange={handleAttachmentPick} />}
           </div>
           <div className="flex flex-col gap-1 mb-5 max-h-52 overflow-y-auto">
             {(group.attachments || []).map((att) => (
