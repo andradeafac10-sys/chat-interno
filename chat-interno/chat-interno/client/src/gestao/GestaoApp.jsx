@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
-  ArrowLeft, LayoutDashboard, CalendarCheck, ClipboardList, Users,
+  ArrowLeft, LayoutDashboard, CalendarCheck, ClipboardList,
   Repeat, Trophy,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -11,7 +11,6 @@ const MENU = [
   { to: "/gestao", end: true, label: "Visão Geral", icon: LayoutDashboard },
   { to: "/gestao/minha-rotina", label: "Minha Rotina", icon: CalendarCheck },
   { to: "/gestao/tarefas", label: "Tarefas", icon: ClipboardList },
-  { to: "/gestao/equipe", label: "Equipe", icon: Users },
   { to: "/gestao/rotinas", label: "Rotinas", icon: Repeat },
   { to: "/gestao/ranking", label: "Ranking", icon: Trophy },
 ];
