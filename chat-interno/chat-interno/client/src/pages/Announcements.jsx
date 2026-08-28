@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock, Trash2, Users as UsersIcon, User } from "lucide-react";
 import { api, fileUrl } from "../api";
 import NewAnnouncementModal from "../components/NewAnnouncementModal";
+import ImageViewer from "../components/ImageViewer";
 import { useAuth } from "../context/AuthContext";
+import { formatarTexto } from "../textFormat";
 
 export default function Announcements({ onBack }) {
   const { user } = useAuth();
@@ -12,6 +14,7 @@ export default function Announcements({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [viewingImage, setViewingImage] = useState(null);
   const [acks, setAcks] = useState({}); // { [id]: { acked: [], pending: [] } }
 
   const [error, setError] = useState("");
@@ -85,7 +88,7 @@ export default function Announcements({ onBack }) {
                     <img src={fileUrl(a.image_url)} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-slate-800 line-clamp-2 select-text">{a.message}</p>
+                    <p className="text-sm text-slate-800 line-clamp-2 select-text">{formatarTexto(a.message)}</p>
                     <div className="text-[11px] text-slate-400 mt-1">
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString("pt-BR")}
                     </div>
@@ -119,9 +122,11 @@ export default function Announcements({ onBack }) {
 
                 {expandedId === a.id && !isAdm && (
                   <div className="border-t border-slate-100 p-4">
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap select-text">{a.message}</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap select-text">{formatarTexto(a.message)}</p>
                     {a.image_url && (
-                      <img src={fileUrl(a.image_url)} alt="" className="mt-3 rounded-lg max-h-72 object-contain" />
+                      <button onClick={() => setViewingImage({ url: a.image_url, name: "Comunicado" })} title="Clique para ampliar">
+                        <img src={fileUrl(a.image_url)} alt="" className="mt-3 rounded-lg max-h-72 object-contain cursor-zoom-in" />
+                      </button>
                     )}
                   </div>
                 )}
@@ -178,6 +183,8 @@ export default function Announcements({ onBack }) {
           }}
         />
       )}
+
+      <ImageViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </div>
   );
 }
