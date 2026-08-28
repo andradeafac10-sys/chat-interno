@@ -92,6 +92,18 @@ export default function Tarefas() {
                 <span style={{ ...styles.priorityDot, background: PRIORITY_COLORS[task.priority] }} />
                 <h3 style={styles.cardTitle}>{task.title}</h3>
                 {task.is_overdue && <span style={styles.overdueBadge}>Atrasada</span>}
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm(`Apagar a tarefa "${task.title}"? Essa ação não tem volta.`)) return;
+                    await gestaoApi.deleteTask(task.id);
+                    load();
+                  }}
+                  title="Apagar tarefa"
+                  style={styles.deleteIconBtn}
+                >
+                  ✕
+                </button>
               </div>
 
               <div style={styles.cardMeta}>
@@ -176,6 +188,10 @@ const styles = {
   overdueBadge: {
     background: '#dc2626', color: '#fff', fontSize: 10, fontWeight: 700,
     padding: '2px 8px', borderRadius: 999,
+  },
+  deleteIconBtn: {
+    marginLeft: 'auto', background: 'none', border: 'none', color: '#9ca3af',
+    fontSize: 14, cursor: 'pointer', padding: '2px 6px', flexShrink: 0,
   },
   cardMeta: { fontSize: 12, color: '#6b7280', marginTop: 6, display: 'flex', gap: 6 },
   assigneesRow: { display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' },
