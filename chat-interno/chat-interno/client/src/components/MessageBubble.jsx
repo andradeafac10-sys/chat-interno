@@ -25,7 +25,7 @@ const replyPreviewText = (type, content, deleted) => {
 // Destaca @menções e aplica formatação estilo WhatsApp: *negrito*, _itálico_, ~riscado~
 function comMencoes(texto) {
   if (!texto) return texto;
-  const regex = /(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)|\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~/g;
+  const regex = /(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)|\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
   const partes = [];
   let ultimo = 0;
   let key = 0;
@@ -40,6 +40,26 @@ function comMencoes(texto) {
       partes.push(<em key={key++}>{m[3]}</em>);
     } else if (m[4] !== undefined) {
       partes.push(<s key={key++}>{m[4]}</s>);
+    } else if (m[5] !== undefined) {
+      // Tira pontuação do final que provavelmente é da frase, não do link (ex: "olha o site.")
+      let url = m[5];
+      let sufixo = "";
+      const pontuacaoFinal = url.match(/^(.*?)([.,;:!?)\]]+)$/);
+      if (pontuacaoFinal) { url = pontuacaoFinal[1]; sufixo = pontuacaoFinal[2]; }
+      const href = url.startsWith("http") ? url : `https://${url}`;
+      partes.push(
+        <a
+          key={key++}
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="underline text-[#2E6FD9] break-all"
+        >
+          {url}
+        </a>
+      );
+      if (sufixo) partes.push(sufixo);
     }
     ultimo = regex.lastIndex;
   }
@@ -205,7 +225,7 @@ function MessageLine({
   return (
     <div
       id={`msg-${m.id}`}
-      className="group/line relative flex items-start justify-between gap-2 py-[1px] px-1.5 -mx-1 rounded transition-colors"
+      className="group/line relative flex items-start justify-between gap-2 py-[3px] px-1.5 -mx-1 rounded transition-colors"
       style={{
         background: highlighted ? "rgba(46,111,217,0.2)" : "transparent",
         borderLeft: precisaResposta ? "3px solid #EF4444" : "3px solid transparent",
