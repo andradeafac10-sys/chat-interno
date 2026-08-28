@@ -91,10 +91,13 @@ export default function Chat() {
     );
   }, []);
 
+  const hiddenGroupIdsRef = useRef(new Set()); // grupos silenciados por mim — nunca deve notificar/tocar som
+
   const loadHiddenGroupsCount = useCallback(async () => {
     try {
       const { data } = await api.get("/conversations/hidden-groups");
       setHiddenGroupsCount(data.groups.length);
+      hiddenGroupIdsRef.current = new Set(data.groups.map((g) => g.id));
     } catch { /* silencioso: não é crítico se falhar */ }
   }, []);
 
@@ -178,7 +181,12 @@ export default function Chat() {
       // Só avisa (som + notificação) se for uma conversa que a pessoa participa de
       // verdade — ADM entra em todo grupo pra poder monitorar, mas isso não deveria
       // gerar barulho de grupo que ele nunca participou de fato.
-      const souParticipante = !conv || conv.type !== "group" || conv.isMember !== false;
+      // Se for um grupo que a pessoa silenciou, nunca notifica — mesmo que a conversa
+      // nem apareça na lista dela (grupo oculto some da lista, mas o servidor ainda
+      // manda o evento; quem filtra o aviso é aqui).
+      const grupoId = message.conversation_id.startsWith("group-") ? Number(message.conversation_id.split("-")[1]) : null;
+      const grupoSilenciado = grupoId !== null && hiddenGroupIdsRef.current.has(grupoId);
+      const souParticipante = !grupoSilenciado && (!conv || conv.type !== "group" || conv.isMember !== false);
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
