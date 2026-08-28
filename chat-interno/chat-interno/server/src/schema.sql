@@ -258,3 +258,12 @@ CREATE TABLE IF NOT EXISTS routine_completions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_routine_completions_user_date ON routine_completions(user_id, occurrence_date);
+
+-- Até onde cada pessoa já leu cada conversa — usado pra calcular quantas
+-- mensagens não lidas mostrar (sobrevive a F5, ao contrário de guardar só na tela).
+CREATE TABLE IF NOT EXISTS conversation_reads (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id TEXT NOT NULL,
+  last_read_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, conversation_id)
+);
