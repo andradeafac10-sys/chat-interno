@@ -3,6 +3,7 @@ import { api } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
@@ -385,7 +386,13 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
-    <div className="w-screen h-screen flex" style={{ background: "#111B21" }}>
+    <div className="w-screen h-screen flex flex-col overflow-hidden" style={{ background: "#111B21" }}>
+      <Topbar
+        onOpenAccount={() => (user.role === "admin" ? setShowAdminPanel(true) : setShowAccount(true))}
+        onOpenAnnouncement={() => setShowAnnouncements(true)}
+        isOnline
+      />
+      <div className="flex-1 flex overflow-hidden">
       <Sidebar
         conversations={conversations}
         activeConvId={activeConvId}
@@ -402,7 +409,6 @@ export default function Chat() {
         onCloseConversation={closeConversation}
         hiddenGroupsCount={hiddenGroupsCount}
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
-        escondidoNoMobile={!!activeConv && !showUsers && !showAnnouncements && !showMonitoring && !showAdminPanel}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
@@ -423,16 +429,16 @@ export default function Chat() {
               onTogglePin={togglePin}
               onGroupUpdated={loadConversations}
               isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
-              onVoltarMobile={() => setActiveConvId(null)}
             />
           ) : (
-            <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 text-sm">
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
               {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
             </div>
           )}
           <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
         </>
       )}
+      </div>
 
       {showNewGroup && (
         <NewGroupModal
