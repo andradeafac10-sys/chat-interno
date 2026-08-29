@@ -296,7 +296,7 @@ function describeAction(h) {
   }
 }
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2563EB';
 
 const styles = {
   overlay: {
@@ -309,7 +309,7 @@ const styles = {
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: NAVY,
+    padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
     borderRadius: '12px 12px 0 0',
   },
   title: { margin: 0, color: '#fff', fontSize: 18 },
@@ -327,9 +327,9 @@ const styles = {
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
   statusSelect: { padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 },
   assignees: { fontSize: 13, color: '#374151', marginBottom: 10 },
-  progressBarOuter: { height: 8, background: '#e5e7eb', borderRadius: 999, marginBottom: 14, overflow: 'hidden' },
+  progressBarOuter: { height: 8, background: '#E4E8EE', borderRadius: 999, marginBottom: 14, overflow: 'hidden' },
   progressBarInner: { height: '100%', background: NAVY, transition: 'width .2s' },
-  tabs: { display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 14 },
+  tabs: { display: 'flex', gap: 4, borderBottom: '1px solid #E4E8EE', marginBottom: 14 },
   tab: {
     padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 13, color: '#6b7280', borderBottom: '2px solid transparent',
@@ -377,7 +377,7 @@ const styles = {
   historyDate: { color: '#9ca3af' },
   footer: {
     display: 'flex', justifyContent: 'space-between', padding: '14px 20px',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid #E4E8EE',
   },
   deleteBtn: {
     background: 'none', border: '1px solid #ef4444', color: '#ef4444',
