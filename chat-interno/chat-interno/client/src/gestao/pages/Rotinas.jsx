@@ -7,6 +7,9 @@ import RecurrenceFormModal from '../components/RecurrenceFormModal';
 const NAVY = '#0f2a4a';
 const DIAS_SEMANA_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
+const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
+const LABEL_PRIORIDADE = { high: 'Alta', medium: 'Média', low: 'Baixa' };
+
 function descreverRepeticao(r) {
   if (r.recurrence_type === 'daily') return 'Todos os dias';
   if (r.recurrence_type === 'weekdays') return 'Segunda a sexta';
@@ -24,8 +27,6 @@ export default function Rotinas() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [gerando, setGerando] = useState(false);
-  const [mensagemGerar, setMensagemGerar] = useState('');
 
   async function load() {
     setLoading(true);
@@ -61,22 +62,19 @@ export default function Rotinas() {
     }
   }
 
-  async function gerarAgora() {
-    setGerando(true);
-    setMensagemGerar('');
+  async function apagarTodas() {
+    if (recurrences.length === 0) return;
+    if (!confirm(`Isso vai apagar TODAS as ${recurrences.length} rotina(s) cadastradas — de todo mundo, não só as suas. O histórico de dias já marcados feito/não feito também some. Essa ação não tem volta. Quer continuar?`)) return;
+    if (!confirm('Confirmando de novo: TEM CERTEZA que quer apagar todas as rotinas cadastradas?')) return;
+    setLoading(true);
     try {
-      const data = await gestaoApi.generateOccurrencesNow();
-      setMensagemGerar(
-        data.ocorrencias_criadas > 0
-          ? `${data.ocorrencias_criadas} item(ns) novo(s) gerado(s) na lista de cada responsável.`
-          : 'Tudo em dia — nada novo pra gerar agora.'
-      );
+      for (const rec of recurrences) {
+        await gestaoApi.deleteRecurrence(rec.id);
+      }
       load();
     } catch (err) {
-      setMensagemGerar(err.message || 'Não consegui gerar as ocorrências.');
-    } finally {
-      setGerando(false);
-      setTimeout(() => setMensagemGerar(''), 5000);
+      setError(err.message || 'Não consegui apagar todas as rotinas.');
+      setLoading(false);
     }
   }
 
@@ -86,15 +84,13 @@ export default function Rotinas() {
 
       <div style={{ padding: '0 24px 32px' }}>
         <div style={styles.topRow}>
-          <button style={styles.gerarBtn} onClick={gerarAgora} disabled={gerando}>
-            {gerando ? 'Gerando...' : 'Gerar agora'}
+          <button style={styles.deleteAllBtn} onClick={apagarTodas} disabled={recurrences.length === 0}>
+            Apagar todas
           </button>
           <button style={styles.newBtn} onClick={() => { setEditing(null); setShowForm(true); }}>
             + Nova rotina
           </button>
         </div>
-
-        {mensagemGerar && <p style={styles.mensagemGerar}>{mensagemGerar}</p>}
 
         <p style={styles.explicacao}>
           Aqui é o cadastro geral. Cada responsável marcado vê essa rotina na própria
@@ -112,6 +108,7 @@ export default function Rotinas() {
           {recurrences.map((r) => (
             <div key={r.id} style={styles.card}>
               <div style={styles.cardTop}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: CORES_PRIORIDADE[r.priority] || CORES_PRIORIDADE.medium, flexShrink: 0 }} title={`Prioridade ${LABEL_PRIORIDADE[r.priority] || 'Média'}`} />
                 <h3 style={styles.cardTitle}>{r.title}</h3>
                 <span style={r.active ? styles.badgeAtiva : styles.badgeInativa}>
                   {r.active ? 'Ativa' : 'Pausada'}
@@ -163,11 +160,10 @@ const styles = {
     background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
     padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
-  gerarBtn: {
-    background: '#fff', color: NAVY, border: `1px solid ${NAVY}`, borderRadius: 8,
+  deleteAllBtn: {
+    background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 8,
     padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
-  mensagemGerar: { color: '#16a34a', fontSize: 13, fontWeight: 600, marginTop: 4 },
   explicacao: { fontSize: 12, color: '#6b7280', marginTop: 8, marginBottom: 16, maxWidth: 620 },
   hint: { color: '#6b7280', fontSize: 14 },
   error: { color: '#ef4444', fontSize: 14 },
