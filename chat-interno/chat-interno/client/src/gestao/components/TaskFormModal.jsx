@@ -89,11 +89,10 @@ export default function TaskFormModal({ task, initialDueDate, onClose, onSaved }
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 style={styles.title}>{isEditing ? 'Editar tarefa' : 'Nova tarefa'}</h2>
-          <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.body}>
