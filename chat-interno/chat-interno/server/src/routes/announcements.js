@@ -89,13 +89,21 @@ router.get("/:id/acks", requireAuth, requireAdmin, async (req, res) => {
 
 // POST /api/announcements/:id/ack -> a pessoa confirma que ficou ciente
 router.post("/:id/ack", requireAuth, async (req, res) => {
-  await pool.query(
-    "INSERT INTO announcement_acks (announcement_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-    [req.params.id, req.user.id]
-  );
-  const io = req.app.get("io");
-  io.emit("announcement:ack", { announcementId: Number(req.params.id), userId: req.user.id, userName: req.user.name });
-  res.json({ ok: true });
+  try {
+    await pool.query(
+      "INSERT INTO announcement_acks (announcement_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [req.params.id, req.user.id]
+    );
+    const io = req.app.get("io");
+    io.emit("announcement:ack", { announcementId: Number(req.params.id), userId: req.user.id, userName: req.user.name });
+    res.json({ ok: true });
+  } catch (err) {
+    // Antes essa rota não tinha catch: se o banco engasgasse, o pedido nunca
+    // recebia resposta e o botão "ESTOU CIENTE" ficava preso em "Enviando..."
+    // pra sempre, só saindo com F5. Agora sempre responde, mesmo em erro.
+    console.error(err);
+    res.status(500).json({ error: "Erro ao confirmar o comunicado." });
+  }
 });
 
 // POST /api/announcements -> criar comunicado (só ADM)
