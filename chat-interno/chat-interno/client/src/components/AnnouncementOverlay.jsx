@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Megaphone, Check, Volume2 } from "lucide-react";
+import { Megaphone, Check, Volume2, X } from "lucide-react";
 import { fileUrl, api } from "../api";
 import { startAlertLoop } from "../sound";
 import ImageViewer from "./ImageViewer";
@@ -100,6 +100,13 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
           sobrar de conteúdo rola por dentro, mas o botão de CIENTE fica sempre
           visível, fixo embaixo — nunca precisa rolar pra achar ele. */}
       <div className={`bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative ${acked ? "" : "announcement-card-pulse"}`}>
+        <button
+          onClick={onClose}
+          title="Fechar"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
+        >
+          <X size={15} />
+        </button>
         <div className="overflow-y-auto flex-1 min-h-0">
           {announcement.image_url && (
             <button
