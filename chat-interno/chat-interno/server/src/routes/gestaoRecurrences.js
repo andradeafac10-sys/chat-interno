@@ -350,6 +350,66 @@ router.patch('/completions/:id', async (req, res) => {
 // cumprimento das rotinas (feitas ÷ previstas, contando não marcadas como
 // "não feita" assim que o dia já passou).
 // -------------------------------------------------------------
+/**
+ * GET /api/gestao/recurrences/visao-geral-hoje?assignee_id=opcional
+ * Dados reais de HOJE pra tela Visão Geral: quantos planejados/concluídos/
+ * atrasados, quais precisam de atenção, quais ainda vêm, e o que foi
+ * concluído recentemente. Tudo calculado na hora, nada é guardado à parte.
+ */
+router.get('/visao-geral-hoje', async (req, res) => {
+  try {
+    const assigneeId = req.query.assignee_id ? Number(req.query.assignee_id) : null;
+    const { rows } = await pool.query(
+      `SELECT rc.id, rc.done, rc.done_at, r.title, r.start_time, u.id AS user_id, u.name AS user_name, u.avatar_url
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       JOIN users u ON u.id = rc.user_id
+       WHERE rc.occurrence_date = CURRENT_DATE
+         AND ($1::int IS NULL OR rc.user_id = $1)
+       ORDER BY r.start_time NULLS LAST, r.title`,
+      [assigneeId]
+    );
+
+    const agora = new Date();
+    const jaPassou = (horaStr) => {
+      if (!horaStr) return false;
+      const [h, m] = horaStr.split(':').map(Number);
+      const limite = new Date();
+      limite.setHours(h, m, 0, 0);
+      return agora > limite;
+    };
+
+    const planejadas = rows.length;
+    const concluidas = rows.filter((r) => r.done).length;
+    const atrasadasRows = rows.filter((r) => !r.done && jaPassou(r.start_time));
+    const atrasadas = atrasadasRows.length;
+
+    const proximasRows = rows.filter((r) => !r.done && !jaPassou(r.start_time) && r.start_time);
+
+    const recentesRows = rows
+      .filter((r) => r.done && r.done_at)
+      .sort((a, b) => new Date(b.done_at) - new Date(a.done_at));
+
+    const formatar = (r) => ({
+      id: r.id, title: r.title, start_time: r.start_time,
+      user_name: r.user_name, avatar_url: r.avatar_url, done_at: r.done_at,
+    });
+
+    res.json({
+      planejadas,
+      concluidas,
+      atrasadas,
+      percentual: planejadas > 0 ? Math.round((concluidas / planejadas) * 100) : 0,
+      atencao: atrasadasRows.slice(0, 5).map(formatar),
+      proximas: proximasRows.slice(0, 5).map(formatar),
+      recentes: recentesRows.slice(0, 5).map(formatar),
+    });
+  } catch (err) {
+    console.error('Erro ao montar visão geral de hoje:', err);
+    res.status(500).json({ error: 'Erro ao montar visão geral de hoje' });
+  }
+});
+
 router.get('/ranking/dados', async (req, res) => {
   try {
     const hoje = new Date();
