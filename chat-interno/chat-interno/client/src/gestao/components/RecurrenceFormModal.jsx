@@ -217,7 +217,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   );
 }
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2563EB';
 
 const styles = {
   overlay: {
@@ -230,7 +230,7 @@ const styles = {
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '16px 20px', borderBottom: '1px solid #e5e7eb', background: NAVY,
+    padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
     borderRadius: '12px 12px 0 0',
   },
   title: { margin: 0, color: '#fff', fontSize: 18 },
@@ -253,7 +253,7 @@ const styles = {
   },
   assigneeList: {
     display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto',
-    border: '1px solid #e5e7eb', borderRadius: 8, padding: 10,
+    border: '1px solid #E4E8EE', borderRadius: 8, padding: 10,
   },
   assigneeItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 },
   hint: { fontSize: 13, color: '#6b7280', margin: 0 },
