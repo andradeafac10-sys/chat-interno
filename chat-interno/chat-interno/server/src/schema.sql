@@ -278,3 +278,9 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_15_sent BOOLEAN NOT NULL DEF
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_5_sent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS reminder_15_sent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS reminder_5_sent BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Anexo opcional em comentário de tarefa, e em rotina concluída
+ALTER TABLE task_comments ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+ALTER TABLE task_comments ADD COLUMN IF NOT EXISTS attachment_name TEXT;
+ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_url TEXT;
+ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_nome TEXT;
