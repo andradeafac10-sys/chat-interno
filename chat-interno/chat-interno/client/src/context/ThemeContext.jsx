@@ -21,7 +21,7 @@ const THEMES = {
     border: "#1E3555",
     panelBg: "#12233D",
     accent: "#2E6FD9",
-    topbarBg: "#072B5A",
+    topbarBg: "#081328",
   },
   light: {
     sidebarBg: "#FFFFFF",
@@ -48,7 +48,7 @@ const THEMES = {
     success: "#22C55E",
     danger: "#EF4444",
     warning: "#F59E0B",
-    topbarBg: "#072B5A",
+    topbarBg: "#081328",
   },
 };
 
