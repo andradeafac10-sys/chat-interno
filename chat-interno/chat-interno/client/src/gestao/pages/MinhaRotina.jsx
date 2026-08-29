@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2563EB';
 const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
 const LABEL_PRIORIDADE = { high: 'Alta', medium: 'Média', low: 'Baixa' };
@@ -129,7 +129,7 @@ export default function MinhaRotina() {
                         <div
                           style={{
                             ...styles.semanaBolinha,
-                            background: pct === null ? '#e5e7eb' : pct === 100 ? '#16a34a' : pct > 0 ? '#f59e0b' : '#dc2626',
+                            background: pct === null ? '#E4E8EE' : pct === 100 ? '#16a34a' : pct > 0 ? '#f59e0b' : '#dc2626',
                           }}
                         >
                           {pct === null ? '' : `${pct}%`}
@@ -166,7 +166,7 @@ function PainelEstatisticas({ stats }) {
   return (
     <div style={styles.painelEstat}>
       <svg width="76" height="76" viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
-        <circle cx="38" cy="38" r={raio} fill="none" stroke="#e5e7eb" strokeWidth="7" />
+        <circle cx="38" cy="38" r={raio} fill="none" stroke="#E4E8EE" strokeWidth="7" />
         <circle
           cx="38" cy="38" r={raio} fill="none" stroke={NAVY} strokeWidth="7" strokeLinecap="round"
           strokeDasharray={`${preenchido} ${circunferencia}`}
@@ -287,7 +287,7 @@ const styles = {
   hintPequeno: { color: '#9ca3af', fontSize: 11, marginTop: 2 },
   error: { color: '#ef4444', fontSize: 14, marginTop: 20 },
   painelEstat: {
-    marginTop: 20, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18,
+    marginTop: 20, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 12, padding: 18,
     display: 'flex', alignItems: 'center', gap: 20,
   },
   estatGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 },
@@ -295,7 +295,7 @@ const styles = {
   estatLabel: { fontSize: 11, color: '#6b7280', marginTop: 2 },
   lista: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 },
   item: {
-    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #e5e7eb',
+    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #E4E8EE',
     borderRadius: 10, padding: '12px 14px', cursor: 'pointer', width: '100%', textAlign: 'left',
   },
   checkVisual: {
@@ -327,7 +327,7 @@ const styles = {
   modalHorario: { fontSize: 13, color: '#6b7280', margin: '0 0 16px' },
   modalLabel: { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 6, marginTop: 14 },
   modalTextarea: {
-    width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px',
+    width: '100%', border: '1px solid #E4E8EE', borderRadius: 8, padding: '8px 10px',
     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
   },
   anexoBtn: {
