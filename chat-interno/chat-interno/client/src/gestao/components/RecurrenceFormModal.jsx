@@ -18,6 +18,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   const isEditing = !!recurrence;
   const [title, setTitle] = useState(recurrence?.title || '');
   const [description, setDescription] = useState(recurrence?.description || '');
+  const [priority, setPriority] = useState(recurrence?.priority || 'medium');
   const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'weekdays');
   const [daysOfWeek, setDaysOfWeek] = useState(new Set(recurrence?.days_of_week || []));
   const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
@@ -67,6 +68,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
     const payload = {
       title: title.trim(),
       description: description.trim() || null,
+      priority,
       recurrence_type: recurrenceType,
       days_of_week: recurrenceType === 'specific_days' ? Array.from(daysOfWeek) : [],
       day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
@@ -111,6 +113,31 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Detalhes de como fazer, o que conferir etc."
           />
+
+          <label style={styles.label}>Prioridade</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: 'high', label: 'Alta', cor: '#dc2626' },
+              { value: 'medium', label: 'Média', cor: '#f59e0b' },
+              { value: 'low', label: 'Baixa', cor: '#16a34a' },
+            ].map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setPriority(p.value)}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  border: priority === p.value ? `2px solid ${p.cor}` : '1px solid #d1d5db',
+                  background: priority === p.value ? `${p.cor}15` : '#fff',
+                  color: priority === p.value ? p.cor : '#374151',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.cor }} />
+                {p.label}
+              </button>
+            ))}
+          </div>
 
           <label style={styles.label}>Repetição</label>
           <select style={styles.input} value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value)}>
