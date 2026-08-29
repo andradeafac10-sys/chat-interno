@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search, Smile } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
@@ -52,6 +52,8 @@ function posicaoDoCaractere(textarea, posicao) {
   document.body.removeChild(div);
   return { x, y };
 }
+
+const EMOJIS_RAPIDOS = ["😀", "😂", "👍", "🎉", "❤️", "🙏", "⚠️", "✅", "📌", "🔥", "😢", "😮"];
 
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
@@ -114,6 +116,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
   const [quemEstaDigitando, setQuemEstaDigitando] = useState(null); // nome de quem está digitando nessa conversa, ou null
   const typingTimeoutRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,6 +192,19 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     .slice(0, 6);
 
   // Detecta se a pessoa está digitando um @nome, pra abrir a sugestão
+  // Coloca o emoji na posição do cursor (ou no final, se não tiver cursor ativo)
+  const inserirEmoji = (emoji) => {
+    const el = inputRef.current;
+    const pos = el ? el.selectionStart : draft.length;
+    const novoTexto = draft.slice(0, pos) + emoji + draft.slice(pos);
+    setDraft(novoTexto);
+    setShowEmojis(false);
+    setTimeout(() => {
+      el?.focus();
+      el?.setSelectionRange(pos + emoji.length, pos + emoji.length);
+    }, 0);
+  };
+
   const handleDraftChange = (e) => {
     const value = e.target.value;
     setDraft(value);
@@ -903,6 +919,28 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                         {mMember.avatar_url ? <img src={fileUrl(mMember.avatar_url)} alt={mMember.name} className="w-full h-full object-cover" /> : mMember.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                       </div>
                       <span className="text-[13px]" style={{ color: colors.textPrimary }}>{mMember.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowEmojis((v) => !v)}
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2E6FD9] shrink-0"
+                style={{ color: colors.textSecondary }}
+              >
+                <Smile size={19} />
+              </button>
+              {showEmojis && (
+                <div
+                  className="absolute bottom-full right-0 mb-2 flex flex-wrap gap-1 w-[200px] p-2 rounded-lg shadow-lg border z-30"
+                  style={{ background: colors.panelBg, borderColor: colors.border }}
+                >
+                  {EMOJIS_RAPIDOS.map((e) => (
+                    <button key={e} onClick={() => inserirEmoji(e)} className="text-[19px] hover:scale-125 transition-transform">
+                      {e}
                     </button>
                   ))}
                 </div>
