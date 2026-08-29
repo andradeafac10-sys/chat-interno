@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { upload } = require('../middleware/upload');
 
 router.use(requireAuth, requireAdmin);
 
@@ -268,7 +269,8 @@ router.get('/minhas', async (req, res) => {
   try {
     const hoje = chaveDia(new Date());
     const { rows } = await pool.query(
-      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, r.id AS recurrence_id, r.title, r.description, r.start_time, r.priority
+      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, rc.anexo_url, rc.anexo_nome,
+              r.id AS recurrence_id, r.title, r.description, r.start_time, r.priority
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        WHERE rc.user_id = $1 AND rc.occurrence_date = $2
@@ -296,13 +298,21 @@ router.get('/minhas', async (req, res) => {
 // PATCH /api/gestao/recurrences/completions/:id — marcar feito / não feito
 // (só a própria pessoa marca a própria rotina)
 // -------------------------------------------------------------
+// POST /completions/upload -> sobe um arquivo pra anexar numa rotina do dia
+router.post('/completions/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  res.json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
+});
+
 router.patch('/completions/:id', async (req, res) => {
   try {
-    const { done, nota } = req.body;
+    const { done, nota, anexo_url, anexo_nome } = req.body;
     const campos = ['done = $1', 'done_at = $2'];
     const valores = [!!done, done ? new Date() : null];
     let i = 3;
     if (nota !== undefined) { campos.push(`nota = $${i++}`); valores.push(nota || null); }
+    if (anexo_url !== undefined) { campos.push(`anexo_url = $${i++}`); valores.push(anexo_url || null); }
+    if (anexo_nome !== undefined) { campos.push(`anexo_nome = $${i++}`); valores.push(anexo_nome || null); }
     valores.push(req.params.id, req.user.id);
     const { rows } = await pool.query(
       `UPDATE routine_completions SET ${campos.join(', ')}
@@ -310,6 +320,24 @@ router.patch('/completions/:id', async (req, res) => {
       valores
     );
     if (!rows[0]) return res.status(404).json({ error: 'Rotina não encontrada ou não é sua.' });
+
+    // Quando marca como FEITA, avisa todo mundo — igual uma notificação de mensagem
+    if (done) {
+      const io = req.app.get('io');
+      if (io) {
+        const { rows: infoRotina } = await pool.query(
+          `SELECT r.title FROM task_recurrences r WHERE r.id = (
+             SELECT recurrence_id FROM routine_completions WHERE id = $1
+           )`,
+          [req.params.id]
+        );
+        io.emit('gestao:notify', {
+          titulo: 'Rotina concluída',
+          corpo: `${req.user.name} concluiu: ${infoRotina[0]?.title || 'uma rotina'}`,
+        });
+      }
+    }
+
     res.json({ completion: rows[0] });
   } catch (err) {
     console.error('Erro ao marcar rotina:', err);
