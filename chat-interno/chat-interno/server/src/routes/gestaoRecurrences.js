@@ -119,9 +119,12 @@ router.get('/', async (req, res) => {
 // -------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { title, description, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
+    const { title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
 
     if (!title || !title.trim()) return res.status(400).json({ error: 'Título é obrigatório' });
+    if (!['low', 'medium', 'high'].includes(priority)) {
+      return res.status(400).json({ error: 'Prioridade inválida' });
+    }
     if (!['daily', 'weekdays', 'specific_days', 'monthly'].includes(recurrence_type)) {
       return res.status(400).json({ error: 'Tipo de repetição inválido' });
     }
@@ -138,9 +141,9 @@ router.post('/', async (req, res) => {
     const result = await pool.query(
       `INSERT INTO task_recurrences
         (title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
-       VALUES ($1,$2,'medium',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
       [
-        title.trim(), description || null, recurrence_type,
+        title.trim(), description || null, priority, recurrence_type,
         recurrence_type === 'specific_days' ? days_of_week : [],
         recurrence_type === 'monthly' ? day_of_month : null,
         start_time || null, start_date || new Date().toISOString().slice(0, 10), end_date || null,
@@ -186,7 +189,7 @@ router.patch('/:id', async (req, res) => {
     const existing = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
     if (!existing.rows[0]) return res.status(404).json({ error: 'Rotina não encontrada' });
 
-    const { title, description, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
+    const { title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
 
     const fields = [];
     const params = [];
@@ -195,6 +198,7 @@ router.patch('/:id', async (req, res) => {
 
     if (title !== undefined) set('title', title.trim());
     if (description !== undefined) set('description', description);
+    if (priority !== undefined) set('priority', priority);
     if (recurrence_type !== undefined) set('recurrence_type', recurrence_type);
     if (days_of_week !== undefined) set('days_of_week', days_of_week);
     if (day_of_month !== undefined) set('day_of_month', day_of_month);
@@ -264,11 +268,11 @@ router.get('/minhas', async (req, res) => {
   try {
     const hoje = chaveDia(new Date());
     const { rows } = await pool.query(
-      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, r.id AS recurrence_id, r.title, r.description, r.start_time
+      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, r.id AS recurrence_id, r.title, r.description, r.start_time, r.priority
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        WHERE rc.user_id = $1 AND rc.occurrence_date = $2
-       ORDER BY r.start_time NULLS LAST, r.title`,
+       ORDER BY CASE r.priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, r.start_time NULLS LAST, r.title`,
       [req.user.id, hoje]
     );
 
