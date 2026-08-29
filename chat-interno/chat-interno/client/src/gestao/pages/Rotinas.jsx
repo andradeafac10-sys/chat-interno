@@ -4,7 +4,7 @@ import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import RecurrenceFormModal from '../components/RecurrenceFormModal';
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2563EB';
 const DIAS_SEMANA_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
@@ -168,7 +168,7 @@ const styles = {
   hint: { color: '#6b7280', fontSize: 14 },
   error: { color: '#ef4444', fontSize: 14 },
   list: { display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 24 },
-  card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 },
+  card: { background: '#fff', border: '1px solid #E4E8EE', borderRadius: 10, padding: 14 },
   cardTop: { display: 'flex', alignItems: 'center', gap: 8 },
   cardTitle: { margin: 0, fontSize: 15, color: '#111827', flex: 1 },
   badgeAtiva: {
