@@ -14,7 +14,7 @@ function preview(last) {
   return "📎 Arquivo";
 }
 
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenAccount, onOpenUsers, onOpenAnnouncement, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, escondidoNoMobile }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const [filter, setFilter] = useState("");
@@ -38,7 +38,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
     });
 
   return (
-    <div className="w-[320px] flex flex-col border-r" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
+    <div className={`w-full md:w-[320px] flex-col border-r ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.sidebarBg, borderColor: colors.border }}>
       <div className="flex items-center gap-2.5 px-3 py-3.5">
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden" style={{ background: user.color }}>
           {user.avatar_url ? (
