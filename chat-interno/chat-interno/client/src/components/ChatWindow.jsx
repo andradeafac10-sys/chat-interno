@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search, Smile } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search, Smile, ArrowLeft as ArrowLeftIcon } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
@@ -97,7 +97,7 @@ function calcularNaoRespondidas(messages, meuId) {
   return set;
 }
 
-export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline }) {
+export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline, onVoltarMobile }) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const isAdm = user.role === "admin";
@@ -559,12 +559,21 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   };
 
   return (
-    <div className="flex-1 flex flex-col relative" style={{ background: colors.chatBg }}>
+    <div className="w-full flex-1 flex flex-col relative" style={{ background: colors.chatBg }}>
       <button
         onClick={() => conversation.type === "group" && setShowGroupSettings(true)}
         className="h-16 flex items-center gap-3 px-4 border-b shrink-0 text-left"
         style={{ cursor: conversation.type === "group" ? "pointer" : "default", background: colors.headerBg, borderColor: colors.headerBorder }}
       >
+        {onVoltarMobile && (
+          <span
+            onClick={(e) => { e.stopPropagation(); onVoltarMobile(); }}
+            className="md:hidden p-1 -ml-1 shrink-0"
+            style={{ color: colors.textPrimary }}
+          >
+            <ArrowLeftIcon size={20} />
+          </span>
+        )}
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#2E6FD9" }}>
           {conversation.avatarUrl ? (
             <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" />
