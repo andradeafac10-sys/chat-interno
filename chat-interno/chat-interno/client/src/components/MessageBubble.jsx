@@ -230,10 +230,10 @@ function MessageLine({
         )}
 
         {m.type === "text" && (
-          <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words flex items-center gap-1.5 flex-wrap" style={{ color: colors.textPrimary }}>
+          <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: colors.textPrimary }}>
             {formatarTexto(m.content)}
-            {m.edited && <span className="text-[10px] italic shrink-0" style={{ color: colors.textSecondary }}>(editado)</span>}
-            {m.pinned && <Pin size={11} className="text-[#2E6FD9] shrink-0" />}
+            {m.edited && <span className="text-[10px] italic ml-1.5 align-middle" style={{ color: colors.textSecondary }}>(editado)</span>}
+            {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#2E6FD9]" />}
           </div>
         )}
 
