@@ -1,5 +1,5 @@
 // client/src/gestao/components/TaskDetailModal.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gestaoApi } from '../gestaoApi';
 
 const STATUS_LABELS = {
@@ -10,7 +10,7 @@ const STATUS_LABELS = {
 };
 
 const PRIORITY_LABELS = { low: 'Baixa', medium: 'Média', high: 'Alta' };
-const PRIORITY_COLORS = { low: '#6b7280', medium: '#d97706', high: '#dc2626' };
+const PRIORITY_COLORS = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' };
 
 export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) {
   const [task, setTask] = useState(null);
@@ -20,6 +20,9 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
   const [newComment, setNewComment] = useState('');
   const [tab, setTab] = useState('checklist');
   const [loading, setLoading] = useState(true);
+  const [anexoNovo, setAnexoNovo] = useState(null); // { url, name } — escolhido, aguardando enviar junto do comentário
+  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
+  const fileInputRef = useRef(null);
 
   async function load() {
     setLoading(true);
@@ -67,10 +70,30 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
 
   async function addComment(e) {
     e.preventDefault();
-    if (!newComment.trim()) return;
-    await gestaoApi.addComment(taskId, newComment.trim());
+    if (!newComment.trim() && !anexoNovo) return;
+    await gestaoApi.addComment(taskId, newComment.trim(), anexoNovo || undefined);
     setNewComment('');
+    setAnexoNovo(null);
     await load();
+  }
+
+  async function escolherArquivo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEnviandoArquivo(true);
+    try {
+      const { url, name } = await gestaoApi.uploadTaskFile(taskId, file);
+      setAnexoNovo({ url, name });
+    } catch (err) {
+      alert(err.message || 'Não consegui enviar o arquivo.');
+    } finally {
+      setEnviandoArquivo(false);
+      e.target.value = '';
+    }
+  }
+
+  async function finalizarTarefa() {
+    await changeStatus('done');
   }
 
   async function handleDelete() {
@@ -126,6 +149,12 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
               ))}
             </select>
           </div>
+
+          {task.status !== 'done' && (
+            <button onClick={finalizarTarefa} style={styles.finalizarBtn}>
+              ✓ Marcar como finalizada
+            </button>
+          )}
 
           {task.assignees.length > 0 && (
             <div style={styles.assignees}>
@@ -197,7 +226,12 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
                   <span style={styles.commentDate}>
                     {new Date(c.created_at).toLocaleString('pt-BR')}
                   </span>
-                  <p style={styles.commentText}>{c.content}</p>
+                  {c.content && <p style={styles.commentText}>{c.content}</p>}
+                  {c.attachment_url && (
+                    <a href={c.attachment_url} target="_blank" rel="noreferrer" style={styles.anexoLink}>
+                      📎 {c.attachment_name || 'Ver arquivo'}
+                    </a>
+                  )}
                 </div>
               ))}
               {comments.length === 0 && <p style={styles.hint}>Nenhum comentário ainda.</p>}
@@ -208,8 +242,18 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Escrever um comentário"
                 />
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={enviandoArquivo} style={styles.anexoBtn} title="Anexar arquivo">
+                  📎
+                </button>
                 <button style={styles.addBtn} type="submit">Enviar</button>
               </form>
+              {anexoNovo && (
+                <div style={styles.anexoPreview}>
+                  📎 {anexoNovo.name}
+                  <button type="button" onClick={() => setAnexoNovo(null)} style={styles.anexoRemover}>✕</button>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" onChange={escolherArquivo} style={{ display: 'none' }} />
             </div>
           )}
 
@@ -276,6 +320,10 @@ const styles = {
   body: { padding: 20 },
   description: { color: '#374151', fontSize: 14, marginTop: 0 },
   statusRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 },
+  finalizarBtn: {
+    width: '100%', border: 'none', borderRadius: 8, padding: '11px', background: '#16a34a',
+    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 14,
+  },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
   statusSelect: { padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 },
   assignees: { fontSize: 13, color: '#374151', marginBottom: 10 },
@@ -308,6 +356,18 @@ const styles = {
   commentAuthor: { fontSize: 13, color: '#111827', marginRight: 8 },
   commentDate: { fontSize: 11, color: '#9ca3af' },
   commentText: { fontSize: 13, color: '#374151', margin: '4px 0 0' },
+  anexoLink: {
+    display: 'inline-block', marginTop: 4, fontSize: 12, fontWeight: 600, color: NAVY, textDecoration: 'none',
+  },
+  anexoBtn: {
+    padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff',
+    cursor: 'pointer', fontSize: 14,
+  },
+  anexoPreview: {
+    display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#374151',
+    background: '#f3f4f6', borderRadius: 8, padding: '6px 10px', marginTop: 8, width: 'fit-content',
+  },
+  anexoRemover: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 12 },
   historyRow: {
     display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 0',
     borderBottom: '1px solid #f3f4f6', fontSize: 12, color: '#4b5563',
