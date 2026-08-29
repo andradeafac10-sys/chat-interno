@@ -390,6 +390,10 @@ export default function Chat() {
       <Topbar
         onOpenAccount={() => (user.role === "admin" ? setShowAdminPanel(true) : setShowAccount(true))}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
+        onOpenMonitoring={() => setShowMonitoring(true)}
+        conversations={conversations}
+        onOpenConversation={openFromOnlinePanel}
+        onSelectConversationId={setActiveConvIdAndStopBlink}
         isOnline
       />
       <div className="flex-1 flex overflow-hidden">
