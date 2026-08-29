@@ -30,22 +30,24 @@ body {
   background-color: #1e4fa0;
 }
 
-/* Fundo do comunicado geral piscando em vermelho pra chamar atenção */
+/* Fundo do comunicado geral piscando em vermelho pra chamar atenção —
+   mais rápido que antes (0.9s -> 0.45s) porque a ideia é chamar atenção
+   de verdade, não só um alerta suave. */
 @keyframes announcement-alert {
   0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
   50% { background-color: rgba(190, 18, 18, 0.75); }
 }
 .announcement-alert {
-  animation: announcement-alert 0.9s ease-in-out infinite;
+  animation: announcement-alert 0.45s ease-in-out infinite;
 }
 
-/* Borda do card do comunicado pulsando */
+/* Borda do card do comunicado pulsando — também mais rápida (1.2s -> 0.6s) */
 @keyframes announcement-card-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
   50% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
 }
 .announcement-card-pulse {
-  animation: announcement-card-pulse 1.2s ease-out infinite;
+  animation: announcement-card-pulse 0.6s ease-out infinite;
 }
 
 /* Balão de aviso de online/offline entrando pela direita */
