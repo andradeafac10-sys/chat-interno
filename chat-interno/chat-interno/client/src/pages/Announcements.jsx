@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock, Trash2, Users as UsersIcon, User } from "lucide-react";
+import { ArrowLeft, Megaphone, Plus, ChevronDown, ChevronUp, Check, Clock, Trash2, Users as UsersIcon, User, X } from "lucide-react";
 import { api, fileUrl } from "../api";
 import NewAnnouncementModal from "../components/NewAnnouncementModal";
 import ImageViewer from "../components/ImageViewer";
@@ -83,13 +83,19 @@ export default function Announcements({ onBack }) {
 
   useEffect(() => { load(); }, []);
 
+  const [viewingAnnouncement, setViewingAnnouncement] = useState(null); // operador vê num cartão maior, tipo o alerta
+
   const toggleExpand = async (id) => {
+    if (!isAdm) {
+      const encontrado = announcements.find((a) => a.id === id);
+      setViewingAnnouncement(encontrado || null);
+      return;
+    }
     if (expandedId === id) {
       setExpandedId(null);
       return;
     }
     setExpandedId(id);
-    if (!isAdm) return; // operador não vê a lista de quem confirmou
     if (!acks[id]) {
       const { data } = await api.get(`/announcements/${id}/acks`);
       setAcks((prev) => ({ ...prev, [id]: data }));
@@ -164,17 +170,6 @@ export default function Announcements({ onBack }) {
                   </div>
                 </button>
 
-                {expandedId === a.id && !isAdm && (
-                  <div className="border-t border-slate-100 p-4">
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap select-text">{formatarTexto(a.message)}</p>
-                    {a.image_url && (
-                      <button onClick={() => setViewingImage({ url: a.image_url, name: "Comunicado" })} title="Clique para ampliar">
-                        <img src={fileUrl(a.image_url)} alt="" className="mt-3 rounded-lg max-h-72 object-contain cursor-zoom-in" />
-                      </button>
-                    )}
-                  </div>
-                )}
-
                 {expandedId === a.id && isAdm && (
                   <div className="border-t border-slate-100 p-4">
                     {!acks[a.id] ? (
@@ -229,6 +224,52 @@ export default function Announcements({ onBack }) {
       )}
 
       <ImageViewer image={viewingImage} onClose={() => setViewingImage(null)} />
+
+      {viewingAnnouncement && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60"
+          onClick={() => setViewingAnnouncement(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh] overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setViewingAnnouncement(null)}
+              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
+            >
+              <X size={15} />
+            </button>
+            <div className="overflow-y-auto flex-1 min-h-0">
+              {viewingAnnouncement.image_url && (
+                <button
+                  onClick={() => setViewingImage({ url: viewingAnnouncement.image_url, name: "Comunicado" })}
+                  className="block w-full"
+                  title="Clique para ver em tamanho maior"
+                >
+                  <img
+                    src={fileUrl(viewingAnnouncement.image_url)}
+                    alt="Comunicado"
+                    className="w-full max-h-[50vh] object-contain bg-black cursor-zoom-in"
+                  />
+                </button>
+              )}
+              <div className="p-6">
+                <div className="flex items-center gap-2 text-red-600 mb-3">
+                  <Megaphone size={20} />
+                  <span className="text-xs font-semibold uppercase tracking-wide">Comunicado geral</span>
+                </div>
+                <p className="text-slate-800 text-[15px] whitespace-pre-wrap leading-relaxed select-text">
+                  {formatarTexto(viewingAnnouncement.message)}
+                </p>
+                <div className="text-[12px] text-slate-400 mt-4">
+                  {viewingAnnouncement.created_by_name} · {new Date(viewingAnnouncement.created_at).toLocaleString("pt-BR")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
