@@ -1,12 +1,10 @@
 import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera, Trash2, AlertTriangle, UserCog, Eye, LayoutDashboard } from "lucide-react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
-export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring }) {
+export default function AccountModal({ onClose }) {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -107,32 +105,6 @@ export default function AccountModal({ onClose, onOpenUsers, onOpenMonitoring })
             {user.role === "admin" && <ShieldCheck size={11} />}
             {user.username} · {user.role === "admin" ? "Administrador" : "Operador"}
           </div>
-        </div>
-
-        <div className="flex flex-col gap-2 mb-5 pb-5 border-b border-slate-200">
-          {user.role === "admin" && (
-            <>
-              <button
-                onClick={() => { onClose(); onOpenUsers?.(); }}
-                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
-              >
-                <UserCog size={15} /> Usuários da equipe
-              </button>
-              <button
-                onClick={() => { onClose(); onOpenMonitoring?.(); }}
-                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border border-slate-200 text-slate-700 hover:bg-slate-50"
-              >
-                <Eye size={15} /> Monitoria
-              </button>
-              <button
-                onClick={() => { onClose(); navigate("/gestao"); }}
-                className="w-full flex items-center gap-2 rounded-lg py-2 px-3 text-[13px] font-medium border text-white"
-                style={{ background: "#2E6FD9", borderColor: "#2E6FD9" }}
-              >
-                <LayoutDashboard size={15} /> Ir para Gestão
-              </button>
-            </>
-          )}
         </div>
 
         <form onSubmit={submit}>
