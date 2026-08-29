@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, SmilePlus } from "lucide-react";
+import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2 } from "lucide-react";
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
 
@@ -99,19 +99,9 @@ export default function MessageBubble({
   playingId, setPlayingId, audioRefs, highlightedId, naoRespondidas,
 }) {
   const { colors } = useTheme();
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const pickerTimeout = useRef(null);
   const primeira = messages[0];
 
   const initials = primeira.sender_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-
-  const openPicker = () => {
-    clearTimeout(pickerTimeout.current);
-    setShowReactionPicker(true);
-  };
-  const closePickerDelayed = () => {
-    pickerTimeout.current = setTimeout(() => setShowReactionPicker(false), 350);
-  };
 
   return (
     <div className="group/cluster flex gap-2.5 px-3 pt-1.5 pb-0 rounded-lg">
@@ -135,28 +125,6 @@ export default function MessageBubble({
 
           {!primeira.deleted && (
             <div className="opacity-0 group-hover/cluster:opacity-100 transition-opacity flex items-center gap-2 ml-1">
-              <div className="relative" onMouseEnter={openPicker} onMouseLeave={closePickerDelayed}>
-                <button title="Reagir" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-                  <SmilePlus size={13} />
-                </button>
-                {showReactionPicker && (
-                  <div
-                    className="absolute top-full left-0 mt-1 flex items-center gap-0.5 rounded-full px-2 py-1.5 shadow-lg border z-20"
-                    style={{ background: colors.panelBg, borderColor: colors.border }}
-                  >
-                    {REACOES.map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => { onReact(primeira, emoji); setShowReactionPicker(false); }}
-                        className="text-[18px] hover:scale-125 transition-transform px-0.5"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <button onClick={() => onReply(primeira)} title="Responder" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
                 <Reply size={13} />
               </button>
@@ -165,16 +133,6 @@ export default function MessageBubble({
                 <button onClick={() => onEdit(primeira)} title="Editar" className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
                   <Pencil size={13} />
                 </button>
-              )}
-              {isAdm && (
-                <>
-                  <button onClick={() => onDelete(primeira)} title="Apagar" className="hover:text-red-500" style={{ color: colors.textSecondary }}>
-                    <Trash2 size={13} />
-                  </button>
-                  <button onClick={() => onTogglePin(primeira)} title={primeira.pinned ? "Desafixar" : "Fixar"} className="hover:text-[#2E6FD9]" style={{ color: colors.textSecondary }}>
-                    {primeira.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                  </button>
-                </>
               )}
             </div>
           )}
