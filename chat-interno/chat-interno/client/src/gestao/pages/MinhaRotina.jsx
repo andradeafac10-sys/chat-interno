@@ -1,17 +1,28 @@
 // client/src/gestao/pages/MinhaRotina.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 
 const NAVY = '#0f2a4a';
 const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
+const LABEL_PRIORIDADE = { high: 'Alta', medium: 'Média', low: 'Baixa' };
+
+function agoraMenorQue(horaStr) {
+  if (!horaStr) return false;
+  const [h, m] = horaStr.split(':').map(Number);
+  const agora = new Date();
+  const limite = new Date();
+  limite.setHours(h, m, 0, 0);
+  return agora > limite;
+}
 
 export default function MinhaRotina() {
   const [hoje, setHoje] = useState([]);
   const [resumoSemana, setResumoSemana] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [abertoId, setAbertoId] = useState(null); // qual item tem o campo de relato aberto
+  const [detalheItem, setDetalheItem] = useState(null); // item aberto na tela de detalhe
 
   async function load() {
     setLoading(true);
@@ -29,32 +40,31 @@ export default function MinhaRotina() {
 
   useEffect(() => { load(); }, []);
 
-  async function marcar(item, done) {
-    // Atualiza a tela na hora, sem esperar o servidor responder — sensação de lista instantânea
+  // Mantém a tela de detalhe sincronizada com a lista (ex: depois de marcar feito)
+  useEffect(() => {
+    if (!detalheItem) return;
+    const atualizado = hoje.find((i) => i.id === detalheItem.id);
+    if (atualizado) setDetalheItem(atualizado);
+  }, [hoje]); // eslint-disable-line
+
+  const stats = useMemo(() => {
+    const total = hoje.length;
+    const feitas = hoje.filter((i) => i.done).length;
+    const atrasadas = hoje.filter((i) => !i.done && agoraMenorQue(i.start_time)).length;
+    const pendentes = total - feitas - atrasadas;
+    const percentual = total > 0 ? Math.round((feitas / total) * 100) : 0;
+    return { total, feitas, atrasadas, pendentes, percentual };
+  }, [hoje]);
+
+  async function marcarFeito(item, done) {
     setHoje((prev) => prev.map((i) => (i.id === item.id ? { ...i, done } : i)));
     try {
-      await gestaoApi.marcarRotina(item.id, done);
+      await gestaoApi.marcarRotina(item.id, { done });
     } catch (err) {
       alert(err.message || 'Não consegui marcar essa rotina.');
       setHoje((prev) => prev.map((i) => (i.id === item.id ? { ...i, done: !done } : i)));
     }
   }
-
-  function mudarNotaLocal(itemId, nota) {
-    setHoje((prev) => prev.map((i) => (i.id === itemId ? { ...i, nota } : i)));
-  }
-
-  async function salvarNota(item) {
-    try {
-      await gestaoApi.marcarRotina(item.id, item.done, item.nota || '');
-    } catch (err) {
-      alert(err.message || 'Não consegui salvar o relato.');
-    }
-  }
-
-  const feitas = hoje.filter((i) => i.done).length;
-  const total = hoje.length;
-  const percentual = total > 0 ? Math.round((feitas / total) * 100) : 0;
 
   return (
     <div>
@@ -66,58 +76,44 @@ export default function MinhaRotina() {
 
         {!loading && !error && (
           <>
-            {total > 0 && (
-              <div style={styles.resumoCard}>
-                <div style={styles.resumoTexto}>{feitas} de {total} feitas hoje</div>
-                <div style={styles.progressOuter}>
-                  <div style={{ ...styles.progressInner, width: `${percentual}%` }} />
-                </div>
-              </div>
-            )}
+            {stats.total > 0 && <PainelEstatisticas stats={stats} />}
 
             <div style={styles.lista}>
-              {hoje.length === 0 && (
-                <p style={styles.hint}>Nenhuma rotina pra hoje. 🎉</p>
-              )}
-              {hoje.map((item) => (
-                <div key={item.id} style={{ ...styles.item, opacity: item.done ? 0.75 : 1 }}>
-                  <div style={styles.itemLinha}>
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={(e) => marcar(item, e.target.checked)}
-                      style={styles.checkbox}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+              {hoje.length === 0 && <p style={styles.hint}>Nenhuma rotina pra hoje. 🎉</p>}
+              {hoje.map((item) => {
+                const atrasada = !item.done && agoraMenorQue(item.start_time);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setDetalheItem(item)}
+                    style={{
+                      ...styles.item,
+                      opacity: item.done ? 0.65 : 1,
+                      borderLeft: `4px solid ${atrasada ? '#dc2626' : CORES_PRIORIDADE[item.priority] || '#d1d5db'}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...styles.checkVisual,
+                        background: item.done ? '#16a34a' : '#fff',
+                        borderColor: item.done ? '#16a34a' : '#d1d5db',
+                      }}
+                    >
+                      {item.done && <span style={{ color: '#fff', fontSize: 13 }}>✓</span>}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                       <div style={{ ...styles.itemTexto, textDecoration: item.done ? 'line-through' : 'none' }}>
                         {item.title}
                       </div>
-                      {item.description && <div style={styles.itemDescricao}>{item.description}</div>}
+                      <div style={styles.itemMeta}>
+                        {item.start_time && <span>{item.start_time.slice(0, 5)}</span>}
+                        {atrasada && <span style={{ color: '#dc2626', fontWeight: 700 }}>Atrasada</span>}
+                        {item.nota && <span>💬 tem relato</span>}
+                      </div>
                     </div>
-                    {item.start_time && <span style={styles.itemHora}>{item.start_time.slice(0, 5)}</span>}
-                    <button
-                      onClick={() => setAbertoId(abertoId === item.id ? null : item.id)}
-                      title="Relatar algo sobre essa rotina"
-                      style={styles.notaBtn}
-                    >
-                      💬{item.nota ? ' •' : ''}
-                    </button>
-                  </div>
-
-                  {abertoId === item.id && (
-                    <div style={styles.notaBox}>
-                      <textarea
-                        value={item.nota || ''}
-                        onChange={(e) => mudarNotaLocal(item.id, e.target.value)}
-                        onBlur={() => salvarNota(item)}
-                        placeholder="Relatar algo sobre essa rotina (opcional)..."
-                        style={styles.notaTextarea}
-                        rows={2}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
             {resumoSemana.length > 0 && (
@@ -147,36 +143,167 @@ export default function MinhaRotina() {
           </>
         )}
       </div>
+
+      {detalheItem && (
+        <DetalheRotinaModal
+          item={detalheItem}
+          onClose={() => setDetalheItem(null)}
+          onMarcarFeito={(done) => marcarFeito(detalheItem, done)}
+          onAtualizado={(campos) => {
+            setHoje((prev) => prev.map((i) => (i.id === detalheItem.id ? { ...i, ...campos } : i)));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PainelEstatisticas({ stats }) {
+  const raio = 30;
+  const circunferencia = 2 * Math.PI * raio;
+  const preenchido = (stats.percentual / 100) * circunferencia;
+
+  return (
+    <div style={styles.painelEstat}>
+      <svg width="76" height="76" viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
+        <circle cx="38" cy="38" r={raio} fill="none" stroke="#e5e7eb" strokeWidth="7" />
+        <circle
+          cx="38" cy="38" r={raio} fill="none" stroke={NAVY} strokeWidth="7" strokeLinecap="round"
+          strokeDasharray={`${preenchido} ${circunferencia}`}
+          transform="rotate(-90 38 38)"
+        />
+        <text x="38" y="43" textAnchor="middle" fontSize="16" fontWeight="700" fill={NAVY}>
+          {stats.percentual}%
+        </text>
+      </svg>
+      <div style={styles.estatGrid}>
+        <div>
+          <div style={styles.estatNumero}>{stats.total}</div>
+          <div style={styles.estatLabel}>Total</div>
+        </div>
+        <div>
+          <div style={{ ...styles.estatNumero, color: '#16a34a' }}>{stats.feitas}</div>
+          <div style={styles.estatLabel}>Feitas</div>
+        </div>
+        <div>
+          <div style={{ ...styles.estatNumero, color: '#f59e0b' }}>{stats.pendentes}</div>
+          <div style={styles.estatLabel}>Pendentes</div>
+        </div>
+        <div>
+          <div style={{ ...styles.estatNumero, color: '#dc2626' }}>{stats.atrasadas}</div>
+          <div style={styles.estatLabel}>Atrasadas</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
+  const [nota, setNota] = useState(item.nota || '');
+  const [salvandoNota, setSalvandoNota] = useState(false);
+  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function salvarNota() {
+    setSalvandoNota(true);
+    try {
+      await gestaoApi.marcarRotina(item.id, { done: item.done, nota });
+      onAtualizado({ nota });
+    } catch (err) {
+      alert(err.message || 'Não consegui salvar o relato.');
+    } finally {
+      setSalvandoNota(false);
+    }
+  }
+
+  async function escolherArquivo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEnviandoArquivo(true);
+    try {
+      const { url, name } = await gestaoApi.uploadRoutineFile(file);
+      await gestaoApi.marcarRotina(item.id, { done: item.done, anexo_url: url, anexo_nome: name });
+      onAtualizado({ anexo_url: url, anexo_nome: name });
+    } catch (err) {
+      alert(err.message || 'Não consegui enviar o arquivo.');
+    } finally {
+      setEnviandoArquivo(false);
+      e.target.value = '';
+    }
+  }
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <span style={{ ...styles.prioridadeBadge, background: `${CORES_PRIORIDADE[item.priority]}15`, color: CORES_PRIORIDADE[item.priority] }}>
+            ● Prioridade {LABEL_PRIORIDADE[item.priority] || 'Média'}
+          </span>
+        </div>
+
+        <div style={{ padding: '4px 24px 24px' }}>
+          <h2 style={styles.modalTitulo}>{item.title}</h2>
+          {item.description && <p style={styles.modalDescricao}>{item.description}</p>}
+          {item.start_time && <p style={styles.modalHorario}>🕐 {item.start_time.slice(0, 5)}</p>}
+
+          <label style={styles.modalLabel}>Relato (opcional)</label>
+          <textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            onBlur={salvarNota}
+            placeholder="Escreva algo sobre essa rotina hoje..."
+            style={styles.modalTextarea}
+            rows={3}
+          />
+          {salvandoNota && <div style={styles.hintPequeno}>Salvando...</div>}
+
+          <label style={styles.modalLabel}>Anexo (opcional)</label>
+          {item.anexo_url ? (
+            <a href={item.anexo_url} target="_blank" rel="noreferrer" style={styles.anexoLink}>
+              📎 {item.anexo_nome || 'Ver arquivo'}
+            </a>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={enviandoArquivo} style={styles.anexoBtn}>
+              {enviandoArquivo ? 'Enviando...' : '+ Anexar arquivo'}
+            </button>
+          )}
+          <input ref={fileInputRef} type="file" onChange={escolherArquivo} style={{ display: 'none' }} />
+
+          <button
+            onClick={() => onMarcarFeito(!item.done)}
+            style={{ ...styles.botaoFinalizar, background: item.done ? '#6b7280' : '#16a34a' }}
+          >
+            {item.done ? 'Desmarcar' : '✓ Marcar como finalizado'}
+          </button>
+          <button onClick={onClose} style={styles.fecharBtn}>Fechar</button>
+        </div>
+      </div>
     </div>
   );
 }
 
 const styles = {
   hint: { color: '#6b7280', fontSize: 14, marginTop: 20 },
+  hintPequeno: { color: '#9ca3af', fontSize: 11, marginTop: 2 },
   error: { color: '#ef4444', fontSize: 14, marginTop: 20 },
-  resumoCard: {
-    marginTop: 20, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14,
+  painelEstat: {
+    marginTop: 20, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18,
+    display: 'flex', alignItems: 'center', gap: 20,
   },
-  resumoTexto: { fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 },
-  progressOuter: { height: 8, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' },
-  progressInner: { height: '100%', background: NAVY, transition: 'width 0.2s' },
-  lista: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 },
+  estatGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 },
+  estatNumero: { fontSize: 22, fontWeight: 700, color: '#111827' },
+  estatLabel: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  lista: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 },
   item: {
-    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px',
+    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #e5e7eb',
+    borderRadius: 10, padding: '12px 14px', cursor: 'pointer', width: '100%', textAlign: 'left',
   },
-  itemLinha: { display: 'flex', alignItems: 'center', gap: 10 },
-  checkbox: { width: 18, height: 18, cursor: 'pointer', accentColor: NAVY, flexShrink: 0 },
-  itemTexto: { fontSize: 14, color: '#111827' },
-  itemDescricao: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  itemHora: { fontSize: 12, color: '#6b7280', flexShrink: 0 },
-  notaBtn: {
-    background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 4, flexShrink: 0,
+  checkVisual: {
+    width: 24, height: 24, borderRadius: '50%', border: '2px solid #d1d5db', flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  notaBox: { marginTop: 8, paddingLeft: 28 },
-  notaTextarea: {
-    width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px',
-    fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
-  },
+  itemTexto: { fontSize: 14, color: '#111827', fontWeight: 500 },
+  itemMeta: { display: 'flex', gap: 10, fontSize: 12, color: '#6b7280', marginTop: 3 },
   semanaTitulo: { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 },
   semanaRow: { display: 'flex', gap: 8 },
   semanaDia: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
@@ -184,5 +311,39 @@ const styles = {
   semanaBolinha: {
     width: 40, height: 40, borderRadius: '50%', color: '#fff', fontSize: 10, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  overlay: {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
+  },
+  modal: {
+    background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420,
+    maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+  },
+  modalHeader: { padding: '18px 24px 0' },
+  prioridadeBadge: { fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999 },
+  modalTitulo: { fontSize: 19, fontWeight: 700, color: '#111827', margin: '10px 0 6px' },
+  modalDescricao: { fontSize: 13.5, color: '#4b5563', lineHeight: 1.5, margin: '0 0 8px' },
+  modalHorario: { fontSize: 13, color: '#6b7280', margin: '0 0 16px' },
+  modalLabel: { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 6, marginTop: 14 },
+  modalTextarea: {
+    width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px',
+    fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+  },
+  anexoBtn: {
+    background: '#f3f4f6', border: '1px dashed #d1d5db', borderRadius: 8, padding: '9px 14px',
+    fontSize: 13, color: '#374151', cursor: 'pointer', width: '100%',
+  },
+  anexoLink: {
+    display: 'block', background: '#eef2f7', borderRadius: 8, padding: '9px 14px',
+    fontSize: 13, color: NAVY, fontWeight: 600, textDecoration: 'none',
+  },
+  botaoFinalizar: {
+    width: '100%', border: 'none', borderRadius: 10, padding: '13px', color: '#fff',
+    fontSize: 14.5, fontWeight: 700, cursor: 'pointer', marginTop: 22,
+  },
+  fecharBtn: {
+    width: '100%', border: 'none', background: 'none', color: '#6b7280',
+    fontSize: 13, cursor: 'pointer', marginTop: 10, padding: 8,
   },
 };
