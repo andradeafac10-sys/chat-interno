@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Users, ShieldCheck, Eye, EyeOff, VolumeX, Pin, PinOff, X } from "lucide-react";
+import { Plus, Users, ShieldCheck, Eye, EyeOff, VolumeX, Pin, PinOff, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
@@ -17,12 +17,10 @@ function preview(last) {
 export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenUsers, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, escondidoNoMobile }) {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const [filter, setFilter] = useState("");
   const [tab, setTab] = useState("all"); // all | groups | unread
   const isAdm = user.role === "admin";
 
   const filtered = conversations
-    .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
     .filter((c) => {
       if (tab === "groups") return c.type === "group";
       if (tab === "unread") return !!unreadCounts?.[c.id];
@@ -53,23 +51,6 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
             {isAdm && <ShieldCheck size={11} />}
             {isAdm ? "Administrador" : "Operador"}
           </div>
-        </div>
-      </div>
-
-      {/* Busca */}
-      <div className="px-3 pb-2.5">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textMuted || colors.textSecondary }} />
-          <input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Buscar conversa"
-            aria-label="Buscar conversa"
-            className="w-full h-10 text-[13px] rounded-lg pl-9 pr-3 border outline-none transition-colors"
-            style={{ background: colors.surface || colors.sidebarBg, borderColor: colors.border, color: colors.textPrimary }}
-            onFocus={(e) => { e.target.style.borderColor = colors.accent; }}
-            onBlur={(e) => { e.target.style.borderColor = colors.border; }}
-          />
         </div>
       </div>
 
