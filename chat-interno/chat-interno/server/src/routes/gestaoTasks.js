@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { upload } = require('../middleware/upload');
 
 router.use(requireAuth, requireAdmin);
 
@@ -430,14 +431,22 @@ router.delete('/:id/checklist/:itemId', async (req, res) => {
 // -------------------------------------------------------------
 // Comentários
 // -------------------------------------------------------------
+
+// POST /:id/upload -> sobe um arquivo pra anexar num comentário (devolve a URL,
+// não anexa sozinho — o comentário é criado logo em seguida já com essa URL)
+router.post('/:id/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  res.json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
+});
+
 router.post('/:id/comments', async (req, res) => {
   try {
-    const { content } = req.body;
-    if (!content || !content.trim()) return res.status(400).json({ error: 'Comentário vazio' });
+    const { content, attachment_url, attachment_name } = req.body;
+    if ((!content || !content.trim()) && !attachment_url) return res.status(400).json({ error: 'Comentário vazio' });
 
     const result = await pool.query(
-      `INSERT INTO task_comments (task_id, user_id, content) VALUES ($1, $2, $3) RETURNING *`,
-      [req.params.id, req.user.id, content.trim()]
+      `INSERT INTO task_comments (task_id, user_id, content, attachment_url, attachment_name) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [req.params.id, req.user.id, (content || '').trim(), attachment_url || null, attachment_name || null]
     );
 
     await recordHistory(req.params.id, req.user.id, 'comment_added', null);
