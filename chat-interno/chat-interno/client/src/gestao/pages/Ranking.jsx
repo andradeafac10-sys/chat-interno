@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
+import { fileUrl } from '../../api';
 
 const NAVY = '#0f2a4a';
 const PERIODOS = [
@@ -60,7 +61,11 @@ export default function Ranking() {
             <div key={r.id} style={styles.card}>
               <div style={styles.posicao}>{MEDALHAS[i] || `${i + 1}º`}</div>
               <div style={styles.avatar}>
-                {r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+                {r.avatar_url ? (
+                  <img src={fileUrl(r.avatar_url)} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                ) : (
+                  r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+                )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={styles.nome}>{r.name}</div>
