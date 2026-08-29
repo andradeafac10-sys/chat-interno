@@ -388,9 +388,10 @@ export default function Chat() {
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden" style={{ background: "#111B21" }}>
       <Topbar
-        onOpenAccount={() => (user.role === "admin" ? setShowAdminPanel(true) : setShowAccount(true))}
+        onOpenAccount={() => setShowAccount(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
+        onOpenUsers={() => setShowUsers(true)}
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
@@ -402,7 +403,7 @@ export default function Chat() {
         activeConvId={activeConvId}
         setActiveConvId={setActiveConvIdAndStopBlink}
         onNewGroup={() => setShowNewGroup(true)}
-        onOpenAccount={() => (user.role === "admin" ? setShowAdminPanel(true) : setShowAccount(true))}
+        onOpenAccount={() => setShowAccount(true)}
         onOpenUsers={() => setShowUsers(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
