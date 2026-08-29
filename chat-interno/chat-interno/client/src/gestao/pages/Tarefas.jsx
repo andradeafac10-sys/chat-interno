@@ -15,7 +15,7 @@ const FILTERS = [
 ];
 
 const PRIORITY_LABELS = { low: 'Baixa', medium: 'Média', high: 'Alta' };
-const PRIORITY_COLORS = { low: '#6b7280', medium: '#d97706', high: '#dc2626' };
+const PRIORITY_COLORS = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' };
 const NAVY = '#0f2a4a';
 
 export default function Tarefas() {
@@ -111,7 +111,17 @@ export default function Tarefas() {
             <div key={task.id} style={styles.card} onClick={() => setOpenTaskId(task.id)}>
               <div style={styles.cardTop}>
                 <span style={{ ...styles.priorityDot, background: PRIORITY_COLORS[task.priority] }} />
-                <h3 style={styles.cardTitle}>{task.title}</h3>
+                <div style={styles.cardLinha}>
+                  <span style={styles.cardTituloCompacto}>{task.title}</span>
+                  <span style={{ ...styles.cardPrioridadeTexto, color: PRIORITY_COLORS[task.priority] }}>
+                    PRIORIDADE: {PRIORITY_LABELS[task.priority]?.toUpperCase()}
+                  </span>
+                  {task.due_date && (
+                    <span style={styles.cardPrazoTexto}>
+                      PRAZO: {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                    </span>
+                  )}
+                </div>
                 {task.is_overdue && <span style={styles.overdueBadge}>Atrasada</span>}
                 <button
                   onClick={async (e) => {
@@ -126,28 +136,6 @@ export default function Tarefas() {
                   ✕
                 </button>
               </div>
-
-              <div style={styles.cardMeta}>
-                <span>{PRIORITY_LABELS[task.priority]}</span>
-                {task.due_date && (
-                  <span>· prazo {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-                )}
-                <span>· {statusLabel(task.status)}</span>
-              </div>
-
-              {(task.assignees || []).length > 0 && (
-                <div style={styles.assigneesRow}>
-                  {task.assignees.map((a) => (
-                    <span key={a.id} style={styles.assigneeChip}>{a.name}</span>
-                  ))}
-                </div>
-              )}
-
-              {task.progress_type === 'checklist' && (
-                <div style={styles.progressOuter}>
-                  <div style={{ ...styles.progressInner, width: `${task.progress_percent}%` }} />
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -210,6 +198,10 @@ const styles = {
   cardTop: { display: 'flex', alignItems: 'center', gap: 8 },
   priorityDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   cardTitle: { margin: 0, fontSize: 15, color: '#111827', flex: 1 },
+  cardLinha: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  cardTituloCompacto: { fontSize: 14.5, fontWeight: 600, color: '#111827' },
+  cardPrioridadeTexto: { fontSize: 11, fontWeight: 700, letterSpacing: 0.3 },
+  cardPrazoTexto: { fontSize: 11, fontWeight: 600, color: '#6b7280', letterSpacing: 0.3 },
   overdueBadge: {
     background: '#dc2626', color: '#fff', fontSize: 10, fontWeight: 700,
     padding: '2px 8px', borderRadius: 999,
