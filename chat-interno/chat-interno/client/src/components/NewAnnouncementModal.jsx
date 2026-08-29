@@ -1,263 +1,162 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, Megaphone, Users as UsersIcon, User, ShieldCheck, Bold, Italic, Smile } from "lucide-react";
-import { api } from "../api";
+import { Megaphone, Check, Volume2 } from "lucide-react";
+import { fileUrl, api } from "../api";
+import { startAlertLoop } from "../sound";
+import ImageViewer from "./ImageViewer";
 
-const EMOJIS_RAPIDOS = ["😀", "😂", "👍", "🎉", "❤️", "🙏", "⚠️", "✅", "📌", "🔥"];
-
-export default function NewAnnouncementModal({ onClose, onSent }) {
-  const [message, setMessage] = useState("");
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [audience, setAudience] = useState("all"); // all | users | groups
-  const [users, setUsers] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [userIds, setUserIds] = useState([]);
-  const [groupIds, setGroupIds] = useState([]);
-  const [buscaPessoa, setBuscaPessoa] = useState("");
-  const [buscaGrupo, setBuscaGrupo] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-  const [showEmojis, setShowEmojis] = useState(false);
-  const textareaRef = useRef(null);
-
-  // Envolve o trecho selecionado com o marcador (*negrito*, _itálico_)
-  function aplicarFormatacao(marcador) {
-    const el = textareaRef.current;
-    if (!el) return;
-    const { selectionStart, selectionEnd } = el;
-    const selecionado = message.slice(selectionStart, selectionEnd);
-    const novoTexto = message.slice(0, selectionStart) + marcador + selecionado + marcador + message.slice(selectionEnd);
-    setMessage(novoTexto);
-    setTimeout(() => {
-      el.focus();
-      const novoInicio = selectionStart + marcador.length;
-      el.setSelectionRange(novoInicio, novoInicio + selecionado.length);
-    }, 0);
+// Destaca @menções, aplica formatação estilo WhatsApp (*negrito*, _itálico_,
+// ~riscado~) e transforma links em clicáveis.
+function formatarTexto(texto) {
+  if (!texto) return texto;
+  const regex = /(@[\wÀ-ÿ]+(?:\s[\wÀ-ÿ]+)?)|\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  const partes = [];
+  let ultimo = 0;
+  let key = 0;
+  let m;
+  while ((m = regex.exec(texto)) !== null) {
+    if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
+    if (m[1]) {
+      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
+    } else if (m[2] !== undefined) {
+      partes.push(<strong key={key++}>{m[2]}</strong>);
+    } else if (m[3] !== undefined) {
+      partes.push(<em key={key++}>{m[3]}</em>);
+    } else if (m[4] !== undefined) {
+      partes.push(<s key={key++}>{m[4]}</s>);
+    } else if (m[5] !== undefined) {
+      let url = m[5];
+      let sufixo = "";
+      const pontuacaoFinal = url.match(/^(.*?)([.,;:!?)\]]+)$/);
+      if (pontuacaoFinal) { url = pontuacaoFinal[1]; sufixo = pontuacaoFinal[2]; }
+      const href = url.startsWith("http") ? url : `https://${url}`;
+      partes.push(
+        <a
+          key={key++}
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="underline text-[#2E6FD9] break-all"
+        >
+          {url}
+        </a>
+      );
+      if (sufixo) partes.push(sufixo);
+    }
+    ultimo = regex.lastIndex;
   }
+  if (ultimo < texto.length) partes.push(texto.slice(ultimo));
+  return partes;
+}
 
-  function inserirEmoji(emoji) {
-    const el = textareaRef.current;
-    const pos = el ? el.selectionStart : message.length;
-    const novoTexto = message.slice(0, pos) + emoji + message.slice(pos);
-    setMessage(novoTexto);
-    setShowEmojis(false);
-    setTimeout(() => {
-      el?.focus();
-      el?.setSelectionRange(pos + emoji.length, pos + emoji.length);
-    }, 0);
-  }
+export default function AnnouncementOverlay({ announcement, onClose }) {
+  const [acking, setAcking] = useState(false);
+  const [acked, setAcked] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
+  const stopAlertRef = useRef(null);
 
+  // Começa o alerta sonoro quando o comunicado aparece e para quando sai
   useEffect(() => {
-    api.get("/users/manage").then(({ data }) => setUsers(data.users)).catch(() => {});
-    api.get("/conversations").then(({ data }) => {
-      setGroups(data.conversations.filter((c) => c.type === "group"));
-    }).catch(() => {});
-  }, []);
+    if (!announcement) return;
+    stopAlertRef.current = startAlertLoop();
 
-  const toggle = (list, setList, id) =>
-    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+    // Se o navegador bloqueou o áudio automático, tenta de novo no primeiro clique/tecla
+    const retryOnInteraction = () => {
+      if (!stopAlertRef.current) return;
+      stopAlertRef.current();
+      stopAlertRef.current = startAlertLoop();
+      window.removeEventListener("pointerdown", retryOnInteraction);
+      window.removeEventListener("keydown", retryOnInteraction);
+    };
+    window.addEventListener("pointerdown", retryOnInteraction, { once: true });
+    window.addEventListener("keydown", retryOnInteraction, { once: true });
 
-  const handleImage = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    definirImagem(file);
-    e.target.value = "";
-  };
+    return () => {
+      stopAlertRef.current?.();
+      stopAlertRef.current = null;
+      window.removeEventListener("pointerdown", retryOnInteraction);
+      window.removeEventListener("keydown", retryOnInteraction);
+    };
+  }, [announcement?.id]);
 
-  const definirImagem = (file) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Só é possível anexar uma imagem (foto) no comunicado.");
-      return;
-    }
-    setError("");
-    setImage(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
+  if (!announcement) return null;
 
-  const handlePasteImage = (e) => {
-    const item = Array.from(e.clipboardData?.items || []).find((it) => it.type.startsWith("image/"));
-    if (!item) return;
-    e.preventDefault();
-    const file = item.getAsFile();
-    if (file) definirImagem(file);
-  };
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    if (audience === "users" && userIds.length === 0) return setError("Escolha pelo menos uma pessoa.");
-    if (audience === "groups" && groupIds.length === 0) return setError("Escolha pelo menos um grupo.");
-
-    setSending(true);
-    setError("");
+  const handleAck = async () => {
+    setAcking(true);
     try {
-      const form = new FormData();
-      form.append("message", message.trim());
-      form.append("audience", audience);
-      if (audience === "users") form.append("userIds", JSON.stringify(userIds));
-      if (audience === "groups") form.append("groupIds", JSON.stringify(groupIds));
-      if (image) form.append("image", image);
-      await api.post("/announcements", form, { headers: { "Content-Type": "multipart/form-data" } });
-      onSent();
-    } catch (err) {
-      setError(err.response?.data?.error || "Não foi possível enviar o comunicado.");
+      await api.post(`/announcements/${announcement.id}/ack`);
+      stopAlertRef.current?.();
+      stopAlertRef.current = null;
+      setAcked(true);
+      setTimeout(onClose, 500);
     } finally {
-      setSending(false);
+      setAcking(false);
     }
   };
-
-  const tabs = [
-    { id: "all", label: "Todos", icon: Megaphone },
-    { id: "users", label: "Pessoas", icon: User },
-    { id: "groups", label: "Grupos", icon: UsersIcon },
-  ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-[420px] max-h-[90vh] overflow-y-auto p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base flex items-center gap-2">
-            <Megaphone size={18} className="text-[#2E6FD9]" /> Novo comunicado
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-
-        <form onSubmit={submit}>
-          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Quem vai receber</label>
-          <div className="flex gap-1.5 mb-3">
-            {tabs.map((t) => {
-              const Icon = t.icon;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { setAudience(t.id); setError(""); }}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-lg py-2 border"
-                  style={{
-                    background: audience === t.id ? "#2E6FD9" : "#fff",
-                    color: audience === t.id ? "#fff" : "#64748B",
-                    borderColor: audience === t.id ? "#2E6FD9" : "#E2E8F0",
-                  }}
-                >
-                  <Icon size={13} /> {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {audience === "users" && (
-            <>
-              <input
-                value={buscaPessoa}
-                onChange={(e) => setBuscaPessoa(e.target.value)}
-                placeholder="Buscar pessoa pelo nome..."
-                className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] mb-1.5 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+    <div className={`fixed inset-0 flex items-center justify-center z-[100] p-4 ${acked ? "" : "announcement-alert"}`}>
+      {/* flex-col + max-h garante que o cartão nunca cresce além da tela; o que
+          sobrar de conteúdo rola por dentro, mas o botão de CIENTE fica sempre
+          visível, fixo embaixo — nunca precisa rolar pra achar ele. */}
+      <div className={`bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative ${acked ? "" : "announcement-card-pulse"}`}>
+        <div className="overflow-y-auto flex-1 min-h-0">
+          {announcement.image_url && (
+            <button
+              onClick={() => setViewingImage({ url: announcement.image_url, name: "Comunicado" })}
+              className="block w-full"
+              title="Clique para ver em tamanho maior"
+            >
+              <img
+                src={fileUrl(announcement.image_url)}
+                alt="Comunicado"
+                className="w-full max-h-[50vh] object-contain bg-black cursor-zoom-in"
+                onError={(e) => { e.target.style.display = "none"; }}
               />
-              <div className="border border-slate-200 rounded-lg p-2 mb-3 max-h-40 overflow-y-auto flex flex-col gap-1">
-                {users
-                  .filter((u) => u.name.toLowerCase().includes(buscaPessoa.trim().toLowerCase()))
-                  .map((u) => (
-                    <label key={u.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 cursor-pointer">
-                      <input type="checkbox" checked={userIds.includes(u.id)} onChange={() => toggle(userIds, setUserIds, u.id)} className="accent-[#2E6FD9]" />
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: u.color }}>
-                        {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                      </div>
-                      <span className="text-[13px] text-slate-700 flex items-center gap-1">
-                        {u.name}
-                        {u.role === "admin" && <ShieldCheck size={11} className="text-[#2E6FD9]" />}
-                      </span>
-                    </label>
-                  ))}
-                {users.length === 0 && <span className="text-xs text-slate-400 px-1.5">Carregando pessoas...</span>}
-              </div>
-            </>
+            </button>
           )}
 
-          {audience === "groups" && (
-            <>
-              <input
-                value={buscaGrupo}
-                onChange={(e) => setBuscaGrupo(e.target.value)}
-                placeholder="Buscar grupo pelo nome..."
-                className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] mb-1.5 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
-              />
-              <div className="border border-slate-200 rounded-lg p-2 mb-3 max-h-40 overflow-y-auto flex flex-col gap-1">
-                {groups
-                  .filter((g) => g.title.toLowerCase().includes(buscaGrupo.trim().toLowerCase()))
-                  .map((g) => (
-                    <label key={g.groupId} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-slate-50 cursor-pointer">
-                      <input type="checkbox" checked={groupIds.includes(g.groupId)} onChange={() => toggle(groupIds, setGroupIds, g.groupId)} className="accent-[#2E6FD9]" />
-                      <UsersIcon size={14} className="text-slate-400" />
-                      <span className="text-[13px] text-slate-700">{g.title}</span>
-                    </label>
-                  ))}
-                {groups.length === 0 && <span className="text-xs text-slate-400 px-1.5">Nenhum grupo encontrado.</span>}
+          <div className="p-6 pb-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-red-600">
+                <Megaphone size={20} />
+                <span className="text-xs font-semibold uppercase tracking-wide">Comunicado geral</span>
               </div>
-            </>
-          )}
-
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Mensagem</label>
-          <div className="flex items-center gap-1 mb-1.5">
-            <button type="button" onClick={() => aplicarFormatacao("*")} title="Negrito" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
-              <Bold size={14} />
-            </button>
-            <button type="button" onClick={() => aplicarFormatacao("_")} title="Itálico" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
-              <Italic size={14} />
-            </button>
-            <div className="relative">
-              <button type="button" onClick={() => setShowEmojis((v) => !v)} title="Emoji" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
-                <Smile size={14} />
-              </button>
-              {showEmojis && (
-                <div className="absolute top-full left-0 mt-1 flex flex-wrap gap-1 w-[180px] p-2 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
-                  {EMOJIS_RAPIDOS.map((e) => (
-                    <button key={e} type="button" onClick={() => inserirEmoji(e)} className="text-[18px] hover:scale-125 transition-transform">
-                      {e}
-                    </button>
-                  ))}
+              {!acked && (
+                <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                  <Volume2 size={13} /> alerta ativo
                 </div>
               )}
             </div>
-          </div>
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onPaste={handlePasteImage}
-            rows={8}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-y min-h-[140px]"
-            placeholder="Escreva o comunicado... (dá pra colar uma imagem aqui também)"
-            required
-          />
 
-          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Imagem (opcional)</label>
-          {imagePreview ? (
-            <div className="relative mb-3">
-              <img src={imagePreview} alt="Prévia" className="w-full h-32 object-cover rounded-lg" />
-              <button
-                type="button"
-                onClick={() => { setImage(null); setImagePreview(null); }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center"
-              >
-                <X size={14} />
-              </button>
+            <p className="text-slate-800 text-[15px] whitespace-pre-wrap leading-relaxed select-text">
+              {formatarTexto(announcement.message)}
+            </p>
+            <div className="text-[12px] text-slate-400 mt-4">
+              {announcement.created_by_name} · {new Date(announcement.created_at).toLocaleString("pt-BR")}
             </div>
-          ) : (
-            <input type="file" accept="image/*" onChange={handleImage} className="w-full text-xs text-slate-500 mb-3" />
-          )}
+          </div>
+        </div>
 
-          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
-
+        <div className="p-6 pt-4 shrink-0 border-t border-slate-100">
           <button
-            type="submit"
-            disabled={sending || !message.trim()}
-            className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: "#2E6FD9" }}
+            onClick={handleAck}
+            disabled={acking || acked}
+            className="w-full rounded-lg py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
+            style={{ background: acked ? "#1B7A4A" : "#2E6FD9" }}
           >
-            {sending ? "Enviando..." : "Enviar comunicado"}
+            <Check size={16} /> {acked ? "Confirmado!" : acking ? "Enviando..." : "ESTOU CIENTE"}
           </button>
-        </form>
+
+          {!acked && (
+            <p className="text-[11px] text-slate-400 text-center mt-2">
+              O alerta só para quando você confirmar.
+            </p>
+          )}
+        </div>
       </div>
+
+      <ImageViewer image={viewingImage} onClose={() => setViewingImage(null)} />
     </div>
   );
 }
