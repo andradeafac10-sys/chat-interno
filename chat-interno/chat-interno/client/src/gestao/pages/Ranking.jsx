@@ -4,7 +4,7 @@ import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import { fileUrl } from '../../api';
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2563EB';
 const PERIODOS = [
   { value: 'day', label: 'Hoje' },
   { value: 'week', label: 'Últimos 7 dias' },
@@ -94,7 +94,7 @@ const styles = {
   error: { color: '#ef4444', fontSize: 14 },
   lista: { display: 'flex', flexDirection: 'column', gap: 8 },
   card: {
-    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #e5e7eb',
+    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #E4E8EE',
     borderRadius: 10, padding: '12px 16px',
   },
   posicao: { fontSize: 18, width: 32, textAlign: 'center', flexShrink: 0 },
