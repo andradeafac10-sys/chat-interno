@@ -497,6 +497,38 @@ router.delete("/groups/:groupId/hide", requireAuth, async (req, res) => {
 });
 
 // GET /api/conversations/hidden-groups -> lista os grupos que EU escondi, pra eu poder trazer de volta
+// GET /api/conversations/search-global?q=texto -> busca mensagens em TODAS as
+// conversas que a pessoa tem acesso (mesma regra de acesso de sempre: DM só se
+// envolver ela, grupo só se for membro — ADM acessa qualquer grupo).
+router.get("/search-global", requireAuth, async (req, res) => {
+  const q = (req.query.q || "").trim();
+  if (q.length < 2) return res.json({ messages: [] });
+
+  const isAdmin = req.user.role === "admin";
+  const { rows } = await pool.query(
+    `SELECT m.id, m.conversation_id, m.type, m.content, m.created_at, m.sender_id, u.name AS sender_name
+     FROM messages m
+     JOIN users u ON u.id = m.sender_id
+     WHERE m.deleted = false AND m.type = 'text' AND m.content ILIKE $1
+       AND (
+         (m.conversation_id LIKE 'dm-%' AND (
+           split_part(m.conversation_id, '-', 2)::int = $2 OR split_part(m.conversation_id, '-', 3)::int = $2
+         ))
+         OR
+         (m.conversation_id LIKE 'group-%' AND (
+           $3 = true OR EXISTS (
+             SELECT 1 FROM group_members gm
+             WHERE gm.group_id = split_part(m.conversation_id, '-', 2)::int AND gm.user_id = $2
+           )
+         ))
+       )
+     ORDER BY m.created_at DESC LIMIT 15`,
+    [`%${q}%`, req.user.id, isAdmin]
+  );
+
+  res.json({ messages: rows });
+});
+
 router.get("/hidden-groups", requireAuth, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT g.id, g.name, g.avatar_url, hg.hidden_at
