@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+// Paleta "Chat Nacional" — visual corporativo/SaaS moderno (Teams/Slack/Linear),
+// com o azul usado só como cor de destaque/ação, não espalhado pela tela toda.
 const THEMES = {
   dark: {
     sidebarBg: "#0A1628",
@@ -19,32 +21,41 @@ const THEMES = {
     border: "#1E3555",
     panelBg: "#12233D",
     accent: "#2E6FD9",
+    topbarBg: "#072B5A",
   },
   light: {
     sidebarBg: "#FFFFFF",
-    sidebarHover: "#F1F5FA",
-    sidebarActive: "#E3ECF8",
-    chatBg: "#EEF3FA",
+    sidebarHover: "#F7F9FC",
+    sidebarActive: "#F0F5FF",
+    chatBg: "#F7F9FC",
     headerBg: "#FFFFFF",
-    headerBorder: "#D3DEEC",
+    headerBorder: "#E6ECF5",
     inputBarBg: "#FFFFFF",
-    inputFieldBg: "#EEF3FA",
-    textPrimary: "#0A1628",
-    textSecondary: "#5A7395",
-    ownBubbleBg: "#D6E4FA",
-    ownBubbleText: "#0A1628",
+    inputFieldBg: "#FFFFFF",
+    textPrimary: "#1B2B4B",
+    textSecondary: "#6E7C93",
+    textMuted: "#98A2B3",
+    ownBubbleBg: "#F4F7FF",
+    ownBubbleText: "#1B2B4B",
     incomingBubbleBg: "#FFFFFF",
-    incomingBubbleText: "#0A1628",
-    border: "#D3DEEC",
+    incomingBubbleText: "#1B2B4B",
+    border: "#E6ECF5",
+    borderLight: "#EEF2F7",
     panelBg: "#FFFFFF",
-    accent: "#1E4B8F",
+    accent: "#2563EB",
+    accentSoft: "#EAF1FF",
+    accentSofter: "#F4F7FF",
+    success: "#22C55E",
+    danger: "#EF4444",
+    warning: "#F59E0B",
+    topbarBg: "#072B5A",
   },
 };
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem("chatinterno_theme") || "dark");
+  const [theme, setTheme] = useState(() => localStorage.getItem("chatinterno_theme") || "light");
 
   useEffect(() => {
     localStorage.setItem("chatinterno_theme", theme);
