@@ -65,7 +65,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
   };
 
   return (
-    <div className="w-[200px] shrink-0 border-l overflow-y-auto py-3" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
+    <div className="hidden lg:block w-[200px] shrink-0 border-l overflow-y-auto py-3" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
       <div className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide" style={{ color: colors.textSecondary }}>
         ONLINE — {online.length}
       </div>
