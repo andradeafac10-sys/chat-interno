@@ -102,11 +102,13 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
   };
 
   return (
-    <div className={`fixed inset-0 flex items-center justify-center z-[100] p-4 ${acked ? "" : "announcement-alert"}`}>
-      {/* flex-col + max-h garante que o cartão nunca cresce além da tela; o que
-          sobrar de conteúdo rola por dentro, mas o botão de CIENTE fica sempre
-          visível, fixo embaixo — nunca precisa rolar pra achar ele. */}
-      <div className={`bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative ${acked ? "" : "announcement-card-pulse"}`}>
+    <div className={`fixed inset-0 flex items-center justify-center z-[100] p-3 ${acked ? "" : "announcement-alert"}`}>
+      {/* w-[94vw] + max-w-md garante que cabe em qualquer tela (mesmo notebook
+          pequeno) sem precisar diminuir o zoom do navegador. max-h-[92vh] +
+          flex-col garante que, mesmo com imagem grande e texto longo, o botão
+          de CIENTE fica sempre visível, fixo embaixo — o que sobrar rola por
+          dentro do cartão, nunca o cartão inteiro passa da tela. */}
+      <div className={`bg-white rounded-2xl w-[94vw] max-w-md shadow-2xl flex flex-col max-h-[92vh] overflow-hidden relative ${acked ? "" : "announcement-card-pulse"}`}>
         {/* Sem botão de fechar (X) de propósito: comunicado geral só sai
             confirmando "ESTOU CIENTE" — ninguém pode dispensar sem ler/confirmar. */}
         <div className="overflow-y-auto flex-1 min-h-0">
@@ -119,7 +121,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
               <img
                 src={fileUrl(announcement.image_url)}
                 alt="Comunicado"
-                className="w-full max-h-[50vh] object-contain bg-black cursor-zoom-in"
+                className="w-full max-h-[38vh] object-contain bg-black cursor-zoom-in"
                 onError={(e) => { e.target.style.display = "none"; }}
               />
             </button>
