@@ -402,6 +402,7 @@ export default function Chat() {
         onCloseConversation={closeConversation}
         hiddenGroupsCount={hiddenGroupsCount}
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
+        escondidoNoMobile={!!activeConv && !showUsers && !showAnnouncements && !showMonitoring && !showAdminPanel}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
@@ -422,9 +423,10 @@ export default function Chat() {
               onTogglePin={togglePin}
               onGroupUpdated={loadConversations}
               isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
+              onVoltarMobile={() => setActiveConvId(null)}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+            <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 text-sm">
               {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
             </div>
           )}
