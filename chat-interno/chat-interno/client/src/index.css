@@ -3,13 +3,16 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; margin: 0; }
-body { background: #111B21; }
+body {
+  background: #F7F9FC;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
 
 /* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
    do navegador — mais discreta e combinando com o resto da interface. */
 * {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #2E6FD9 transparent;
+  scrollbar-color: #2563EB transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -19,7 +22,7 @@ body { background: #111B21; }
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #2E6FD9;
+  background-color: #2563EB;
   border-radius: 999px;
   opacity: 0.5;
 }
