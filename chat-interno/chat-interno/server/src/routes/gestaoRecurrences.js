@@ -352,12 +352,26 @@ router.patch('/completions/:id', async (req, res) => {
 // -------------------------------------------------------------
 router.get('/ranking/dados', async (req, res) => {
   try {
-    const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
     const hoje = new Date();
+    let periodo = 'week';
     let dataInicio;
-    if (periodo === 'day') dataInicio = chaveDia(hoje);
-    else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
-    else dataInicio = chaveDia(somarDias(hoje, -29));
+    let dataFim = chaveDia(hoje);
+
+    // Se vier "de"/"ate" (calendário), usa essas datas específicas em vez do período fixo
+    if (req.query.de && req.query.ate) {
+      dataInicio = req.query.de;
+      dataFim = req.query.ate;
+      periodo = 'custom';
+    } else {
+      periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
+      if (periodo === 'day') dataInicio = chaveDia(hoje);
+      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
+      else dataInicio = chaveDia(somarDias(hoje, -29));
+    }
+
+    const filtroAssignee = req.query.assignee_id ? 'AND u.id = $3' : '';
+    const params = [dataInicio, dataFim];
+    if (req.query.assignee_id) params.push(req.query.assignee_id);
 
     // Só considera dias que já passaram (ou hoje) — não faz sentido cobrar rotina do futuro
     const { rows } = await pool.query(
@@ -366,10 +380,10 @@ router.get('/ranking/dados', async (req, res) => {
               COUNT(*) FILTER (WHERE rc.done)::int AS feitas
        FROM routine_completions rc
        JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date >= $1 AND rc.occurrence_date <= $2
+       WHERE rc.occurrence_date >= $1 AND rc.occurrence_date <= $2 ${filtroAssignee}
        GROUP BY u.id
        ORDER BY (COUNT(*) FILTER (WHERE rc.done))::float / GREATEST(COUNT(rc.*), 1) DESC, feitas DESC`,
-      [dataInicio, chaveDia(hoje)]
+      params
     );
 
     const ranking = rows.map((r) => ({
