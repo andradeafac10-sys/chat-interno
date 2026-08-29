@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare } from "lucide-react";
+import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare, UserCog } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { api, fileUrl } from "../api";
@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Barra global fixa no topo — logo, busca (pessoas/conversas/mensagens),
  * comunicados e o menu da conta (configurações, tema, monitoria, gestão, sair).
  */
-export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, isOnline, conversations, onOpenConversation, onSelectConversationId }) {
+export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const navigate = useNavigate();
@@ -278,6 +278,13 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
                   style={{ color: colors.textPrimary }}
                 >
                   <LayoutDashboard size={15} /> Gestão
+                </button>
+                <button
+                  onClick={() => { setMenuAberto(false); onOpenUsers?.(); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] hover:brightness-95 text-left"
+                  style={{ color: colors.textPrimary }}
+                >
+                  <UserCog size={15} /> Usuários
                 </button>
               </>
             )}
