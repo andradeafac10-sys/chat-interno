@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Megaphone, Check, Volume2, X } from "lucide-react";
+import { Megaphone, Check, Volume2 } from "lucide-react";
 import { fileUrl, api } from "../api";
 import { startAlertLoop } from "../sound";
 import ImageViewer from "./ImageViewer";
@@ -52,6 +52,7 @@ function formatarTexto(texto) {
 export default function AnnouncementOverlay({ announcement, onClose }) {
   const [acking, setAcking] = useState(false);
   const [acked, setAcked] = useState(false);
+  const [erro, setErro] = useState("");
   const [viewingImage, setViewingImage] = useState(null);
   const stopAlertRef = useRef(null);
 
@@ -83,13 +84,19 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
 
   const handleAck = async () => {
     setAcking(true);
+    setErro("");
     try {
       await api.post(`/announcements/${announcement.id}/ack`);
       stopAlertRef.current?.();
       stopAlertRef.current = null;
       setAcked(true);
       setTimeout(onClose, 500);
-    } finally {
+      setAcking(false);
+    } catch {
+      // Se der erro (ou o timeout de 15s do api.js estourar), avisa a pessoa
+      // e libera o botão de novo — antes ficava preso em "Enviando..." sem
+      // nenhuma explicação.
+      setErro("Não deu pra confirmar agora. Tente de novo.");
       setAcking(false);
     }
   };
@@ -100,13 +107,8 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
           sobrar de conteúdo rola por dentro, mas o botão de CIENTE fica sempre
           visível, fixo embaixo — nunca precisa rolar pra achar ele. */}
       <div className={`bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative ${acked ? "" : "announcement-card-pulse"}`}>
-        <button
-          onClick={onClose}
-          title="Fechar"
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
-        >
-          <X size={15} />
-        </button>
+        {/* Sem botão de fechar (X) de propósito: comunicado geral só sai
+            confirmando "ESTOU CIENTE" — ninguém pode dispensar sem ler/confirmar. */}
         <div className="overflow-y-auto flex-1 min-h-0">
           {announcement.image_url && (
             <button
@@ -155,9 +157,14 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
             <Check size={16} /> {acked ? "Confirmado!" : acking ? "Enviando..." : "ESTOU CIENTE"}
           </button>
 
-          {!acked && (
+          {!acked && !erro && (
             <p className="text-[11px] text-slate-400 text-center mt-2">
               O alerta só para quando você confirmar.
+            </p>
+          )}
+          {erro && (
+            <p className="text-[11px] text-red-500 text-center mt-2 font-medium">
+              {erro}
             </p>
           )}
         </div>
