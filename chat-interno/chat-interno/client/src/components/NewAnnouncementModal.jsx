@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { X, Megaphone, Users as UsersIcon, User, ShieldCheck } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { X, Megaphone, Users as UsersIcon, User, ShieldCheck, Bold, Italic, Smile } from "lucide-react";
 import { api } from "../api";
+
+const EMOJIS_RAPIDOS = ["😀", "😂", "👍", "🎉", "❤️", "🙏", "⚠️", "✅", "📌", "🔥"];
 
 export default function NewAnnouncementModal({ onClose, onSent }) {
   const [message, setMessage] = useState("");
@@ -13,6 +15,35 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
   const [groupIds, setGroupIds] = useState([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [showEmojis, setShowEmojis] = useState(false);
+  const textareaRef = useRef(null);
+
+  // Envolve o trecho selecionado com o marcador (*negrito*, _itálico_)
+  function aplicarFormatacao(marcador) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { selectionStart, selectionEnd } = el;
+    const selecionado = message.slice(selectionStart, selectionEnd);
+    const novoTexto = message.slice(0, selectionStart) + marcador + selecionado + marcador + message.slice(selectionEnd);
+    setMessage(novoTexto);
+    setTimeout(() => {
+      el.focus();
+      const novoInicio = selectionStart + marcador.length;
+      el.setSelectionRange(novoInicio, novoInicio + selecionado.length);
+    }, 0);
+  }
+
+  function inserirEmoji(emoji) {
+    const el = textareaRef.current;
+    const pos = el ? el.selectionStart : message.length;
+    const novoTexto = message.slice(0, pos) + emoji + message.slice(pos);
+    setMessage(novoTexto);
+    setShowEmojis(false);
+    setTimeout(() => {
+      el?.focus();
+      el?.setSelectionRange(pos + emoji.length, pos + emoji.length);
+    }, 0);
+  }
 
   useEffect(() => {
     api.get("/users/manage").then(({ data }) => setUsers(data.users)).catch(() => {});
@@ -144,12 +175,35 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
           )}
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Mensagem</label>
+          <div className="flex items-center gap-1 mb-1.5">
+            <button type="button" onClick={() => aplicarFormatacao("*")} title="Negrito" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
+              <Bold size={14} />
+            </button>
+            <button type="button" onClick={() => aplicarFormatacao("_")} title="Itálico" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
+              <Italic size={14} />
+            </button>
+            <div className="relative">
+              <button type="button" onClick={() => setShowEmojis((v) => !v)} title="Emoji" className="w-7 h-7 rounded flex items-center justify-center hover:bg-slate-100 text-slate-600">
+                <Smile size={14} />
+              </button>
+              {showEmojis && (
+                <div className="absolute top-full left-0 mt-1 flex flex-wrap gap-1 w-[180px] p-2 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                  {EMOJIS_RAPIDOS.map((e) => (
+                    <button key={e} type="button" onClick={() => inserirEmoji(e)} className="text-[18px] hover:scale-125 transition-transform">
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onPaste={handlePasteImage}
-            rows={4}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-none"
+            rows={8}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9] resize-y min-h-[140px]"
             placeholder="Escreva o comunicado... (dá pra colar uma imagem aqui também)"
             required
           />
