@@ -18,6 +18,12 @@ const gestaoRoutes = require("./routes/gestao");
 const { setupSockets } = require("./sockets");
 
 const app = express();
+
+// O Railway coloca um proxy na frente do servidor, e sem isso o Express não
+// confia no cabeçalho que diz o endereço real de quem está acessando — isso
+// travava o limitador de pedidos (express-rate-limit) em TODA chamada de API,
+// deixando o site inteiro fora do ar (tela branca).
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
