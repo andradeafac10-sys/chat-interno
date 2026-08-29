@@ -187,8 +187,20 @@ function MessageLine({
 
   const abrirMenu = (e) => {
     e.preventDefault();
+    // Calcula um espaço reservado pro menu (reações + até 4 ações) e ajusta a
+    // posição pra nunca deixar ele cortado nas bordas da tela, principalmente
+    // embaixo, que era o caso mais comum (mensagens perto do rodapé do chat).
+    const LARGURA_MENU = 190;
+    const ALTURA_MENU_ESTIMADA = 270;
+    const MARGEM = 8;
+    let x = e.clientX;
+    let y = e.clientY;
+    if (x + LARGURA_MENU > window.innerWidth) x = window.innerWidth - LARGURA_MENU - MARGEM;
+    if (y + ALTURA_MENU_ESTIMADA > window.innerHeight) y = window.innerHeight - ALTURA_MENU_ESTIMADA - MARGEM;
+    if (x < MARGEM) x = MARGEM;
+    if (y < MARGEM) y = MARGEM;
     // Fecha o menu de outra linha, se algum estava aberto, e abre o dessa
-    setTimeout(() => setMenuPos({ x: e.clientX, y: e.clientY }), 0);
+    setTimeout(() => setMenuPos({ x, y }), 0);
   };
 
   const reactionCounts = (m.reactions || []).reduce((acc, r) => {
