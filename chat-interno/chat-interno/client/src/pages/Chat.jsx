@@ -59,23 +59,6 @@ export default function Chat() {
     document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
   }, [unreadCounts]);
 
-  // Quando a aba volta a ficar visível (a pessoa estava numa aba diferente,
-  // ou o computador "dormiu"), busca tudo de novo — reforço extra pro mesmo
-  // problema do "preciso dar F5 depois de ficar um tempo parado".
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      loadConversations();
-      if (activeConvIdRef.current) {
-        api.get(`/conversations/${activeConvIdRef.current}/messages`)
-          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
-          .catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loadConversations]);
-
   // Pede permissão de notificação do sistema uma vez, assim que o chat abre
   useEffect(() => {
     pedirPermissaoNotificacao();
@@ -109,6 +92,25 @@ export default function Chat() {
       }, {})
     );
   }, []);
+
+  // Quando a aba volta a ficar visível (a pessoa estava numa aba diferente,
+  // ou o computador "dormiu"), busca tudo de novo — reforço extra pro mesmo
+  // problema do "preciso dar F5 depois de ficar um tempo parado". Precisa vir
+  // DEPOIS de "loadConversations" ser declarada aqui em cima, senão dá erro.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      loadConversations();
+      if (activeConvIdRef.current) {
+        api.get(`/conversations/${activeConvIdRef.current}/messages`)
+          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadConversations]);
+
 
   const hiddenGroupIdsRef = useRef(new Set()); // grupos silenciados por mim — nunca deve notificar/tocar som
 
