@@ -49,8 +49,23 @@ export const gestaoApi = {
     request(`/tasks/${id}/checklist/${itemId}`, { method: 'PUT', body: JSON.stringify({ is_done }) }),
   deleteChecklistItem: (id, itemId) =>
     request(`/tasks/${id}/checklist/${itemId}`, { method: 'DELETE' }),
-  addComment: (id, content) =>
-    request(`/tasks/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
+  addComment: (id, content, attachment) =>
+    request(`/tasks/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, attachment_url: attachment?.url, attachment_name: attachment?.name }),
+    }),
+  uploadTaskFile: async (taskId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/gestao/tasks/${taskId}/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao enviar arquivo');
+    return data; // { url, name }
+  },
 
   // Rotinas (tarefas recorrentes)
   listRecurrences: () => request('/recurrences'),
@@ -59,7 +74,20 @@ export const gestaoApi = {
   deleteRecurrence: (id) => request(`/recurrences/${id}`, { method: 'DELETE' }),
   generateOccurrencesNow: () => request('/recurrences/generate', { method: 'POST' }),
   minhasRotinas: () => request('/recurrences/minhas'),
-  marcarRotina: (completionId, done, nota) =>
-    request(`/recurrences/completions/${completionId}`, { method: 'PATCH', body: JSON.stringify(nota !== undefined ? { done, nota } : { done }) }),
+  marcarRotina: (completionId, campos) =>
+    request(`/recurrences/completions/${completionId}`, { method: 'PATCH', body: JSON.stringify(campos) }),
+  uploadRoutineFile: async (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/gestao/recurrences/completions/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao enviar arquivo');
+    return data; // { url, name }
+  },
   ranking: (periodo) => request(`/recurrences/ranking/dados?periodo=${periodo}`),
+  rankingComParams: (queryString) => request(`/recurrences/ranking/dados?${queryString}`),
 };
