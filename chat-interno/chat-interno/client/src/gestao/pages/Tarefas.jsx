@@ -56,6 +56,22 @@ export default function Tarefas() {
     load();
   }
 
+  async function apagarTodas() {
+    if (tasks.length === 0) return;
+    if (!confirm(`Isso vai apagar TODAS as suas ${tasks.length} tarefa(s). Essa ação não tem volta. Quer continuar?`)) return;
+    if (!confirm('Confirmando de novo: TEM CERTEZA que quer apagar todas as suas tarefas?')) return;
+    setLoading(true);
+    try {
+      for (const task of tasks) {
+        await gestaoApi.deleteTask(task.id);
+      }
+      load();
+    } catch (err) {
+      setError(err.message || 'Não consegui apagar todas as tarefas.');
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Minhas tarefas" subtitle="Só as suas — você pode criar tarefas para outras pessoas também" />
@@ -73,9 +89,14 @@ export default function Tarefas() {
               </button>
             ))}
           </div>
-          <button style={styles.newBtn} onClick={() => { setEditingTask(null); setShowForm(true); }}>
-            + Nova tarefa
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button style={styles.deleteAllBtn} onClick={apagarTodas} disabled={tasks.length === 0}>
+              Apagar todas
+            </button>
+            <button style={styles.newBtn} onClick={() => { setEditingTask(null); setShowForm(true); }}>
+              + Nova tarefa
+            </button>
+          </div>
         </div>
 
         {loading && <p style={styles.hint}>Carregando tarefas...</p>}
@@ -164,6 +185,10 @@ const styles = {
   },
   newBtn: {
     background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
+    padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+  },
+  deleteAllBtn: {
+    background: '#fff', color: '#dc2626', border: '1px solid #dc2626', borderRadius: 8,
     padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
   },
   filters: { display: 'flex', gap: 8, flexWrap: 'wrap' },
