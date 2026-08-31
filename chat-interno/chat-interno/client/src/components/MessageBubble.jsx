@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2 } from "lucide-react";
+import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, Forward } from "lucide-react";
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
 
@@ -12,6 +12,15 @@ const fmtSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
+// mm:ss a partir de segundos (usado no player de áudio, tanto pra duração
+// total quanto pro tempo decorrido enquanto toca)
+const fmtDur = (totalSeconds) => {
+  const s = Math.max(0, Math.floor(totalSeconds || 0));
+  const min = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${min}:${String(sec).padStart(2, "0")}`;
 };
 
 const replyPreviewText = (type, content, deleted) => {
@@ -95,7 +104,7 @@ async function baixarArquivo(url, nomeArquivo) {
  */
 export default function MessageBubble({
   messages, mine, isGroup, isAdm, currentUserId,
-  onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage, onJumpToMessage,
+  onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage, onJumpToMessage, onForward,
   playingId, setPlayingId, audioRefs, highlightedId, naoRespondidas,
 }) {
   const { colors } = useTheme();
@@ -155,6 +164,7 @@ export default function MessageBubble({
             onDelete={onDelete}
             onOpenImage={onOpenImage}
             onJumpToMessage={onJumpToMessage}
+            onForward={onForward}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
@@ -167,10 +177,16 @@ export default function MessageBubble({
 
 function MessageLine({
   m, mine, isAdm, currentUserId, colors, highlighted, precisaResposta,
-  onReply, onEdit, onReact, onTogglePin, onDelete, onOpenImage, onJumpToMessage,
+  onReply, onEdit, onReact, onTogglePin, onDelete, onOpenImage, onJumpToMessage, onForward,
   playingId, setPlayingId, audioRefs,
 }) {
   const [menuPos, setMenuPos] = useState(null); // { x, y } — onde o menu de botão direito abriu
+  // Tempo mostrado no player do áudio: enquanto toca, conta o tempo decorrido
+  // (igual WhatsApp); parado, mostra a duração total. Antes esse número nunca
+  // se mexia e sempre aparecia 0:00, porque não tinha nada ouvindo o "tocando".
+  const [audioElapsed, setAudioElapsed] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(m.audio_seconds || 0);
+  const tocandoEsseAudio = playingId === m.id;
 
   useEffect(() => {
     if (!menuPos) return;
@@ -228,6 +244,11 @@ function MessageLine({
       }}
     >
       <div className="min-w-0 flex-1">
+        {m.forwarded && (
+          <div className="flex items-center gap-1 text-[11px] italic mb-0.5" style={{ color: colors.textSecondary }}>
+            <Forward size={11} /> Encaminhada
+          </div>
+        )}
         {m.reply_id && (
           <button
             onClick={() => onJumpToMessage?.(m.reply_id)}
@@ -299,9 +320,21 @@ function MessageLine({
               ))}
             </div>
             <span className="text-[11px] font-mono" style={{ color: colors.textSecondary }}>
-              0:{String(m.audio_seconds || 0).padStart(2, "0")}
+              {fmtDur(tocandoEsseAudio ? audioElapsed : audioDuration)}
             </span>
-            <audio ref={(el) => (audioRefs.current[m.id] = el)} src={fileUrl(m.file_url)} onEnded={() => setPlayingId(null)} className="hidden" />
+            <audio
+              ref={(el) => (audioRefs.current[m.id] = el)}
+              src={fileUrl(m.file_url)}
+              onEnded={() => { setPlayingId(null); setAudioElapsed(0); }}
+              onTimeUpdate={(e) => setAudioElapsed(e.target.currentTime)}
+              onLoadedMetadata={(e) => {
+                // Alguns navegadores retornam Infinity de cara pra .webm gravado
+                // ao vivo — nesse caso mantém a duração que veio do servidor
+                // (audio_seconds) até o áudio carregar de verdade.
+                if (Number.isFinite(e.target.duration)) setAudioDuration(e.target.duration);
+              }}
+              className="hidden"
+            />
           </div>
         )}
 
@@ -353,6 +386,13 @@ function MessageLine({
             style={{ color: colors.textPrimary }}
           >
             <Reply size={14} /> Responder
+          </button>
+          <button
+            onClick={() => { onForward(m); setMenuPos(null); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
+            style={{ color: colors.textPrimary }}
+          >
+            <Forward size={14} /> Reencaminhar
           </button>
           {mine && m.type === "text" && (
             <button
