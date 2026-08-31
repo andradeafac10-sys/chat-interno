@@ -7,6 +7,7 @@ import { useTheme } from "../context/ThemeContext";
 import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
 import ImageViewer from "./ImageViewer";
+import ForwardMessageModal from "./ForwardMessageModal";
 
 // Deixa em destaque o trecho que bate com o que foi buscado
 function realcar(texto, termo) {
@@ -111,6 +112,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
   const [pendingUpload, setPendingUpload] = useState(null); // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
   const [selecaoTexto, setSelecaoTexto] = useState(null); // { start, end } — trecho selecionado no campo de digitar, pra mostrar B/I/S
   const [replyingTo, setReplyingTo] = useState(null);
@@ -137,6 +139,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const secondsRef = useRef(0);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -370,7 +373,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
-    if (secondsArg) form.append("seconds", String(secondsArg));
+    if (Number.isFinite(secondsArg)) form.append("seconds", String(secondsArg));
     if (caption) form.append("caption", caption);
     if (replyingTo?.id) form.append("replyToId", String(replyingTo.id));
     setReplyingTo(null);
@@ -410,18 +413,26 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
+      secondsRef.current = 0;
       recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
-        uploadFile(file, "audio", seconds);
+        // Usa secondsRef (não o "seconds" do estado) porque essa função foi
+        // criada uma vez só, lá no início da gravação — o "seconds" que ela
+        // enxergaria seria sempre 0, do jeito que estava antes. O ref sempre
+        // tem o valor mais atual, então o áudio nunca mais salva com 0:00.
+        uploadFile(file, "audio", secondsRef.current);
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
       setRecording(true);
       setSeconds(0);
-      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      timerRef.current = setInterval(() => {
+        secondsRef.current += 1;
+        setSeconds(secondsRef.current);
+      }, 1000);
     } catch (err) {
       alert("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
     }
@@ -785,6 +796,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             onReact={reactToMessage}
             onOpenImage={setViewingImage}
             onJumpToMessage={jumpToMessage}
+            onForward={setForwardingMessage}
             highlightedId={highlightedId}
             naoRespondidas={naoRespondidas}
             playingId={playingId}
@@ -793,6 +805,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           />
         ))}
       </div>
+
+      {forwardingMessage && (
+        <ForwardMessageModal
+          message={forwardingMessage}
+          onClose={() => setForwardingMessage(null)}
+          onSent={() => setForwardingMessage(null)}
+        />
+      )}
 
       <div className="border-t px-3 py-3 shrink-0" style={{ background: colors.inputBarBg, borderColor: colors.headerBorder }}>
         {(replyingTo || editingMessage) && (
