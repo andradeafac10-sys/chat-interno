@@ -133,7 +133,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
-  const [pendingUpload, setPendingUpload] = useState(null); // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
+  const [pendingUpload, setPendingUpload] = useState(null);
+  const [multiUploadProgress, setMultiUploadProgress] = useState(null); // { atual, total } — quando manda vários arquivos de uma vez // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
   const [selecaoTexto, setSelecaoTexto] = useState(null); // { start, end } — trecho selecionado no campo de digitar, pra mostrar B/I/S
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -409,22 +410,40 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     resetInputHeight();
   };
 
-  const handlePick = (e, kind) => {
-    const file = e.target.files?.[0];
-    if (!file) { e.target.value = ""; return; }
+  const handlePick = async (e, kind) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) { e.target.value = ""; return; }
 
-    // Qualquer imagem sempre é tratada como imagem (abre na tela), não importa
-    // qual dos dois botões a pessoa usou pra escolher o arquivo.
-    const kindReal = file.type.startsWith("image/") ? "image" : kind;
-
-    // Imagem e arquivo (PDF) esperam a pessoa escrever uma legenda antes de enviar.
-    // Áudio gravado tem fluxo próprio (não passa por aqui).
-    if (kindReal === "image" || kindReal === "file") {
-      setPendingUpload({ file, kind: kindReal, previewUrl: kindReal === "image" ? URL.createObjectURL(file) : null });
-      setTimeout(() => inputRef.current?.focus(), 0);
-    } else {
-      uploadFile(file, kindReal);
+    // Só um arquivo: mantém o fluxo de sempre (dá pra escrever legenda antes de mandar).
+    if (files.length === 1) {
+      const file = files[0];
+      // Qualquer imagem sempre é tratada como imagem (abre na tela), não importa
+      // qual dos dois botões a pessoa usou pra escolher o arquivo.
+      const kindReal = file.type.startsWith("image/") ? "image" : kind;
+      if (kindReal === "image" || kindReal === "file") {
+        setPendingUpload({ file, kind: kindReal, previewUrl: kindReal === "image" ? URL.createObjectURL(file) : null });
+        setTimeout(() => inputRef.current?.focus(), 0);
+      } else {
+        uploadFile(file, kindReal);
+      }
+      e.target.value = "";
+      return;
     }
+
+    // Vários arquivos escolhidos de uma vez: manda um atrás do outro, sem pedir
+    // legenda (não faria sentido a mesma legenda em vários arquivos diferentes).
+    setMultiUploadProgress({ atual: 0, total: files.length });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const kindReal = file.type.startsWith("image/") ? "image" : kind;
+      setMultiUploadProgress({ atual: i + 1, total: files.length });
+      try {
+        await uploadFile(file, kindReal);
+      } catch (err) {
+        console.error("Falha ao enviar um dos arquivos:", file.name, err);
+      }
+    }
+    setMultiUploadProgress(null);
     e.target.value = "";
   };
 
@@ -888,6 +907,15 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           </div>
         )}
 
+        {multiUploadProgress && (
+          <div className="flex items-center gap-3 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
+            <div className="w-5 h-5 rounded-full border-2 border-[#2E6FD9] border-t-transparent animate-spin shrink-0" />
+            <span className="text-[12px]" style={{ color: colors.textSecondary }}>
+              Enviando arquivo {multiUploadProgress.atual} de {multiUploadProgress.total}...
+            </span>
+          </div>
+        )}
+
         {recording ? (
           <div className="flex items-center gap-3 rounded-full px-4 py-2.5" style={{ background: colors.inputFieldBg }}>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
@@ -904,8 +932,8 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2E6FD9] shrink-0" style={{ color: colors.textSecondary }}>
               <Paperclip size={19} />
             </button>
-            <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePick(e, "image")} />
-            <input ref={fileInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => handlePick(e, "file")} />
+            <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePick(e, "image")} />
+            <input ref={fileInputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <div className="flex-1 relative">
               <textarea
