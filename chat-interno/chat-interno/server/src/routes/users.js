@@ -55,19 +55,28 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 
 // PATCH /api/users/:id -> ADM edita o nome (e opcionalmente usuário/cor) de qualquer pessoa, inclusive a si mesmo
 router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
-  const { name, username, color } = req.body || {};
+  const { name, username, color, role } = req.body || {};
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "O nome não pode ficar vazio." });
+  }
+  if (role && role !== "admin" && role !== "operator") {
+    return res.status(400).json({ error: "Tipo de usuário inválido." });
+  }
+  // Ninguém pode trocar o próprio tipo — evita a pessoa se rebaixar (ou promover)
+  // sem querer e ficar sem acesso de ADM pra desfazer.
+  if (role && Number(req.params.id) === req.user.id) {
+    return res.status(400).json({ error: "Você não pode trocar o próprio tipo de usuário." });
   }
   try {
     const { rows } = await pool.query(
       `UPDATE users SET
          name = $1,
          username = COALESCE(NULLIF($2, ''), username),
-         color = COALESCE(NULLIF($3, ''), color)
-       WHERE id = $4
+         color = COALESCE(NULLIF($3, ''), color),
+         role = COALESCE(NULLIF($4, ''), role)
+       WHERE id = $5
        RETURNING id, name, username, role, color, active`,
-      [name.trim(), username ? username.trim().toLowerCase() : null, color || null, req.params.id]
+      [name.trim(), username ? username.trim().toLowerCase() : null, color || null, role || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado." });
     res.json({ user: rows[0] });
