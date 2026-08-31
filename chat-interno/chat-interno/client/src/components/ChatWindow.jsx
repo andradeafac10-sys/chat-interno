@@ -64,6 +64,26 @@ const replyPreviewText = (type, content, deleted) => {
   return "📎 Arquivo";
 };
 
+const DIAS_SEMANA = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+
+// Rótulo do separador de data que fica flutuando entre as mensagens de dias
+// diferentes — igual o WhatsApp: "Hoje", "Ontem", o dia da semana se foi essa
+// mesma semana, ou a data completa se for mais antigo que isso.
+function fmtSeparadorData(iso) {
+  const data = new Date(iso);
+  const hoje = new Date();
+  const zerarHora = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDias = Math.round((zerarHora(hoje) - zerarHora(data)) / 86400000);
+
+  if (diffDias === 0) return "Hoje";
+  if (diffDias === 1) return "Ontem";
+  if (diffDias > 1 && diffDias < 7) {
+    const nome = DIAS_SEMANA[data.getDay()];
+    return nome.charAt(0).toUpperCase() + nome.slice(1);
+  }
+  return data.toLocaleDateString("pt-BR");
+}
+
 // Junta em "blocos" as mensagens seguidas da mesma pessoa, dentro do mesmo minuto —
 // igual o Discord faz. Uma resposta (reply) sempre começa um bloco novo, pra não
 // confundir quem está lendo sobre a qual mensagem ela se refere.
@@ -781,29 +801,48 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         {!loadingHistory && (messages || []).length === 0 && (
           <div className="m-auto text-sm" style={{ color: colors.textSecondary }}>Nenhuma mensagem ainda. Diga oi 👋</div>
         )}
-        {agruparEmBlocos(messages).map((bloco) => (
-          <MessageBubble
-            key={bloco[0].id}
-            messages={bloco}
-            mine={bloco[0].sender_id === user.id}
-            isGroup={conversation.type === "group"}
-            isAdm={isAdm}
-            currentUserId={user.id}
-            onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
-            onReply={startReply}
-            onEdit={startEdit}
-            onDelete={deleteMessage}
-            onReact={reactToMessage}
-            onOpenImage={setViewingImage}
-            onJumpToMessage={jumpToMessage}
-            onForward={setForwardingMessage}
-            highlightedId={highlightedId}
-            naoRespondidas={naoRespondidas}
-            playingId={playingId}
-            setPlayingId={setPlayingId}
-            audioRefs={audioRefs}
-          />
-        ))}
+        {(() => {
+          let ultimaDataRenderizada = null;
+          return agruparEmBlocos(messages).map((bloco) => {
+            const dataDoBloco = new Date(bloco[0].created_at).toDateString();
+            const mostrarSeparador = dataDoBloco !== ultimaDataRenderizada;
+            ultimaDataRenderizada = dataDoBloco;
+            return (
+              <React.Fragment key={bloco[0].id}>
+                {mostrarSeparador && (
+                  <div className="flex justify-center my-2 sticky top-0 z-10">
+                    <span
+                      className="text-[12px] font-medium rounded-full px-3 py-1 shadow-sm"
+                      style={{ background: colors.panelBg, color: colors.textSecondary }}
+                    >
+                      {fmtSeparadorData(bloco[0].created_at)}
+                    </span>
+                  </div>
+                )}
+                <MessageBubble
+                  messages={bloco}
+                  mine={bloco[0].sender_id === user.id}
+                  isGroup={conversation.type === "group"}
+                  isAdm={isAdm}
+                  currentUserId={user.id}
+                  onTogglePin={(msg) => onTogglePin(msg, !msg.pinned)}
+                  onReply={startReply}
+                  onEdit={startEdit}
+                  onDelete={deleteMessage}
+                  onReact={reactToMessage}
+                  onOpenImage={setViewingImage}
+                  onJumpToMessage={jumpToMessage}
+                  onForward={setForwardingMessage}
+                  highlightedId={highlightedId}
+                  naoRespondidas={naoRespondidas}
+                  playingId={playingId}
+                  setPlayingId={setPlayingId}
+                  audioRefs={audioRefs}
+                />
+              </React.Fragment>
+            );
+          });
+        })()}
       </div>
 
       {forwardingMessage && (
