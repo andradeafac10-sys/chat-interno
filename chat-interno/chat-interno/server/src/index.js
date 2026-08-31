@@ -7,6 +7,19 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 
+// Rede de segurança geral: até hoje, a maioria das rotas do backend não tinha
+// try/catch (foi a causa do bug do comunicado preso em "Enviando..."). Sem
+// isso aqui, um erro sem tratamento em QUALQUER uma delas derrubava o
+// processo Node inteiro — tirando TODO MUNDO do ar, não só travando um botão.
+// Agora, mesmo que uma rota específica ainda não tenha try/catch, o servidor
+// registra o erro e continua rodando pros outros usuários.
+process.on("unhandledRejection", (err) => {
+  console.error("[unhandledRejection] Erro não tratado numa rota:", err);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException] Erro inesperado:", err);
+});
+
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const groupRoutes = require("./routes/groups");
@@ -90,4 +103,14 @@ setInterval(() => {
 }, 60 * 1000);
 
 const PORT = process.env.PORT || 4000;
+
+// Barreira final: se algum erro chegar até aqui (via next(err), ou um erro
+// síncrono em algum middleware), responde com um JSON de erro de verdade em
+// vez do request ficar pendurado sem resposta ou vazar um erro cru pro navegador.
+app.use((err, req, res, next) => {
+  console.error("[erro não tratado]", err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Erro interno no servidor. Tente novamente." });
+});
+
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
