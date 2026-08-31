@@ -162,6 +162,9 @@ router.post("/:id/read", requireAuth, async (req, res) => {
      ON CONFLICT (user_id, conversation_id) DO UPDATE SET last_read_at = now()`,
     [req.user.id, req.params.id]
   );
+  // Avisa em tempo real quem mandou mensagem nessa conversa que agora foi lida —
+  // é isso que faz o "Enviado" virar "Lido" na hora, sem precisar dar F5.
+  broadcast(req, req.params.id, "conversation:read", { conversationId: req.params.id, userId: req.user.id, readAt: new Date().toISOString() });
   res.json({ ok: true });
 });
 
@@ -255,6 +258,42 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
   }
 
   const messages = rows.map((r) => ({ ...r, reactions: reactionsByMessage[r.id] || [] }));
+
+  // "Enviado" / "Lido" nas minhas próprias mensagens: pega até onde as outras
+  // pessoas da conversa já leram (tabela conversation_reads) e compara com a
+  // data de cada mensagem minha. Numa DM é só a outra pessoa; num grupo, só
+  // conta como "Lido" quando TODO MUNDO do grupo já leu até ali (igual o
+  // duplo tique azul do WhatsApp, que também espera todo mundo ler no grupo).
+  let outrosIds = [];
+  if (conversationId.startsWith("dm-")) {
+    const [, a, b] = conversationId.split("-");
+    outrosIds = [Number(a), Number(b)].filter((id) => id !== req.user.id);
+  } else if (conversationId.startsWith("group-")) {
+    const groupId = Number(conversationId.replace("group-", ""));
+    const { rows: membros } = await pool.query(
+      "SELECT user_id FROM group_members WHERE group_id = $1 AND user_id != $2",
+      [groupId, req.user.id]
+    );
+    outrosIds = membros.map((m) => m.user_id);
+  }
+
+  if (outrosIds.length > 0) {
+    const { rows: leituras } = await pool.query(
+      "SELECT user_id, last_read_at FROM conversation_reads WHERE conversation_id = $1 AND user_id = ANY($2::int[])",
+      [conversationId, outrosIds]
+    );
+    // Se alguém nunca abriu a conversa, conta como "nunca leu" (data lá no passado)
+    const lastReadPorUsuario = new Map(outrosIds.map((id) => [id, new Date(0)]));
+    leituras.forEach((l) => lastReadPorUsuario.set(l.user_id, new Date(l.last_read_at)));
+    const todasAsLeituras = [...lastReadPorUsuario.values()];
+
+    for (const m of messages) {
+      if (m.sender_id !== req.user.id) continue;
+      const dataMsg = new Date(m.created_at);
+      m.read = todasAsLeituras.every((lida) => lida >= dataMsg);
+    }
+  }
+
   res.json({ messages: messages.reverse() });
 });
 
