@@ -231,12 +231,11 @@ function MessageLine({
       className={`group/line relative w-full flex flex-col mb-1 ${mine ? "items-end" : "items-start"}`}
     >
       {/* A bolha em si: cor diferente se é minha (direita, azul clarinho) ou
-          de outra pessoa (esquerda, branca) — igual WhatsApp. Duplo clique
-          responde, botão direito abre o menu completo. */}
+          de outra pessoa (esquerda, branca) — igual WhatsApp. Responder é só
+          pelo menu (botão direito ou o "⋯"), pra não atrapalhar quando a
+          pessoa dá duplo clique numa palavra só pra selecionar e copiar. */}
       <div
         onContextMenu={abrirMenu}
-        onDoubleClick={() => onReply(m)}
-        title="Duplo clique para responder"
         className="rounded-2xl px-3 py-2 max-w-full cursor-default"
         style={{
           background: bubbleBg,
