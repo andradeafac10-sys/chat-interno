@@ -283,20 +283,30 @@ function MessageLine({
         )}
 
         {m.type === "file" && (
-          <button
-            onClick={() => baixarArquivo(fileUrl(m.file_url), m.file_name)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 max-w-[320px] border text-left"
-            style={{ background: colors.inputFieldBg, borderColor: colors.border }}
-          >
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
-              <FileIcon size={16} color="#2E6FD9" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-medium truncate" style={{ color: colors.textPrimary }}>{m.file_name}</div>
-              <div className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtSize(m.file_size)} · baixar</div>
-            </div>
-            <Download size={14} className="shrink-0" style={{ color: colors.textSecondary }} />
-          </button>
+          <div>
+            <button
+              onClick={() => baixarArquivo(fileUrl(m.file_url), m.file_name)}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 max-w-[320px] border text-left"
+              style={{ background: colors.inputFieldBg, borderColor: colors.border }}
+            >
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
+                <FileIcon size={16} color="#2E6FD9" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-medium truncate" style={{ color: colors.textPrimary }}>{m.file_name}</div>
+                <div className="text-[11px]" style={{ color: colors.textSecondary }}>{fmtSize(m.file_size)} · baixar</div>
+              </div>
+              <Download size={14} className="shrink-0" style={{ color: colors.textSecondary }} />
+            </button>
+            {/* A legenda escrita antes de mandar o PDF era salva certinho no banco,
+                mas nunca aparecia aqui — por isso parecia que não dava pra escrever
+                junto. Agora mostra, igual já acontecia com foto. */}
+            {m.content && (
+              <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words mt-1.5 max-w-[320px]" style={{ color: bubbleText }}>
+                {formatarTexto(m.content)}
+              </div>
+            )}
+          </div>
         )}
 
         {m.type === "audio" && (
