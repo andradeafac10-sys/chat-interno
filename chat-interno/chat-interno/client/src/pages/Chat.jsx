@@ -315,7 +315,23 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
+    // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
+    // MINHA que foi mandada até esse momento — igual o tique azul do WhatsApp.
+    const onConversationRead = ({ conversationId, readAt }) => {
+      setMessagesByConv((prev) => {
+        if (!prev[conversationId]) return prev;
+        const dataLeitura = new Date(readAt);
+        return {
+          ...prev,
+          [conversationId]: prev[conversationId].map((m) =>
+            m.sender_id === user.id && new Date(m.created_at) <= dataLeitura ? { ...m, read: true } : m
+          ),
+        };
+      });
+    };
+
     socket.on("message:new", onNewMessage);
+    socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
@@ -334,6 +350,7 @@ export default function Chat() {
 
     return () => {
       socket.off("message:new", onNewMessage);
+      socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
