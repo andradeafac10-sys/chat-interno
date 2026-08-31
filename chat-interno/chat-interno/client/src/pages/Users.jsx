@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil, Search } from "lucide-react";
 import { api } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 const COLORS = ["#2E6FD9", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
 
 export default function Users({ onBack }) {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -107,23 +109,25 @@ export default function Users({ onBack }) {
 
       {showNew && <NewUserModal onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); load(); }} />}
       {resetTarget && <ResetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />}
-      {editTarget && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); load(); }} />}
+      {editTarget && <EditUserModal user={editTarget} currentUserId={currentUser.id} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); load(); }} />}
     </div>
   );
 }
 
-function EditUserModal({ user, onClose, onSaved }) {
+function EditUserModal({ user, currentUserId, onClose, onSaved }) {
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
+  const [role, setRole] = useState(user.role);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const souEuMesmo = user.id === currentUserId;
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
     setSaving(true);
     try {
-      await api.patch(`/users/${user.id}`, { name, username });
+      await api.patch(`/users/${user.id}`, { name, username, role: souEuMesmo ? undefined : role });
       onSaved();
     } catch (err) {
       setError(err.response?.data?.error || "Não foi possível salvar.");
@@ -145,6 +149,16 @@ function EditUserModal({ user, onClose, onSaved }) {
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login</label>
           <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Tipo de usuário</label>
+          {souEuMesmo ? (
+            <p className="text-xs text-slate-400 mb-4">Você não pode trocar o próprio tipo de usuário.</p>
+          ) : (
+            <div className="flex gap-2 mb-4">
+              <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2E6FD9] text-[#2E6FD9] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>Operador</button>
+              <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2E6FD9] text-[#2E6FD9] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>ADM</button>
+            </div>
+          )}
 
           {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
