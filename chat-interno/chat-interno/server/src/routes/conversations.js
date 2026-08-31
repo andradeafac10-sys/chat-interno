@@ -331,6 +331,45 @@ router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) 
   res.status(201).json({ message });
 });
 
+// POST /api/conversations/messages/:msgId/forward -> reencaminha uma mensagem (texto,
+// imagem, áudio ou arquivo) para uma ou mais conversas, sejam grupos ou privado (DM).
+// Não reenvia arquivo pro servidor de novo — só cria uma mensagem nova apontando pro
+// mesmo file_url, exatamente como o WhatsApp faz.
+router.post("/messages/:msgId/forward", requireAuth, async (req, res) => {
+  const { conversationIds } = req.body || {};
+  if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
+    return res.status(400).json({ error: "Escolha pelo menos uma conversa." });
+  }
+
+  const { rows: originalRows } = await pool.query(
+    "SELECT * FROM messages WHERE id = $1 AND deleted = false",
+    [req.params.msgId]
+  );
+  const original = originalRows[0];
+  if (!original) return res.status(404).json({ error: "Mensagem não encontrada." });
+  if (!(await canAccessConversation(req.user, original.conversation_id))) {
+    return res.status(403).json({ error: "Você não tem acesso a essa mensagem." });
+  }
+
+  const enviadas = [];
+  for (const conversationId of conversationIds) {
+    if (!(await canAccessConversation(req.user, conversationId))) continue; // ignora silenciosamente conversa sem acesso
+
+    const { rows } = await pool.query(
+      `INSERT INTO messages (conversation_id, sender_id, type, content, file_url, file_name, file_size, audio_seconds, forwarded)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *`,
+      [conversationId, req.user.id, original.type, original.content, original.file_url, original.file_name, original.file_size, original.audio_seconds]
+    );
+    const message = await hydrateNewMessage(rows[0], req.user);
+    await reabrirDmSeFechada(conversationId);
+    broadcast(req, conversationId, "message:new", message);
+    enviadas.push(conversationId);
+  }
+
+  if (enviadas.length === 0) return res.status(403).json({ error: "Você não tem acesso a nenhuma das conversas escolhidas." });
+  res.json({ ok: true, sentTo: enviadas.length });
+});
+
 // PATCH /api/conversations/:id/messages/:msgId -> editar o texto da própria mensagem
 router.patch("/:id/messages/:msgId", requireAuth, async (req, res) => {
   const conversationId = req.params.id;
