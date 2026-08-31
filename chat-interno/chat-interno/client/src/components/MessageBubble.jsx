@@ -337,8 +337,11 @@ function MessageLine({
           </div>
         )}
 
-        <div className="text-[10px] text-right mt-0.5" style={{ color: colors.textSecondary, opacity: 0.8 }}>
+        <div className="text-[10px] text-right mt-0.5 flex items-center justify-end gap-1" style={{ color: colors.textSecondary, opacity: 0.8 }}>
           {fmtHora(m.created_at)}
+          {/* Só faz sentido mostrar "Enviado"/"Lido" nas MINHAS mensagens — igual
+              o tique do WhatsApp, ninguém vê esse status na mensagem dos outros. */}
+          {mine && <span>· {m.read ? "Lido" : "Enviado"}</span>}
         </div>
       </div>
 
