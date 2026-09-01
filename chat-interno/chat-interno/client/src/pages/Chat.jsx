@@ -221,7 +221,14 @@ export default function Chat() {
       // manda o evento; quem filtra o aviso é aqui).
       const grupoId = message.conversation_id.startsWith("group-") ? Number(message.conversation_id.split("-")[1]) : null;
       const grupoSilenciado = grupoId !== null && hiddenGroupIdsRef.current.has(grupoId);
-      const souParticipante = !grupoSilenciado && (!conv || conv.type !== "group" || conv.isMember !== false);
+      // "@todos" e "@MeuNome" furam o silenciar do grupo — a pessoa quis chamar
+      // atenção de propósito, então tem que notificar mesmo com o grupo mudo,
+      // igual o WhatsApp faz com menção direta.
+      const souMencionado =
+        message.type === "text" &&
+        !!message.content &&
+        new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
+      const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
