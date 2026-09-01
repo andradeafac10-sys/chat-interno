@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, Forward } from "lucide-react";
+import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Trash2, Forward, Info } from "lucide-react";
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
 
@@ -104,7 +104,7 @@ async function baixarArquivo(url, nomeArquivo) {
  */
 export default function MessageBubble({
   messages, mine, isGroup, isAdm, currentUserId,
-  onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage, onJumpToMessage, onForward,
+  onTogglePin, onReply, onEdit, onDelete, onReact, onOpenImage, onJumpToMessage, onForward, onShowInfo,
   playingId, setPlayingId, audioRefs, highlightedId, naoRespondidas,
 }) {
   const { colors } = useTheme();
@@ -152,6 +152,7 @@ export default function MessageBubble({
             onOpenImage={onOpenImage}
             onJumpToMessage={onJumpToMessage}
             onForward={onForward}
+            onShowInfo={onShowInfo}
             playingId={playingId}
             setPlayingId={setPlayingId}
             audioRefs={audioRefs}
@@ -164,7 +165,7 @@ export default function MessageBubble({
 
 function MessageLine({
   m, mine, isAdm, currentUserId, colors, highlighted, precisaResposta,
-  onReply, onEdit, onReact, onTogglePin, onDelete, onOpenImage, onJumpToMessage, onForward,
+  onReply, onEdit, onReact, onTogglePin, onDelete, onOpenImage, onJumpToMessage, onForward, onShowInfo,
   playingId, setPlayingId, audioRefs,
 }) {
   const [menuPos, setMenuPos] = useState(null); // { x, y } — onde o menu de botão direito abriu
@@ -415,7 +416,16 @@ function MessageLine({
           >
             <Forward size={14} /> Reencaminhar
           </button>
-          {mine && m.type === "text" && (
+          {mine && (
+            <button
+              onClick={() => { onShowInfo(m); setMenuPos(null); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
+              style={{ color: colors.textPrimary }}
+            >
+              <Info size={14} /> Dados
+            </button>
+          )}
+          {mine && ["text", "image", "file"].includes(m.type) && (
             <button
               onClick={() => { onEdit(m); setMenuPos(null); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] hover:bg-black/5 text-left"
