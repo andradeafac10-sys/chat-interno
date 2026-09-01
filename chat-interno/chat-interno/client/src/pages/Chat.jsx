@@ -431,6 +431,7 @@ export default function Chat() {
         onCloseConversation={closeConversation}
         hiddenGroupsCount={hiddenGroupsCount}
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
+        escondidoNoMobile={!!activeConv}
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
@@ -451,6 +452,7 @@ export default function Chat() {
               onTogglePin={togglePin}
               onGroupUpdated={loadConversations}
               isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
+              onVoltarMobile={() => setActiveConvId(null)}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
