@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search, Smile, ArrowLeft as ArrowLeftIcon } from "lucide-react";
+import { Send, Paperclip, Image as ImageIcon, File as FileIcon, Mic, Square, Pin, X, Users, Settings, Reply, Pencil, Search, Smile, ArrowLeft as ArrowLeftIcon, AtSign } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +8,7 @@ import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
 import ImageViewer from "./ImageViewer";
 import ForwardMessageModal from "./ForwardMessageModal";
+import MessageInfoModal from "./MessageInfoModal";
 
 // Deixa em destaque o trecho que bate com o que foi buscado
 function realcar(texto, termo) {
@@ -133,6 +134,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
   const [pendingUpload, setPendingUpload] = useState(null);
   const [multiUploadProgress, setMultiUploadProgress] = useState(null); // { atual, total } — quando manda vários arquivos de uma vez // { file, kind, previewUrl? } — arquivo/foto escolhido, aguardando legenda antes de enviar
   const [selecaoTexto, setSelecaoTexto] = useState(null); // { start, end } — trecho selecionado no campo de digitar, pra mostrar B/I/S
@@ -211,9 +213,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     }
   }, [messages]);
 
-  const mentionCandidates = groupMembers
-    .filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase()))
-    .slice(0, 6);
+  // "@todos" chama a atenção do grupo inteiro de uma vez (como no WhatsApp) —
+  // por isso ele aparece fixo no topo da sugestão, na frente dos nomes de pessoas.
+  const TODOS_CANDIDATE = { id: "todos", name: "todos", isTodos: true };
+  const mentionCandidates = [
+    ...("todos".includes(mentionQuery.toLowerCase()) ? [TODOS_CANDIDATE] : []),
+    ...groupMembers.filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase())),
+  ].slice(0, 6);
 
   // Detecta se a pessoa está digitando um @nome, pra abrir a sugestão
   // Coloca o emoji na posição do cursor (ou no final, se não tiver cursor ativo)
@@ -369,6 +375,17 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       resetInputHeight();
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       await uploadFile(file, kind, undefined, legenda || undefined);
+      return;
+    }
+
+    // Legenda de foto/PDF pode ser apagada de vez (fica sem legenda nenhuma);
+    // só mensagem de texto pura não pode virar vazia.
+    if (editingMessage && editingMessage.type !== "text") {
+      const text = draft.trim();
+      setDraft("");
+      resetInputHeight();
+      setEditingMessage(null);
+      await api.patch(`/conversations/${conversation.id}/messages/${editingMessage.id}`, { text });
       return;
     }
 
@@ -852,6 +869,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                   onOpenImage={setViewingImage}
                   onJumpToMessage={jumpToMessage}
                   onForward={setForwardingMessage}
+                  onShowInfo={setInfoMessage}
                   highlightedId={highlightedId}
                   naoRespondidas={naoRespondidas}
                   playingId={playingId}
@@ -869,6 +887,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           message={forwardingMessage}
           onClose={() => setForwardingMessage(null)}
           onSent={() => setForwardingMessage(null)}
+        />
+      )}
+
+      {infoMessage && (
+        <MessageInfoModal
+          messageId={infoMessage.id}
+          onClose={() => setInfoMessage(null)}
         />
       )}
 
@@ -1011,10 +1036,18 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                       className="w-full flex items-center gap-2 px-3 py-2 text-left"
                       style={{ background: i === mentionIndex ? colors.inputFieldBg : "transparent" }}
                     >
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: mMember.color }}>
-                        {mMember.avatar_url ? <img src={fileUrl(mMember.avatar_url)} alt={mMember.name} className="w-full h-full object-cover" /> : mMember.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                      </div>
-                      <span className="text-[13px]" style={{ color: colors.textPrimary }}>{mMember.name}</span>
+                      {mMember.isTodos ? (
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2563EB" }}>
+                          <AtSign size={12} />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: mMember.color }}>
+                          {mMember.avatar_url ? <img src={fileUrl(mMember.avatar_url)} alt={mMember.name} className="w-full h-full object-cover" /> : mMember.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-[13px]" style={{ color: colors.textPrimary, fontWeight: mMember.isTodos ? 600 : 400 }}>
+                        {mMember.isTodos ? "Todos — avisa o grupo inteiro" : mMember.name}
+                      </span>
                     </button>
                   ))}
                 </div>
