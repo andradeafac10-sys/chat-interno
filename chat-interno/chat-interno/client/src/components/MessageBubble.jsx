@@ -43,7 +43,7 @@ function formatarTexto(texto) {
   while ((m = regex.exec(texto)) !== null) {
     if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
     if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
+      partes.push(<span key={key++} className="font-semibold text-[#2563EB]">{m[1]}</span>);
     } else if (m[2] !== undefined) {
       partes.push(<strong key={key++}>{m[2]}</strong>);
     } else if (m[3] !== undefined) {
@@ -63,7 +63,7 @@ function formatarTexto(texto) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2E6FD9] break-all"
+          className="underline text-[#2563EB] break-all"
         >
           {url}
         </a>
@@ -117,7 +117,7 @@ export default function MessageBubble({
       {!mine && (
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden mt-0.5"
-          style={{ background: primeira.sender_color || "#2E6FD9" }}
+          style={{ background: primeira.sender_color || "#2563EB" }}
         >
           {primeira.sender_avatar_url ? (
             <img src={fileUrl(primeira.sender_avatar_url)} alt={primeira.sender_name} className="w-full h-full object-cover" />
@@ -252,10 +252,10 @@ function MessageLine({
         {m.reply_id && (
           <button
             onClick={() => onJumpToMessage?.(m.reply_id)}
-            className="block w-full text-left mb-1 pl-2 border-l-2 border-[#2E6FD9] rounded px-2 py-1 hover:brightness-95"
+            className="block w-full text-left mb-1 pl-2 border-l-2 border-[#2563EB] rounded px-2 py-1 hover:brightness-95"
             style={{ background: colors.inputFieldBg }}
           >
-            <div className="text-[11px] font-medium text-[#2E6FD9]">{m.reply_sender_name}</div>
+            <div className="text-[11px] font-medium text-[#2563EB]">{m.reply_sender_name}</div>
             <div className="text-[12px] truncate max-w-[380px]" style={{ color: colors.textSecondary }}>
               {replyPreviewText(m.reply_type, m.reply_content, m.reply_deleted)}
             </div>
@@ -266,7 +266,7 @@ function MessageLine({
           <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: bubbleText }}>
             {formatarTexto(m.content)}
             {m.edited && <span className="text-[10px] italic ml-1.5 align-middle" style={{ color: colors.textSecondary }}>(editado)</span>}
-            {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#2E6FD9]" />}
+            {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#2563EB]" />}
           </div>
         )}
 
@@ -291,7 +291,7 @@ function MessageLine({
               style={{ background: colors.inputFieldBg, borderColor: colors.border }}
             >
               <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
-                <FileIcon size={16} color="#2E6FD9" />
+                <FileIcon size={16} color="#2563EB" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium truncate" style={{ color: colors.textPrimary }}>{m.file_name}</div>
@@ -322,7 +322,7 @@ function MessageLine({
               className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
               style={{ background: colors.panelBg }}
             >
-              {playingId === m.id ? <Pause size={14} color="#2E6FD9" /> : <Play size={14} color="#2E6FD9" />}
+              {playingId === m.id ? <Pause size={14} color="#2563EB" /> : <Play size={14} color="#2563EB" />}
             </button>
             <div className="flex items-center gap-[2px] flex-1 h-5">
               {Array.from({ length: 20 }).map((_, i) => (
@@ -362,7 +362,7 @@ function MessageLine({
             <span
               key={emoji}
               className="text-[12px] rounded-full px-2 py-0.5 border flex items-center gap-1"
-              style={{ background: colors.panelBg, borderColor: myReaction === emoji ? "#2E6FD9" : colors.border, color: colors.textPrimary }}
+              style={{ background: colors.panelBg, borderColor: myReaction === emoji ? "#2563EB" : colors.border, color: colors.textPrimary }}
             >
               <span>{emoji}</span> <span className="text-[10px]">{count}</span>
             </span>
