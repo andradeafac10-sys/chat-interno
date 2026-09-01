@@ -374,6 +374,56 @@ router.post("/:id/upload", requireAuth, upload.single("file"), async (req, res) 
 // imagem, áudio ou arquivo) para uma ou mais conversas, sejam grupos ou privado (DM).
 // Não reenvia arquivo pro servidor de novo — só cria uma mensagem nova apontando pro
 // mesmo file_url, exatamente como o WhatsApp faz.
+// GET /api/conversations/messages/:msgId/reads -> "Dados da mensagem": quem já
+// leu essa mensagem específica e quem ainda não — igual o WhatsApp mostra pra
+// mensagens que você mandou. Só o dono da mensagem pode ver isso.
+router.get("/messages/:msgId/reads", requireAuth, async (req, res) => {
+  const { rows: msgRows } = await pool.query("SELECT * FROM messages WHERE id = $1 AND deleted = false", [req.params.msgId]);
+  const message = msgRows[0];
+  if (!message) return res.status(404).json({ error: "Mensagem não encontrada." });
+  if (message.sender_id !== req.user.id) return res.status(403).json({ error: "Só quem mandou a mensagem pode ver quem leu." });
+
+  const conversationId = message.conversation_id;
+  let outrosIds = [];
+  if (conversationId.startsWith("dm-")) {
+    const [, a, b] = conversationId.split("-");
+    outrosIds = [Number(a), Number(b)].filter((id) => id !== req.user.id);
+  } else if (conversationId.startsWith("group-")) {
+    const groupId = Number(conversationId.replace("group-", ""));
+    const { rows: membros } = await pool.query(
+      "SELECT user_id FROM group_members WHERE group_id = $1 AND user_id != $2",
+      [groupId, req.user.id]
+    );
+    outrosIds = membros.map((m) => m.user_id);
+  }
+
+  if (outrosIds.length === 0) return res.json({ lido_por: [], nao_lido_por: [] });
+
+  const { rows: pessoas } = await pool.query(
+    "SELECT id, name, avatar_url, color FROM users WHERE id = ANY($1::int[]) ORDER BY name",
+    [outrosIds]
+  );
+  const { rows: leituras } = await pool.query(
+    "SELECT user_id, last_read_at FROM conversation_reads WHERE conversation_id = $1 AND user_id = ANY($2::int[])",
+    [conversationId, outrosIds]
+  );
+  const leituraPorUsuario = new Map(leituras.map((l) => [l.user_id, l.last_read_at]));
+  const dataMsg = new Date(message.created_at);
+
+  const lido_por = [];
+  const nao_lido_por = [];
+  for (const p of pessoas) {
+    const lastRead = leituraPorUsuario.get(p.id);
+    if (lastRead && new Date(lastRead) >= dataMsg) {
+      lido_por.push({ ...p, lido_em: lastRead });
+    } else {
+      nao_lido_por.push(p);
+    }
+  }
+
+  res.json({ lido_por, nao_lido_por });
+});
+
 router.post("/messages/:msgId/forward", requireAuth, async (req, res) => {
   const { conversationIds } = req.body || {};
   if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
@@ -413,17 +463,24 @@ router.post("/messages/:msgId/forward", requireAuth, async (req, res) => {
 router.patch("/:id/messages/:msgId", requireAuth, async (req, res) => {
   const conversationId = req.params.id;
   const { text } = req.body || {};
-  if (!text || !text.trim()) return res.status(400).json({ error: "Mensagem vazia." });
 
   const { rows: existing } = await pool.query("SELECT * FROM messages WHERE id = $1 AND conversation_id = $2", [req.params.msgId, conversationId]);
   const original = existing[0];
   if (!original) return res.status(404).json({ error: "Mensagem não encontrada." });
   if (original.sender_id !== req.user.id) return res.status(403).json({ error: "Você só pode editar suas próprias mensagens." });
-  if (original.type !== "text") return res.status(400).json({ error: "Só é possível editar mensagens de texto." });
+  // Áudio não tem legenda pra editar. Texto, imagem e arquivo (PDF) podem.
+  if (!["text", "image", "file"].includes(original.type)) {
+    return res.status(400).json({ error: "Esse tipo de mensagem não pode ser editado." });
+  }
+  // Só o texto puro não pode ficar vazio (viraria uma mensagem sem nada). Legenda
+  // de foto/PDF pode ser apagada — o arquivo continua ali, só sem legenda.
+  if (original.type === "text" && (!text || !text.trim())) {
+    return res.status(400).json({ error: "Mensagem vazia." });
+  }
 
   const { rows } = await pool.query(
     `UPDATE messages SET content = $1, edited = true, edited_at = now() WHERE id = $2 RETURNING *`,
-    [text.trim(), req.params.msgId]
+    [(text || "").trim() || null, req.params.msgId]
   );
   const message = { ...rows[0], sender_name: req.user.name, sender_color: req.user.color, sender_avatar_url: req.user.avatar_url };
 
