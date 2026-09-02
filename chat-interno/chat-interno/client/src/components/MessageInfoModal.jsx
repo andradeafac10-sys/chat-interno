@@ -39,7 +39,7 @@ export default function MessageInfoModal({ messageId, onClose }) {
                 <div className="flex flex-col gap-2 mb-4">
                   {dados.lido_por.map((p) => (
                     <div key={p.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2E6FD9" }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2563EB" }}>
                         {p.avatar_url ? <img src={fileUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : p.name?.[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ export default function MessageInfoModal({ messageId, onClose }) {
                 <div className="flex flex-col gap-2">
                   {dados.nao_lido_por.map((p) => (
                     <div key={p.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2E6FD9" }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2563EB" }}>
                         {p.avatar_url ? <img src={fileUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : p.name?.[0]?.toUpperCase()}
                       </div>
                       <div className="text-[13px] text-slate-700 truncate">{p.name}</div>
