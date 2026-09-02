@@ -113,7 +113,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             required
           />
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
@@ -121,7 +121,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             required
             minLength={6}
           />
@@ -130,7 +130,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             required
             minLength={6}
           />
@@ -142,7 +142,7 @@ export default function AccountModal({ onClose }) {
             type="submit"
             disabled={saving}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "#2E6FD9" }}
+            style={{ background: "#2563EB" }}
           >
             {saving ? "Salvando..." : "Trocar senha"}
           </button>
