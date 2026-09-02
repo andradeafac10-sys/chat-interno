@@ -3,9 +3,9 @@ import { X, ShieldCheck, Camera, Trash2, AlertTriangle, MessageSquareText } from
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
-export default function AccountModal({ onClose }) {
+export default function AccountModal({ onClose, initialTab, onFeedbackAcked }) {
   const { user, updateUser } = useAuth();
-  const [aba, setAba] = useState("conta"); // "conta" | "feedbacks"
+  const [aba, setAba] = useState(initialTab === "feedbacks" ? "feedbacks" : "conta"); // "conta" | "feedbacks"
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -103,7 +103,7 @@ export default function AccountModal({ onClose }) {
         </div>
 
         {aba === "feedbacks" ? (
-          <MeusFeedbacks />
+          <MeusFeedbacks onFeedbackAcked={onFeedbackAcked} />
         ) : (
         <>
         <div className="flex flex-col items-center mb-5">
@@ -207,16 +207,34 @@ export default function AccountModal({ onClose }) {
   );
 }
 
-// Lista, só leitura, dos feedbacks que a própria pessoa recebeu dos ADMs.
-function MeusFeedbacks() {
+// Lista dos feedbacks que a própria pessoa recebeu. Os não confirmados vêm
+// destacados em vermelho, com o botão "OK, CIENTE" — só depois de clicar ali
+// é que conta como lido de verdade (igual assinatura de recebido).
+function MeusFeedbacks({ onFeedbackAcked }) {
   const [feedbacks, setFeedbacks] = useState(null); // null = carregando
   const [erro, setErro] = useState("");
+  const [confirmando, setConfirmando] = useState(null); // id sendo confirmado agora
 
-  useEffect(() => {
+  const carregar = () => {
     api.get("/feedbacks/mine")
       .then(({ data }) => setFeedbacks(data.feedbacks))
       .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus feedbacks."));
-  }, []);
+  };
+
+  useEffect(() => { carregar(); }, []);
+
+  const confirmarCiente = async (id) => {
+    setConfirmando(id);
+    try {
+      await api.post(`/feedbacks/${id}/ack`);
+      setFeedbacks((prev) => prev.map((f) => (f.id === id ? { ...f, acknowledged_at: new Date().toISOString() } : f)));
+      onFeedbackAcked?.();
+    } catch {
+      alert("Não deu pra confirmar agora. Tente de novo.");
+    } finally {
+      setConfirmando(null);
+    }
+  };
 
   if (erro) return <p className="text-[13px] text-red-500">{erro}</p>;
   if (feedbacks === null) return <p className="text-[13px] text-slate-400">Carregando...</p>;
@@ -231,15 +249,46 @@ function MeusFeedbacks() {
 
   return (
     <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto">
-      {feedbacks.map((f) => (
-        <div key={f.id} className="border border-slate-200 rounded-lg p-3">
-          <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
-          <div className="text-[13px] text-slate-600 whitespace-pre-wrap mt-1">{f.content}</div>
-          <div className="text-[11px] text-slate-400 mt-2">
-            {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")}
+      {feedbacks.map((f) => {
+        const pendente = !f.acknowledged_at;
+        return (
+          <div
+            key={f.id}
+            className="rounded-lg p-3 border"
+            style={pendente ? { background: "#FEF2F2", borderColor: "#FCA5A5" } : { borderColor: "#E2E8F0" }}
+          >
+            <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
+            <div className="text-[13px] text-slate-600 whitespace-pre-wrap mt-1">{f.content}</div>
+            {f.attachment_url && (
+              <a
+                href={fileUrl(f.attachment_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-[12px] text-[#2563EB] font-medium mt-2 underline"
+              >
+                📎 {f.attachment_name || "Ver anexo"}
+              </a>
+            )}
+            <div className="text-[11px] text-slate-400 mt-2">
+              {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")}
+            </div>
+            {pendente ? (
+              <button
+                onClick={() => confirmarCiente(f.id)}
+                disabled={confirmando === f.id}
+                className="w-full rounded-lg py-2 text-[12.5px] font-semibold text-white mt-2.5 disabled:opacity-50"
+                style={{ background: "#2563EB" }}
+              >
+                {confirmando === f.id ? "Confirmando..." : "✓ OK, CIENTE"}
+              </button>
+            ) : (
+              <div className="text-[11px] text-emerald-600 font-medium mt-2">
+                ✓ Confirmado em {new Date(f.acknowledged_at).toLocaleDateString("pt-BR")}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
