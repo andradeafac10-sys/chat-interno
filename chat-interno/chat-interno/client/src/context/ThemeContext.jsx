@@ -20,7 +20,7 @@ const THEMES = {
     incomingBubbleText: "#E8EEF7",
     border: "#1E3555",
     panelBg: "#12233D",
-    accent: "#2E6FD9",
+    accent: "#2563EB",
     topbarBg: "#081328",
   },
   light: {
