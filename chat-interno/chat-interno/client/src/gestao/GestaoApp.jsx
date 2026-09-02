@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
   ArrowLeft, LayoutGrid, CalendarCheck, ClipboardList,
-  Repeat, Trophy, Menu, X,
+  Repeat, Trophy, Menu, X, MessageSquareText,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,6 +12,7 @@ const MENU = [
   { to: "/gestao/tarefas", label: "Tarefas", icon: ClipboardList },
   { to: "/gestao/rotinas", label: "Rotinas", icon: Repeat },
   { to: "/gestao/ranking", label: "Ranking", icon: Trophy },
+  { to: "/gestao/feedbacks", label: "Feedbacks", icon: MessageSquareText },
 ];
 
 /**
