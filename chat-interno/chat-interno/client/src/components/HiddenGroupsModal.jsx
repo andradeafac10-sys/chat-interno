@@ -46,7 +46,7 @@ export default function HiddenGroupsModal({ onClose, onChanged }) {
               <button
                 onClick={() => mostrar(g.id)}
                 className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1.5 rounded-lg text-white shrink-0"
-                style={{ background: "#2E6FD9" }}
+                style={{ background: "#2563EB" }}
               >
                 <Eye size={13} /> Mostrar
               </button>
