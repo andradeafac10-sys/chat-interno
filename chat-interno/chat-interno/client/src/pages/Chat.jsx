@@ -9,7 +9,6 @@ import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
-import FeedbacksPage from "./Feedbacks";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
@@ -40,7 +39,8 @@ export default function Chat() {
   const [showAccount, setShowAccount] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
-  const [showFeedbacks, setShowFeedbacks] = useState(false);
+  const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
+  const [accountInitialTab, setAccountInitialTab] = useState("conta");
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
@@ -65,6 +65,12 @@ export default function Chat() {
   // Pede permissão de notificação do sistema uma vez, assim que o chat abre
   useEffect(() => {
     pedirPermissaoNotificacao();
+  }, []);
+
+  // Carrega quantos feedbacks eu ainda não confirmei, pra já mostrar a tarja
+  // vermelha desde o primeiro carregamento (sem precisar receber um novo primeiro)
+  useEffect(() => {
+    api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedbackCount(data.count)).catch(() => {});
   }, []);
 
   // Quando a pessoa clica na notificação do Windows, o service worker avisa
@@ -328,6 +334,7 @@ export default function Chat() {
     const onFeedbackNovo = ({ titulo, corpo }) => {
       playNotificationSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
+      setPendingFeedbackCount((n) => n + 1);
     };
 
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
@@ -426,11 +433,12 @@ export default function Chat() {
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
         onOpenUsers={() => setShowUsers(true)}
-        onOpenFeedbacks={() => setShowFeedbacks(true)}
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
         isOnline
+        pendingFeedbackCount={pendingFeedbackCount}
+        onOpenPendingFeedback={() => { setAccountInitialTab("feedbacks"); setShowAccount(true); }}
       />
       <div className="flex-1 flex overflow-hidden">
       <Sidebar
@@ -453,8 +461,6 @@ export default function Chat() {
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
-      ) : showFeedbacks ? (
-        <FeedbacksPage onBack={() => setShowFeedbacks(false)} />
       ) : showAnnouncements ? (
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : showMonitoring ? (
@@ -495,9 +501,11 @@ export default function Chat() {
       )}
       {showAccount && (
         <AccountModal
-          onClose={() => setShowAccount(false)}
+          onClose={() => { setShowAccount(false); setAccountInitialTab("conta"); }}
           onOpenUsers={() => setShowUsers(true)}
           onOpenMonitoring={() => setShowMonitoring(true)}
+          initialTab={accountInitialTab}
+          onFeedbackAcked={() => setPendingFeedbackCount((n) => Math.max(0, n - 1))}
         />
       )}
 
