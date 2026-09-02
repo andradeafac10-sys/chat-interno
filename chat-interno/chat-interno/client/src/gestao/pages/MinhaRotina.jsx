@@ -270,7 +270,13 @@ function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
           <input ref={fileInputRef} type="file" onChange={escolherArquivo} style={{ display: 'none' }} />
 
           <button
-            onClick={() => onMarcarFeito(!item.done)}
+            onClick={() => {
+              const marcandoComoFeito = !item.done;
+              onMarcarFeito(marcandoComoFeito);
+              // Só fecha quando está MARCANDO como concluído — desmarcar continua
+              // na tela, pra pessoa poder corrigir/rever sem precisar abrir de novo.
+              if (marcandoComoFeito) onClose();
+            }}
             style={{ ...styles.botaoFinalizar, background: item.done ? '#6b7280' : '#16a34a' }}
           >
             {item.done ? 'Desmarcar' : '✓ Marcar como finalizado'}
