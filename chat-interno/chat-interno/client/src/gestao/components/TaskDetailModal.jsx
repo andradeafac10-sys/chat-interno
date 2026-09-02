@@ -94,6 +94,7 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
 
   async function finalizarTarefa() {
     await changeStatus('done');
+    onClose();
   }
 
   async function handleDelete() {
