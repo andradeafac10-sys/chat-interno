@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare, UserCog, MessageSquareText } from "lucide-react";
+import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare, UserCog, AlertTriangle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { api, fileUrl } from "../api";
@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Barra global fixa no topo — logo, busca (pessoas/conversas/mensagens),
  * comunicados e o menu da conta (configurações, tema, monitoria, gestão, sair).
  */
-export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, onOpenFeedbacks, isOnline, conversations, onOpenConversation, onSelectConversationId }) {
+export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId, pendingFeedbackCount, onOpenPendingFeedback }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const navigate = useNavigate();
@@ -199,6 +199,18 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
         )}
       </div>
 
+      {pendingFeedbackCount > 0 && (
+        <button
+          onClick={onOpenPendingFeedback}
+          className="flex items-center gap-1.5 text-white text-[11.5px] font-semibold rounded-full px-3.5 py-2 shrink-0"
+          style={{ background: "#EF4444", boxShadow: "0 0 0 3px rgba(239,68,68,0.25)" }}
+        >
+          <AlertTriangle size={13} />
+          <span className="hidden lg:inline">Você tem feedback pendente de assinatura</span>
+          <span className="lg:hidden">Feedback pendente</span>
+        </button>
+      )}
+
       <div className="flex-1" />
 
       <button
@@ -285,13 +297,6 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
                   style={{ color: colors.textPrimary }}
                 >
                   <UserCog size={15} /> Usuários
-                </button>
-                <button
-                  onClick={() => { setMenuAberto(false); onOpenFeedbacks?.(); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] hover:brightness-95 text-left"
-                  style={{ color: colors.textPrimary }}
-                >
-                  <MessageSquareText size={15} /> Feedbacks
                 </button>
               </>
             )}
