@@ -53,7 +53,7 @@ export default function AdminPanel({ onBack }) {
           <button
             onClick={() => navigate("/gestao")}
             className="mt-auto flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium border"
-            style={{ borderColor: "#2E6FD9", color: "#2E6FD9" }}
+            style={{ borderColor: "#2563EB", color: "#2563EB" }}
           >
             <LayoutDashboard size={14} className="shrink-0" />
             Abrir gestão completa
@@ -171,21 +171,21 @@ function MinhaContaTab() {
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Senha atual</label>
         <input
           type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required
         />
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Nova senha</label>
         <input
           type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required minLength={6}
         />
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Confirmar nova senha</label>
         <input
           type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required minLength={6}
         />
@@ -194,7 +194,7 @@ function MinhaContaTab() {
         <button
           type="submit" disabled={saving}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: "#2E6FD9" }}
+          style={{ background: "#2563EB" }}
         >
           {saving ? "Salvando..." : "Trocar senha"}
         </button>
