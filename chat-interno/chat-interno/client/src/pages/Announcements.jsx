@@ -17,7 +17,7 @@ function formatarTexto(texto) {
   while ((m = regex.exec(texto)) !== null) {
     if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
     if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
+      partes.push(<span key={key++} className="font-semibold text-[#2563EB]">{m[1]}</span>);
     } else if (m[2] !== undefined) {
       partes.push(<strong key={key++}>{m[2]}</strong>);
     } else if (m[3] !== undefined) {
@@ -37,7 +37,7 @@ function formatarTexto(texto) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2E6FD9] break-all"
+          className="underline text-[#2563EB] break-all"
         >
           {url}
         </a>
@@ -109,13 +109,13 @@ export default function Announcements({ onBack }) {
           <ArrowLeft size={20} />
         </button>
         <div className="text-slate-800 text-sm font-semibold flex items-center gap-2">
-          <Megaphone size={16} className="text-[#2E6FD9]" /> Comunicados gerais
+          <Megaphone size={16} className="text-[#2563EB]" /> Comunicados gerais
         </div>
         {isAdm && (
           <button
             onClick={() => setShowNew(true)}
             className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
-            style={{ background: "#2E6FD9" }}
+            style={{ background: "#2563EB" }}
           >
             <Plus size={15} /> Novo comunicado
           </button>
@@ -144,7 +144,7 @@ export default function Announcements({ onBack }) {
                     </div>
                     <div className="flex items-center gap-3 mt-1.5">
                       {isAdm && (
-                        <div className="text-[12px] font-medium text-[#2E6FD9] flex items-center gap-1">
+                        <div className="text-[12px] font-medium text-[#2563EB] flex items-center gap-1">
                           <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
                         </div>
                       )}
@@ -178,7 +178,7 @@ export default function Announcements({ onBack }) {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="text-[11px] font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                            <Check size={12} className="text-[#2E6FD9]" /> Confirmaram ({acks[a.id].acked.length})
+                            <Check size={12} className="text-[#2563EB]" /> Confirmaram ({acks[a.id].acked.length})
                           </div>
                           <div className="flex flex-col gap-1">
                             {acks[a.id].acked.map((u) => (
