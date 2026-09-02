@@ -1,10 +1,11 @@
-import React, { useRef, useState } from "react";
-import { X, ShieldCheck, Camera, Trash2, AlertTriangle } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { X, ShieldCheck, Camera, Trash2, AlertTriangle, MessageSquareText } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 export default function AccountModal({ onClose }) {
   const { user, updateUser } = useAuth();
+  const [aba, setAba] = useState("conta"); // "conta" | "feedbacks"
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -76,12 +77,35 @@ export default function AccountModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl w-[360px] p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl w-[380px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-slate-800 font-semibold text-base">Minha conta</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setAba("conta")}
+            className={`text-[12.5px] font-medium px-3 py-1.5 rounded-full border ${
+              aba === "conta" ? "bg-[#EFF4FF] border-[#2563EB] text-[#2563EB]" : "border-slate-200 text-slate-500"
+            }`}
+          >
+            Conta
+          </button>
+          <button
+            onClick={() => setAba("feedbacks")}
+            className={`text-[12.5px] font-medium px-3 py-1.5 rounded-full border ${
+              aba === "feedbacks" ? "bg-[#EFF4FF] border-[#2563EB] text-[#2563EB]" : "border-slate-200 text-slate-500"
+            }`}
+          >
+            Feedbacks
+          </button>
+        </div>
+
+        {aba === "feedbacks" ? (
+          <MeusFeedbacks />
+        ) : (
+        <>
         <div className="flex flex-col items-center mb-5">
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -176,7 +200,46 @@ export default function AccountModal({ onClose }) {
             {cleanMsg && <div className="text-[12px] text-slate-600 mt-2">{cleanMsg}</div>}
           </div>
         )}
+        </>
+        )}
       </div>
+    </div>
+  );
+}
+
+// Lista, só leitura, dos feedbacks que a própria pessoa recebeu dos ADMs.
+function MeusFeedbacks() {
+  const [feedbacks, setFeedbacks] = useState(null); // null = carregando
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    api.get("/feedbacks/mine")
+      .then(({ data }) => setFeedbacks(data.feedbacks))
+      .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus feedbacks."));
+  }, []);
+
+  if (erro) return <p className="text-[13px] text-red-500">{erro}</p>;
+  if (feedbacks === null) return <p className="text-[13px] text-slate-400">Carregando...</p>;
+  if (feedbacks.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <MessageSquareText size={28} className="mx-auto text-slate-300 mb-2" />
+        <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum feedback.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto">
+      {feedbacks.map((f) => (
+        <div key={f.id} className="border border-slate-200 rounded-lg p-3">
+          <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
+          <div className="text-[13px] text-slate-600 whitespace-pre-wrap mt-1">{f.content}</div>
+          <div className="text-[11px] text-slate-400 mt-2">
+            {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
