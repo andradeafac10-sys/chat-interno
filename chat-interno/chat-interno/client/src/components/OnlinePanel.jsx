@@ -49,7 +49,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
         style={{ opacity: apagado ? 0.5 : 1 }}
       >
         <div className="relative w-7 h-7 shrink-0">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden" style={{ background: u.color || "#2E6FD9" }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden" style={{ background: u.color || "#2563EB" }}>
             {u.avatar_url ? <img src={fileUrl(u.avatar_url)} alt={u.name} className="w-full h-full object-cover" /> : initials}
           </div>
           {!apagado && (
@@ -58,7 +58,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
         </div>
         <span className="text-sm truncate flex items-center gap-1" style={{ color: colors.textPrimary }}>
           {u.name}
-          {u.role === "admin" && <ShieldCheck size={11} className="text-[#2E6FD9] shrink-0" />}
+          {u.role === "admin" && <ShieldCheck size={11} className="text-[#2563EB] shrink-0" />}
         </span>
       </button>
     );
