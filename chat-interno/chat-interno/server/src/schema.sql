@@ -285,3 +285,17 @@ ALTER TABLE task_comments ADD COLUMN IF NOT EXISTS attachment_url TEXT;
 ALTER TABLE task_comments ADD COLUMN IF NOT EXISTS attachment_name TEXT;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_url TEXT;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_nome TEXT;
+
+-- Feedbacks: um ADM escreve um resumo/observação sobre uma conversa ou
+-- atendimento com alguém, e a pessoa (quem recebeu) consegue ver isso depois
+-- em Configurações > Feedbacks. Só quem criou (ou outro ADM) pode ver todos;
+-- quem recebeu só vê os que são dele.
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,   -- quem recebeu o feedback
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ADM que escreveu
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_feedbacks_user ON feedbacks(user_id);
