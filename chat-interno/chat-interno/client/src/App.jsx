@@ -11,6 +11,7 @@ import MinhaRotina from "./gestao/pages/MinhaRotina";
 import Tarefas from "./gestao/pages/Tarefas";
 import Rotinas from "./gestao/pages/Rotinas";
 import Ranking from "./gestao/pages/Ranking";
+import GestaoFeedbacks from "./gestao/pages/Feedbacks";
 
 // Mesmo comportamento de sempre: se está logado mostra o Chat, senão a tela de login.
 // Isso NÃO mudou — só passou a viver dentro da rota "/*" em vez de ser tudo o que existia.
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="tarefas" element={<Tarefas />} />
               <Route path="rotinas" element={<Rotinas />} />
               <Route path="ranking" element={<Ranking />} />
+              <Route path="feedbacks" element={<GestaoFeedbacks />} />
             </Route>
 
             {/* Qualquer outro caminho continua sendo o Chat de sempre, sem nenhuma mudança */}
