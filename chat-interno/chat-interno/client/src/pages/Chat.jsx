@@ -9,6 +9,7 @@ import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
+import FeedbacksPage from "./Feedbacks";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
@@ -39,6 +40,7 @@ export default function Chat() {
   const [showAccount, setShowAccount] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
+  const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
@@ -322,6 +324,12 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
+    // Um ADM registrou um feedback novo pra mim — avisa na hora, igual tarefa nova.
+    const onFeedbackNovo = ({ titulo, corpo }) => {
+      playNotificationSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
     // MINHA que foi mandada até esse momento — igual o tique azul do WhatsApp.
     const onConversationRead = ({ conversationId, readAt }) => {
@@ -340,6 +348,7 @@ export default function Chat() {
     socket.on("message:new", onNewMessage);
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
+    socket.on("feedback:novo", onFeedbackNovo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
@@ -359,6 +368,7 @@ export default function Chat() {
       socket.off("message:new", onNewMessage);
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
+      socket.off("feedback:novo", onFeedbackNovo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
@@ -416,6 +426,7 @@ export default function Chat() {
         onOpenAnnouncement={() => setShowAnnouncements(true)}
         onOpenMonitoring={() => setShowMonitoring(true)}
         onOpenUsers={() => setShowUsers(true)}
+        onOpenFeedbacks={() => setShowFeedbacks(true)}
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
@@ -442,6 +453,8 @@ export default function Chat() {
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
+      ) : showFeedbacks ? (
+        <FeedbacksPage onBack={() => setShowFeedbacks(false)} />
       ) : showAnnouncements ? (
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : showMonitoring ? (
