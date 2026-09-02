@@ -64,7 +64,7 @@ export default function Monitoring({ onBack }) {
           <ArrowLeft size={20} />
         </button>
         <div className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.textPrimary }}>
-          <Eye size={16} className="text-[#2E6FD9]" /> Monitoria
+          <Eye size={16} className="text-[#2563EB]" /> Monitoria
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function Monitoring({ onBack }) {
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium truncate flex items-center gap-1" style={{ color: colors.textPrimary }}>
                   {u.name}
-                  {u.role === "admin" && <ShieldCheck size={11} className="text-[#2E6FD9]" />}
+                  {u.role === "admin" && <ShieldCheck size={11} className="text-[#2563EB]" />}
                 </div>
                 <div className="text-[11px]" style={{ color: colors.textSecondary }}>
                   {u.role === "admin" ? "Administrador" : "Operador"}
@@ -179,7 +179,7 @@ export default function Monitoring({ onBack }) {
                         <img src={fileUrl(m.file_url)} alt={m.file_name} className="rounded-lg max-w-[240px] max-h-[200px] object-cover mt-1" />
                       </a>
                     ) : (
-                      <a href={fileUrl(m.file_url)} download={m.file_name} className="text-[13px] text-[#2E6FD9] underline">
+                      <a href={fileUrl(m.file_url)} download={m.file_name} className="text-[13px] text-[#2563EB] underline">
                         {m.type === "audio" ? "🎤 Áudio" : `📎 ${m.file_name}`}
                       </a>
                     )}
