@@ -16,7 +16,7 @@ function formatarTexto(texto) {
   while ((m = regex.exec(texto)) !== null) {
     if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
     if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2E6FD9]">{m[1]}</span>);
+      partes.push(<span key={key++} className="font-semibold text-[#2563EB]">{m[1]}</span>);
     } else if (m[2] !== undefined) {
       partes.push(<strong key={key++}>{m[2]}</strong>);
     } else if (m[3] !== undefined) {
@@ -36,7 +36,7 @@ function formatarTexto(texto) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2E6FD9] break-all"
+          className="underline text-[#2563EB] break-all"
         >
           {url}
         </a>
@@ -154,7 +154,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
             onClick={handleAck}
             disabled={acking || acked}
             className="w-full rounded-lg py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
-            style={{ background: acked ? "#1B7A4A" : "#2E6FD9" }}
+            style={{ background: acked ? "#1B7A4A" : "#2563EB" }}
           >
             <Check size={16} /> {acked ? "Confirmado!" : acking ? "Enviando..." : "ESTOU CIENTE"}
           </button>
