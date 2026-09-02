@@ -35,7 +35,7 @@ export default function Login() {
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full bg-[#111B21] border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 mb-4 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          className="w-full bg-[#111B21] border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           autoFocus
         />
 
@@ -44,7 +44,7 @@ export default function Login() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-[#111B21] border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 mb-5 focus:outline-none focus:ring-2 focus:ring-[#2E6FD9]"
+          className="w-full bg-[#111B21] border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 mb-5 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
         />
 
         {error && <div className="text-red-400 text-xs mb-4">{error}</div>}
@@ -53,7 +53,7 @@ export default function Login() {
           type="submit"
           disabled={loading}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: "#2E6FD9" }}
+          style={{ background: "#2563EB" }}
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
