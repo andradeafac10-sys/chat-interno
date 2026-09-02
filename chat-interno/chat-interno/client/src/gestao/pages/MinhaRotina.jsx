@@ -23,6 +23,7 @@ export default function MinhaRotina() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [detalheItem, setDetalheItem] = useState(null); // item aberto na tela de detalhe
+  const [aba, setAba] = useState('ativas'); // 'ativas' | 'concluidas' — esconde o que já foi feito por padrão
 
   async function load() {
     setLoading(true);
@@ -78,9 +79,31 @@ export default function MinhaRotina() {
           <>
             {stats.total > 0 && <PainelEstatisticas stats={stats} />}
 
+            {stats.total > 0 && (
+              <div style={styles.abasRow}>
+                <button
+                  onClick={() => setAba('ativas')}
+                  style={{ ...styles.aba, ...(aba === 'ativas' ? styles.abaAtiva : styles.abaInativa) }}
+                >
+                  Ativas ({stats.total - stats.feitas})
+                </button>
+                <button
+                  onClick={() => setAba('concluidas')}
+                  style={{ ...styles.aba, ...(aba === 'concluidas' ? styles.abaAtiva : styles.abaInativa) }}
+                >
+                  Concluídas ({stats.feitas})
+                </button>
+              </div>
+            )}
+
             <div style={styles.lista}>
               {hoje.length === 0 && <p style={styles.hint}>Nenhuma rotina pra hoje. 🎉</p>}
-              {hoje.map((item) => {
+              {hoje.length > 0 && hoje.filter((i) => (aba === 'ativas' ? !i.done : i.done)).length === 0 && (
+                <p style={styles.hint}>
+                  {aba === 'ativas' ? 'Nenhuma pendente — tudo feito! 🎉' : 'Nada concluído ainda hoje.'}
+                </p>
+              )}
+              {hoje.filter((item) => (aba === 'ativas' ? !item.done : item.done)).map((item) => {
                 const atrasada = !item.done && agoraMenorQue(item.start_time);
                 return (
                   <button
@@ -292,6 +315,10 @@ const styles = {
   hint: { color: '#6b7280', fontSize: 14, marginTop: 20 },
   hintPequeno: { color: '#9ca3af', fontSize: 11, marginTop: 2 },
   error: { color: '#ef4444', fontSize: 14, marginTop: 20 },
+  abasRow: { display: 'flex', gap: 8, marginTop: 20, marginBottom: 4 },
+  aba: { border: 'none', borderRadius: 16, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
+  abaAtiva: { background: NAVY, color: '#fff' },
+  abaInativa: { background: '#fff', color: '#667085', border: '1px solid #E4E8EE' },
   painelEstat: {
     marginTop: 20, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 12, padding: 18,
     display: 'flex', alignItems: 'center', gap: 20,
