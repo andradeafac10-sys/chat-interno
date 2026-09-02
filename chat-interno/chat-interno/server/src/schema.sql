@@ -286,16 +286,29 @@ ALTER TABLE task_comments ADD COLUMN IF NOT EXISTS attachment_name TEXT;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_url TEXT;
 ALTER TABLE routine_completions ADD COLUMN IF NOT EXISTS anexo_nome TEXT;
 
--- Feedbacks: um ADM escreve um resumo/observação sobre uma conversa ou
--- atendimento com alguém, e a pessoa (quem recebeu) consegue ver isso depois
--- em Configurações > Feedbacks. Só quem criou (ou outro ADM) pode ver todos;
--- quem recebeu só vê os que são dele.
+-- Feedbacks: um ADM escreve um resumo/observação (com anexo opcional) e pode
+-- direcionar pra VÁRIAS pessoas de uma vez — cada pessoa precisa confirmar
+-- "OK, CIENTE" pra provar que leu (igual assinatura de recebido).
 CREATE TABLE IF NOT EXISTS feedbacks (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,   -- quem recebeu o feedback
-  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ADM que escreveu
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- quem escreveu (ADM)
   title TEXT NOT NULL,
   content TEXT NOT NULL,
+  attachment_url TEXT,
+  attachment_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_feedbacks_user ON feedbacks(user_id);
+-- Se veio de uma versão anterior (um feedback = uma pessoa só, coluna user_id
+-- direto na tabela), essas linhas adaptam pro novo formato sem quebrar nada.
+ALTER TABLE feedbacks DROP COLUMN IF EXISTS user_id;
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+ALTER TABLE feedbacks ADD COLUMN IF NOT EXISTS attachment_name TEXT;
+
+-- Uma linha por pessoa que recebeu aquele feedback, com o "ciente" dela.
+CREATE TABLE IF NOT EXISTS feedback_recipients (
+  feedback_id INTEGER NOT NULL REFERENCES feedbacks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  acknowledged_at TIMESTAMPTZ, -- NULL = ainda não confirmou "OK, CIENTE"
+  PRIMARY KEY (feedback_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_recipients_user ON feedback_recipients(user_id);
