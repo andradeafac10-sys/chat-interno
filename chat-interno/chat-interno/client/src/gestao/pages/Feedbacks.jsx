@@ -10,6 +10,7 @@ export default function Feedbacks() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos' | 'assinados' | 'pendentes'
   const [showForm, setShowForm] = useState(false);
 
   const load = () => {
@@ -22,10 +23,28 @@ export default function Feedbacks() {
 
   useEffect(() => { load(); }, []);
 
+  // "Assinado" = todo mundo que recebeu já confirmou; "Pendente" = falta pelo
+  // menos uma pessoa confirmar ainda.
+  const estaAssinado = (f) => f.recipients.length > 0 && f.recipients.every((r) => r.acknowledgedAt);
+
+  const contagem = {
+    todos: feedbacks.length,
+    assinados: feedbacks.filter(estaAssinado).length,
+    pendentes: feedbacks.filter((f) => !estaAssinado(f)).length,
+  };
+
   const filtrados = feedbacks.filter((f) => {
+    if (filtroStatus === 'assinados' && !estaAssinado(f)) return false;
+    if (filtroStatus === 'pendentes' && estaAssinado(f)) return false;
+
     const alvo = busca.trim().toLowerCase();
     if (!alvo) return true;
-    return f.title.toLowerCase().includes(alvo) || f.recipients.some((r) => r.name.toLowerCase().includes(alvo));
+    return (
+      f.title.toLowerCase().includes(alvo) ||
+      f.content.toLowerCase().includes(alvo) ||
+      f.created_by_name.toLowerCase().includes(alvo) ||
+      f.recipients.some((r) => r.name.toLowerCase().includes(alvo))
+    );
   });
 
   return (
@@ -38,7 +57,7 @@ export default function Feedbacks() {
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por pessoa ou título..."
+            placeholder="Buscar por pessoa ou texto do feedback..."
             className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
@@ -51,23 +70,51 @@ export default function Feedbacks() {
         </button>
       </div>
 
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
+        {[
+          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: '#fff' },
+          { key: 'assinados', label: `Assinados (${contagem.assinados})`, corBg: '#F0FDF4', corTexto: '#16A34A' },
+          { key: 'pendentes', label: `Pendentes (${contagem.pendentes})`, corBg: '#FEF2F2', corTexto: '#DC2626' },
+        ].map((op) => (
+          <button
+            key={op.key}
+            onClick={() => setFiltroStatus(op.key)}
+            className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+            style={{
+              background: filtroStatus === op.key ? op.corBg : '#F1F5F9',
+              color: filtroStatus === op.key ? op.corTexto : '#64748B',
+            }}
+          >
+            {op.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex-1 overflow-y-auto p-6" style={{ background: '#F7F9FB' }}>
         {loading ? (
           <p className="text-sm text-slate-400">Carregando...</p>
         ) : filtrados.length === 0 ? (
           <div className="text-center py-16">
             <MessageSquareText size={32} className="mx-auto text-slate-300 mb-2" />
-            <p className="text-sm text-slate-400">Nenhum feedback registrado ainda.</p>
+            <p className="text-sm text-slate-400">Nenhum feedback encontrado.</p>
           </div>
         ) : (
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
             {filtrados.map((f) => (
               <div key={f.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#E4E8EE' }}>
-                <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-start justify-between gap-3 mb-1">
                   <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
-                  <div className="text-[11px] text-slate-400 shrink-0">
-                    {f.created_by_name} · {new Date(f.created_at).toLocaleDateString('pt-BR')}
-                  </div>
+                  <span
+                    className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0"
+                    style={estaAssinado(f) ? { background: '#F0FDF4', color: '#16A34A' } : { background: '#FEF2F2', color: '#DC2626' }}
+                  >
+                    {estaAssinado(f) ? 'Assinado' : 'Pendente'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2">
+                  <span><b className="text-slate-500 font-semibold">Aplicador:</b> {f.created_by_name}</span>
+                  <span className="text-slate-300">·</span>
+                  <span>{new Date(f.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
                 <div className="text-[13px] text-slate-600 whitespace-pre-wrap">{f.content}</div>
                 {f.attachment_url && (
@@ -82,7 +129,11 @@ export default function Feedbacks() {
                   </a>
                 )}
 
-                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t" style={{ borderColor: '#F1F5F9' }}>
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F1F5F9' }}>
+                  <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Operador{f.recipients.length > 1 ? "es" : ""}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                   {f.recipients.map((r) => (
                     <span
                       key={r.userId}
@@ -106,6 +157,7 @@ export default function Feedbacks() {
                       {r.name} {r.acknowledgedAt ? <Check size={11} /> : '· Aguardando ciente'}
                     </span>
                   ))}
+                  </div>
                 </div>
               </div>
             ))}
