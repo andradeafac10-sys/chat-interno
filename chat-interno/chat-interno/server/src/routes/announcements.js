@@ -44,19 +44,35 @@ router.get("/", requireAuth, async (req, res) => {
     const totalActive = totalActiveRows[0].total;
 
     const sql = isAdm
-      ? `SELECT a.*, u.name AS created_by_name, COUNT(ak.user_id)::int AS ack_count
+      ? `SELECT a.*, u.name AS created_by_name, COUNT(DISTINCT ak.user_id)::int AS ack_count,
+                CASE
+                  WHEN a.audience = 'all' THEN $1::int
+                  WHEN a.audience = 'users' THEN (
+                    SELECT COUNT(DISTINCT t.user_id)::int FROM announcement_targets t
+                    JOIN users u2 ON u2.id = t.user_id AND u2.active = true
+                    WHERE t.announcement_id = a.id AND t.user_id IS NOT NULL
+                  )
+                  ELSE (
+                    SELECT COUNT(DISTINCT gm.user_id)::int FROM announcement_targets t
+                    JOIN group_members gm ON gm.group_id = t.group_id
+                    JOIN users u2 ON u2.id = gm.user_id AND u2.active = true
+                    WHERE t.announcement_id = a.id AND t.group_id IS NOT NULL
+                  )
+                END AS target_count
          FROM announcements a
          JOIN users u ON u.id = a.created_by
          LEFT JOIN announcement_acks ak ON ak.announcement_id = a.id
          GROUP BY a.id, u.name
          ORDER BY a.created_at DESC`
-      : `SELECT a.*, u.name AS created_by_name, 0 AS ack_count
+      : `SELECT a.*, u.name AS created_by_name, 0 AS ack_count, 0 AS target_count
          FROM announcements a
          JOIN users u ON u.id = a.created_by
          WHERE ${VISIBLE_TO_USER}
          ORDER BY a.created_at DESC`;
 
-    const { rows } = isAdm ? await pool.query(sql) : await pool.query(sql, [req.user.id]);
+    const { rows } = isAdm
+      ? await pool.query(sql, [totalActive])
+      : await pool.query(sql, [req.user.id]);
 
     res.json({ announcements: rows, totalActive });
   } catch (err) {
