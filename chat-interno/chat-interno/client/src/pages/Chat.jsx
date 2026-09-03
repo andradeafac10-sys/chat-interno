@@ -40,6 +40,7 @@ export default function Chat() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
+  const [pendingRoutinesCount, setPendingRoutinesCount] = useState(0);
   const [accountInitialTab, setAccountInitialTab] = useState("conta");
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
@@ -72,6 +73,23 @@ export default function Chat() {
   useEffect(() => {
     api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedbackCount(data.count)).catch(() => {});
   }, []);
+
+  // Rotinas atrasadas — só ADM tem "Minha Rotina". Confere de novo a cada 60s
+  // (o atraso muda sozinho com o relógio, não só quando alguém faz algo) e
+  // também na hora, assim que a pessoa marca uma rotina como feita.
+  useEffect(() => {
+    if (user.role !== "admin") return;
+    const carregar = () => {
+      api.get("/gestao/recurrences/minhas/atrasadas-count").then(({ data }) => setPendingRoutinesCount(data.count)).catch(() => {});
+    };
+    carregar();
+    const intervalo = setInterval(carregar, 60000);
+    window.addEventListener("rotina:atualizada", carregar);
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener("rotina:atualizada", carregar);
+    };
+  }, [user.role]);
 
   // Quando a pessoa clica na notificação do Windows, o service worker avisa
   // a página aqui pra abrir a conversa certa
@@ -439,6 +457,7 @@ export default function Chat() {
         isOnline
         pendingFeedbackCount={pendingFeedbackCount}
         onOpenPendingFeedback={() => { setAccountInitialTab("feedbacks"); setShowAccount(true); }}
+        pendingRoutinesCount={pendingRoutinesCount}
       />
       <div className="flex-1 flex overflow-hidden">
       <Sidebar
