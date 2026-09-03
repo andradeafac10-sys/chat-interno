@@ -90,5 +90,6 @@ export const gestaoApi = {
   },
   ranking: (periodo) => request(`/recurrences/ranking/dados?periodo=${periodo}`),
   rankingComParams: (queryString) => request(`/recurrences/ranking/dados?${queryString}`),
+  pessoaResumo: (queryString) => request(`/recurrences/pessoa-resumo?${queryString}`),
   visaoGeralHoje: (assigneeId) => request(`/recurrences/visao-geral-hoje${assigneeId ? `?assignee_id=${assigneeId}` : ''}`),
 };
