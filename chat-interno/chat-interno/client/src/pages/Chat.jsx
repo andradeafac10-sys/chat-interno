@@ -7,6 +7,7 @@ import Topbar from "../components/Topbar";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
+import FeedbacksModal from "../components/FeedbacksModal";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
@@ -37,11 +38,11 @@ export default function Chat() {
   const [messagesByConv, setMessagesByConv] = useState({});
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
   const [pendingRoutinesCount, setPendingRoutinesCount] = useState(0);
-  const [accountInitialTab, setAccountInitialTab] = useState("conta");
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
@@ -456,7 +457,7 @@ export default function Chat() {
         onSelectConversationId={setActiveConvIdAndStopBlink}
         isOnline
         pendingFeedbackCount={pendingFeedbackCount}
-        onOpenPendingFeedback={() => { setAccountInitialTab("feedbacks"); setShowAccount(true); }}
+        onOpenPendingFeedback={() => setShowFeedbacks(true)}
         pendingRoutinesCount={pendingRoutinesCount}
       />
       <div className="flex-1 flex overflow-hidden">
@@ -520,10 +521,14 @@ export default function Chat() {
       )}
       {showAccount && (
         <AccountModal
-          onClose={() => { setShowAccount(false); setAccountInitialTab("conta"); }}
+          onClose={() => setShowAccount(false)}
           onOpenUsers={() => setShowUsers(true)}
           onOpenMonitoring={() => setShowMonitoring(true)}
-          initialTab={accountInitialTab}
+        />
+      )}
+      {showFeedbacks && (
+        <FeedbacksModal
+          onClose={() => setShowFeedbacks(false)}
           onFeedbackAcked={() => setPendingFeedbackCount((n) => Math.max(0, n - 1))}
         />
       )}
