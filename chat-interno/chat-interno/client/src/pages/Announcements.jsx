@@ -145,7 +145,7 @@ export default function Announcements({ onBack }) {
                     <div className="flex items-center gap-3 mt-1.5">
                       {isAdm && (
                         <div className="text-[12px] font-medium text-[#2563EB] flex items-center gap-1">
-                          <Check size={13} /> {a.ack_count} de {totalActive} confirmaram
+                          <Check size={13} /> {a.ack_count} de {a.target_count} confirmaram
                         </div>
                       )}
                       <span className="text-[11px] text-slate-400 flex items-center gap-1">
