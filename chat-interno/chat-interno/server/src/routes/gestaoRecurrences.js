@@ -485,6 +485,59 @@ router.get('/ranking/dados', async (req, res) => {
 });
 
 /**
+ * GET /api/gestao/recurrences/pessoa-resumo?assignee_id=X&periodo=day|week|month
+ * (ou &de=&ate= pra período personalizado)
+ * Resumo das atividades de UM ADM específico no período — feitas e
+ * pendentes, uma por uma. Usado quando clica em alguém no "Desempenho da
+ * equipe" da Visão Geral. Qualquer ADM pode ver o resumo de qualquer outro.
+ */
+router.get('/pessoa-resumo', async (req, res) => {
+  try {
+    if (!req.query.assignee_id) return res.status(400).json({ error: 'Falta informar a pessoa.' });
+
+    const hoje = new Date();
+    let dataInicio;
+    let dataFim = chaveDia(hoje);
+    if (req.query.de && req.query.ate) {
+      dataInicio = req.query.de;
+      dataFim = req.query.ate;
+    } else {
+      const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
+      if (periodo === 'day') dataInicio = chaveDia(hoje);
+      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
+      else dataInicio = chaveDia(somarDias(hoje, -29));
+    }
+
+    const { rows: pessoaRows } = await pool.query('SELECT id, name, avatar_url, color FROM users WHERE id = $1', [req.query.assignee_id]);
+    if (!pessoaRows[0]) return res.status(404).json({ error: 'Pessoa não encontrada.' });
+
+    const { rows } = await pool.query(
+      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, r.title, r.start_time, r.priority
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE rc.user_id = $1 AND rc.occurrence_date >= $2 AND rc.occurrence_date <= $3
+       ORDER BY rc.occurrence_date DESC, r.start_time NULLS LAST, r.title`,
+      [req.query.assignee_id, dataInicio, dataFim]
+    );
+
+    const feitas = rows.filter((r) => r.done);
+    const pendentes = rows.filter((r) => !r.done);
+
+    res.json({
+      pessoa: pessoaRows[0],
+      periodo: { de: dataInicio, ate: dataFim },
+      total: rows.length,
+      percentual: rows.length > 0 ? Math.round((feitas.length / rows.length) * 100) : 0,
+      feitas,
+      pendentes,
+    });
+  } catch (err) {
+    console.error('Erro ao montar resumo da pessoa:', err);
+    res.status(500).json({ error: 'Erro ao montar o resumo dessa pessoa' });
+  }
+});
+
+/**
  * Mesma ideia do lembrete de tarefa, mas pra rotina: junta a data da ocorrência
  * com o horário cadastrado na rotina, e avisa 15min e depois 5min antes.
  */
