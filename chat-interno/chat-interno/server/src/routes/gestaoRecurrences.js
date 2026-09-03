@@ -265,6 +265,32 @@ router.post('/generate', async (req, res) => {
 // GET /api/gestao/recurrences/minhas — "Minha Rotina": só as MINHAS ocorrências,
 // de hoje (e um resumo dos últimos dias) — nunca as de outra pessoa.
 // -------------------------------------------------------------
+// GET /api/gestao/recurrences/minhas/atrasadas-count -> só o número de rotinas
+// de HOJE que já passaram do horário e a própria pessoa ainda não marcou como
+// feita. Usado pra tarja vermelha no topo (mesmo estilo do feedback pendente).
+router.get('/minhas/atrasadas-count', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.start_time
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE rc.user_id = $1 AND rc.occurrence_date = CURRENT_DATE AND rc.done = false AND r.start_time IS NOT NULL`,
+      [req.user.id]
+    );
+    const agora = new Date();
+    const count = rows.filter((r) => {
+      const [h, m] = r.start_time.split(':').map(Number);
+      const limite = new Date();
+      limite.setHours(h, m, 0, 0);
+      return agora > limite;
+    }).length;
+    res.json({ count });
+  } catch (err) {
+    console.error('Erro ao contar rotinas atrasadas:', err);
+    res.status(500).json({ error: 'Erro ao contar rotinas atrasadas' });
+  }
+});
+
 router.get('/minhas', async (req, res) => {
   try {
     const hoje = chaveDia(new Date());
