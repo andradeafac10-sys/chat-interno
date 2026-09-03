@@ -80,7 +80,7 @@ export default function Chat() {
   useEffect(() => {
     if (user.role !== "admin") return;
     const carregar = () => {
-      api.get("/gestao/recurrences/minhas/atrasadas-count").then(({ data }) => setPendingRoutinesCount(data.count)).catch(() => {});
+      api.get("/gestao/recurrences/minhas/pendentes-count").then(({ data }) => setPendingRoutinesCount(data.count)).catch(() => {});
     };
     carregar();
     const intervalo = setInterval(carregar, 60000);
