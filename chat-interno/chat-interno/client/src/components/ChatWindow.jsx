@@ -359,6 +359,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     }, 0);
   };
 
+  // Mandar mensagem prova que a pessoa já viu tudo até agora — sem isso, quem
+  // mandou as mensagens anteriores continuava vendo "Enviado" (nunca virava
+  // "Lido") até a conversa ser reaberta de novo, mesmo depois de eu responder.
+  const marcarComoLido = () => {
+    api.post(`/conversations/${conversation.id}/read`).catch(() => {});
+  };
+
   const sendText = async () => {
     // Manda embora o texto: já para de avisar "digitando" na hora, sem esperar o tempo normal
     if (typingTimeoutRef.current) {
@@ -375,6 +382,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       resetInputHeight();
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       await uploadFile(file, kind, undefined, legenda || undefined);
+      marcarComoLido();
       return;
     }
 
@@ -405,6 +413,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     const replyToId = replyingTo?.id || null;
     setReplyingTo(null);
     await api.post(`/conversations/${conversation.id}/messages`, { text, replyToId });
+    marcarComoLido();
   };
 
   const uploadFile = async (file, kind, secondsArg, caption) => {
@@ -461,6 +470,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       }
     }
     setMultiUploadProgress(null);
+    marcarComoLido();
     e.target.value = "";
   };
 
@@ -480,6 +490,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         // enxergaria seria sempre 0, do jeito que estava antes. O ref sempre
         // tem o valor mais atual, então o áudio nunca mais salva com 0:00.
         uploadFile(file, "audio", secondsRef.current);
+        marcarComoLido();
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
