@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Barra global fixa no topo — logo, busca (pessoas/conversas/mensagens),
  * comunicados e o menu da conta (configurações, tema, monitoria, gestão, sair).
  */
-export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId, pendingFeedbackCount, onOpenPendingFeedback }) {
+export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId, pendingFeedbackCount, onOpenPendingFeedback, pendingRoutinesCount }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const navigate = useNavigate();
@@ -211,6 +211,18 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
         </button>
       )}
 
+      {pendingRoutinesCount > 0 && (
+        <button
+          onClick={() => navigate("/gestao/minha-rotina")}
+          className="flex items-center gap-1.5 text-white text-[11.5px] font-semibold rounded-full px-3.5 py-2 shrink-0"
+          style={{ background: "#EF4444", boxShadow: "0 0 0 3px rgba(239,68,68,0.25)" }}
+        >
+          <AlertTriangle size={13} />
+          <span className="hidden lg:inline">Você tem {pendingRoutinesCount} rotina{pendingRoutinesCount > 1 ? "s" : ""} pendente{pendingRoutinesCount > 1 ? "s" : ""}</span>
+          <span className="lg:hidden">{pendingRoutinesCount} rotina{pendingRoutinesCount > 1 ? "s" : ""} pendente{pendingRoutinesCount > 1 ? "s" : ""}</span>
+        </button>
+      )}
+
       <div className="flex-1" />
 
       <button
@@ -300,6 +312,18 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
                 </button>
               </>
             )}
+            <button
+              onClick={() => { setMenuAberto(false); onOpenPendingFeedback?.(); }}
+              className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 text-[13px] hover:brightness-95 text-left"
+              style={{ color: colors.textPrimary }}
+            >
+              <span className="flex items-center gap-2.5"><MessageSquare size={15} /> Feedbacks</span>
+              {pendingFeedbackCount > 0 && (
+                <span className="text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[16px] text-center" style={{ background: "#EF4444" }}>
+                  {pendingFeedbackCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => { setMenuAberto(false); logout(); }}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] hover:brightness-95 text-left"
