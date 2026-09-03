@@ -214,6 +214,7 @@ function MeusFeedbacks({ onFeedbackAcked }) {
   const [feedbacks, setFeedbacks] = useState(null); // null = carregando
   const [erro, setErro] = useState("");
   const [confirmando, setConfirmando] = useState(null); // id sendo confirmado agora
+  const [lidos, setLidos] = useState({}); // { [feedbackId]: bool } — caixinha "Li e estou ciente" marcada
 
   const carregar = () => {
     api.get("/feedbacks/mine")
@@ -273,14 +274,28 @@ function MeusFeedbacks({ onFeedbackAcked }) {
               {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")}
             </div>
             {pendente ? (
-              <button
-                onClick={() => confirmarCiente(f.id)}
-                disabled={confirmando === f.id}
-                className="w-full rounded-lg py-2 text-[12.5px] font-semibold text-white mt-2.5 disabled:opacity-50"
-                style={{ background: "#2563EB" }}
-              >
-                {confirmando === f.id ? "Confirmando..." : "✓ OK, CIENTE"}
-              </button>
+              <>
+                <label className="flex items-start gap-2 mt-2.5 bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!lidos[f.id]}
+                    onChange={(e) => setLidos((prev) => ({ ...prev, [f.id]: e.target.checked }))}
+                    className="mt-0.5 accent-[#2563EB]"
+                  />
+                  <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste feedback</span>
+                </label>
+                <button
+                  onClick={() => confirmarCiente(f.id)}
+                  disabled={!lidos[f.id] || confirmando === f.id}
+                  className="w-full rounded-lg py-2 text-[12.5px] font-semibold text-white mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: "#2563EB" }}
+                >
+                  {confirmando === f.id ? "Confirmando..." : "✓ OK, CIENTE"}
+                </button>
+                {!lidos[f.id] && (
+                  <p className="text-[10.5px] text-slate-400 text-center mt-1">Marque a caixinha acima pra liberar o botão</p>
+                )}
+              </>
             ) : (
               <div className="text-[11px] text-emerald-600 font-medium mt-2">
                 ✓ Confirmado em {new Date(f.acknowledged_at).toLocaleDateString("pt-BR")}
