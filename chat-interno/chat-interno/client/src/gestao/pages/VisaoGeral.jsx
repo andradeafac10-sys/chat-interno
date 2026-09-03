@@ -33,6 +33,7 @@ export default function VisaoGeral() {
   const [dataDe, setDataDe] = useState(hojeISO());
   const [dataAte, setDataAte] = useState(hojeISO());
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const [pessoaSelecionada, setPessoaSelecionada] = useState(null); // { id, name, avatar_url, color }
   const [admFiltro, setAdmFiltro] = useState('');
   const [adms, setAdms] = useState([]);
 
@@ -210,7 +211,13 @@ export default function VisaoGeral() {
               <div style={{ borderTop: '1px solid #EEF1F4', padding: '4px 18px' }}>
                 {ranking.length === 0 && <div style={styles.listaVazia}>Ninguém com rotina nesse período.</div>}
                 {ranking.slice(0, 6).map((r, i) => (
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0' }}>
+                  <button
+                    key={r.id}
+                    onClick={() => setPessoaSelecionada(r)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
                     <span style={{
                       width: 20, height: 20, borderRadius: '50%', fontSize: 10, fontWeight: 700, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -224,7 +231,7 @@ export default function VisaoGeral() {
                       <div style={{ width: `${r.percentual}%`, height: '100%', background: '#2563EB' }} />
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', width: 34, textAlign: 'right', flexShrink: 0 }}>{r.percentual}%</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -252,9 +259,124 @@ export default function VisaoGeral() {
           </div>
         </>
       )}
+
+      {pessoaSelecionada && (
+        <ResumoPessoaModal
+          pessoa={pessoaSelecionada}
+          periodo={periodo}
+          dataDe={dataDe}
+          dataAte={dataAte}
+          onClose={() => setPessoaSelecionada(null)}
+        />
+      )}
     </div>
   );
 }
+
+const PRIORIDADE_LABEL = { high: 'Alta', medium: 'Média', low: 'Baixa' };
+const PRIORIDADE_COR = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
+
+/** Resumo das atividades (feitas e pendentes) de uma pessoa específica, no
+ * mesmo período que já está sendo mostrado na Visão Geral. Qualquer ADM pode
+ * abrir o resumo de qualquer outro clicando no "Desempenho da equipe". */
+function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('assignee_id', pessoa.id);
+    if (periodo === 'custom') { params.set('de', dataDe); params.set('ate', dataAte); }
+    else params.set('periodo', periodo);
+    gestaoApi.pessoaResumo(params.toString())
+      .then(setDados)
+      .catch((err) => setErro(err.message || 'Não deu pra carregar o resumo dessa pessoa.'));
+  }, [pessoa.id, periodo, dataDe, dataAte]);
+
+  return (
+    <div style={modalStyles.overlay} onClick={onClose}>
+      <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={modalStyles.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: pessoa.color || '#2563EB', flexShrink: 0 }}>
+              {pessoa.avatar_url && <img src={fileUrl(pessoa.avatar_url)} alt={pessoa.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#101828' }}>{pessoa.name}</div>
+              <div style={{ fontSize: 11, color: '#667085' }}>Resumo de atividades</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={modalStyles.fechar}>✕</button>
+        </div>
+
+        <div style={modalStyles.body}>
+          {erro && <p style={{ color: '#dc2626', fontSize: 13 }}>{erro}</p>}
+          {!erro && !dados && <p style={{ color: '#98A2B3', fontSize: 13 }}>Carregando...</p>}
+          {dados && (
+            <>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
+                <div style={modalStyles.kpi}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#101828' }}>{dados.total}</div>
+                  <div style={{ fontSize: 11, color: '#667085' }}>Total</div>
+                </div>
+                <div style={modalStyles.kpi}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#16a34a' }}>{dados.feitas.length}</div>
+                  <div style={{ fontSize: 11, color: '#667085' }}>Feitas</div>
+                </div>
+                <div style={modalStyles.kpi}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#dc2626' }}>{dados.pendentes.length}</div>
+                  <div style={{ fontSize: 11, color: '#667085' }}>Pendentes</div>
+                </div>
+                <div style={modalStyles.kpi}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#2563EB' }}>{dados.percentual}%</div>
+                  <div style={{ fontSize: 11, color: '#667085' }}>Cumprimento</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#101828', marginBottom: 8 }}>
+                Pendentes ({dados.pendentes.length})
+              </div>
+              {dados.pendentes.length === 0 && <p style={{ fontSize: 12.5, color: '#98A2B3', marginBottom: 16 }}>Nada pendente nesse período. 🎉</p>}
+              {dados.pendentes.map((item) => (
+                <div key={item.id} style={modalStyles.item}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORIDADE_COR[item.priority] || '#98A2B3', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
+                  <span style={{ fontSize: 11, color: '#98A2B3', flexShrink: 0 }}>
+                    {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')} {fmtHora(item.start_time)}
+                  </span>
+                </div>
+              ))}
+
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#101828', margin: '16px 0 8px' }}>
+                Feitas ({dados.feitas.length})
+              </div>
+              {dados.feitas.length === 0 && <p style={{ fontSize: 12.5, color: '#98A2B3' }}>Nada concluído nesse período ainda.</p>}
+              {dados.feitas.map((item) => (
+                <div key={item.id} style={modalStyles.item}>
+                  <CheckCircle2 size={12} color="#16A34A" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
+                  <span style={{ fontSize: 11, color: '#98A2B3', flexShrink: 0 }}>
+                    {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const modalStyles = {
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#fff', borderRadius: 12, width: 440, maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.25)' },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #E4E8EE' },
+  fechar: { background: 'none', border: 'none', color: '#98A2B3', fontSize: 15, cursor: 'pointer' },
+  body: { padding: 20 },
+  kpi: { flex: 1, background: '#F7F9FB', borderRadius: 8, padding: '10px 8px', textAlign: 'center' },
+  item: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px', borderBottom: '1px solid #F7F9FB' },
+};
 
 const styles = {
   filtro: {
