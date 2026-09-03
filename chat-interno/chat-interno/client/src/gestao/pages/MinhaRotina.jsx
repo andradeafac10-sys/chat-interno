@@ -61,6 +61,9 @@ export default function MinhaRotina() {
     setHoje((prev) => prev.map((i) => (i.id === item.id ? { ...i, done } : i)));
     try {
       await gestaoApi.marcarRotina(item.id, { done });
+      // Avisa a tarja do topo (que mora no Chat.jsx, fora dessa tela) que uma
+      // rotina mudou de status, pra ela recalcular o número na hora.
+      window.dispatchEvent(new Event('rotina:atualizada'));
     } catch (err) {
       alert(err.message || 'Não consegui marcar essa rotina.');
       setHoje((prev) => prev.map((i) => (i.id === item.id ? { ...i, done: !done } : i)));
