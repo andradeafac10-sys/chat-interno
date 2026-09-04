@@ -49,7 +49,26 @@ export default function NewGroupModal({ onClose, onCreated }) {
           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
         />
 
-        <label className="text-xs font-medium text-slate-500 mb-1.5 block">Membros</label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-medium text-slate-500 block">Membros</label>
+          <button
+            type="button"
+            onClick={() => {
+              const idsVisiveis = filteredOperators.map((op) => op.id);
+              const todosMarcados = idsVisiveis.length > 0 && idsVisiveis.every((id) => memberIds.includes(id));
+              setMemberIds((prev) =>
+                todosMarcados
+                  ? prev.filter((id) => !idsVisiveis.includes(id)) // desmarca só os que estão sendo mostrados agora
+                  : [...new Set([...prev, ...idsVisiveis])] // marca todos os que estão sendo mostrados agora
+              );
+            }}
+            className="text-[11.5px] font-medium text-[#2563EB] hover:underline"
+          >
+            {filteredOperators.length > 0 && filteredOperators.every((op) => memberIds.includes(op.id))
+              ? "Desmarcar todos"
+              : "Marcar todos"}
+          </button>
+        </div>
         <div className="relative mb-2">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
