@@ -174,7 +174,23 @@ router.post("/modulos/:id/responder", requireAuth, async (req, res) => {
 // =================================================================
 
 // POST /api/trilha/modulos -> cria um módulo novo (upload do vídeo)
-router.post("/modulos", requireAuth, requireAdmin, uploadVideo.single("video"), async (req, res) => {
+// Se o vídeo passar do limite (2GB por padrão), o multer dá um erro antes
+// mesmo de chegar na rota — sem isso, virava um erro genérico feio em vez de
+// uma mensagem que a pessoa entende.
+function uploadVideoComErroAmigavel(req, res, next) {
+  uploadVideo.single("video")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "Esse vídeo é grande demais. Tente um arquivo menor ou comprimido." });
+      }
+      console.error(err);
+      return res.status(500).json({ error: "Erro ao enviar o vídeo." });
+    }
+    next();
+  });
+}
+
+router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, async (req, res) => {
   const { title, description } = req.body || {};
   if (!title?.trim() || !req.file) {
     return res.status(400).json({ error: "Escreva um título e escolha o vídeo." });
