@@ -125,6 +125,10 @@ function NovoModuloModal({ onClose, onSaved }) {
       form.append('video', video);
       await api.post('/trilha/modulos', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        // Vídeo grande demora pra subir de verdade — sem isso, herdava o
+        // limite de 15s do resto do sistema e sempre dava erro de "demorou
+        // demais", mesmo o envio estando indo bem, só que devagar.
+        timeout: 0,
         onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / evt.total)),
       });
       onSaved();
