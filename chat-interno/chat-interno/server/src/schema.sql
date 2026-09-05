@@ -312,3 +312,47 @@ CREATE TABLE IF NOT EXISTS feedback_recipients (
   PRIMARY KEY (feedback_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_feedback_recipients_user ON feedback_recipients(user_id);
+
+-- Trilha do Conhecimento: módulos em sequência, cada um com um vídeo (que não
+-- pode ser adiantado) e uma prova própria. Só libera o próximo módulo depois
+-- de passar na prova do atual.
+CREATE TABLE IF NOT EXISTS trilha_modulos (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  video_url TEXT NOT NULL,
+  video_name TEXT,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS trilha_perguntas (
+  id SERIAL PRIMARY KEY,
+  modulo_id INTEGER NOT NULL REFERENCES trilha_modulos(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  order_index INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS trilha_opcoes (
+  id SERIAL PRIMARY KEY,
+  pergunta_id INTEGER NOT NULL REFERENCES trilha_perguntas(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  is_correct BOOLEAN NOT NULL DEFAULT false,
+  order_index INTEGER NOT NULL DEFAULT 0
+);
+
+-- Progresso de cada pessoa em cada módulo. video_assistido precisa ficar true
+-- (assistindo sem pular) antes de liberar tentar a prova; se errar a prova,
+-- volta pra false — obrigando a rever o vídeo antes de tentar de novo.
+CREATE TABLE IF NOT EXISTS trilha_progresso (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  modulo_id INTEGER NOT NULL REFERENCES trilha_modulos(id) ON DELETE CASCADE,
+  video_assistido BOOLEAN NOT NULL DEFAULT false,
+  passou BOOLEAN NOT NULL DEFAULT false,
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  ultima_tentativa_em TIMESTAMPTZ,
+  concluido_em TIMESTAMPTZ,
+  PRIMARY KEY (user_id, modulo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_trilha_progresso_user ON trilha_progresso(user_id);
