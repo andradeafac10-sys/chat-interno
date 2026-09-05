@@ -233,4 +233,119 @@ function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
   const [error, setError] = useState('');
 
   const atualizarOpcao = (i, campo, valor) => {
-    setOpcoes((prev) => prev.map((o
+    setOpcoes((prev) => prev.map((o, idx) => (idx === i ? { ...o, [campo]: valor } : o)));
+  };
+  const marcarCorreta = (i) => {
+    setOpcoes((prev) => prev.map((o, idx) => ({ ...o, isCorrect: idx === i })));
+  };
+  const adicionarOpcao = () => setOpcoes((prev) => [...prev, { text: '', isCorrect: false }]);
+  const removerOpcao = (i) => setOpcoes((prev) => prev.filter((_, idx) => idx !== i));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (opcoes.some((o) => !o.text.trim())) { setError('Preencha o texto de todas as alternativas.'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      await api.post(`/trilha/modulos/${moduloId}/perguntas`, { question, opcoes });
+      onSaved();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Não deu pra salvar a pergunta.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-[420px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Nova pergunta</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Pergunta</label>
+          <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Alternativas (marque a certa)</label>
+          <div className="flex flex-col gap-2 mb-2">
+            {opcoes.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(i)} className="accent-[#2563EB] shrink-0" />
+                <input
+                  value={o.text}
+                  onChange={(e) => atualizarOpcao(i, 'text', e.target.value)}
+                  placeholder={`Alternativa ${i + 1}`}
+                  className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                />
+                {opcoes.length > 2 && (
+                  <button type="button" onClick={() => removerOpcao(i)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={adicionarOpcao} className="text-[12px] font-medium mb-4" style={{ color: NAVY }}>+ Adicionar alternativa</button>
+
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
+
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+            {saving ? 'Salvando...' : 'Salvar pergunta'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AbaAcompanhamento() {
+  const [dados, setDados] = useState(null);
+
+  useEffect(() => {
+    api.get('/trilha/admin/progresso').then(({ data }) => setDados(data));
+  }, []);
+
+  if (!dados) return <p className="text-sm text-slate-400">Carregando...</p>;
+  if (dados.modulos.length === 0) return <p className="text-sm text-slate-400">Crie um módulo primeiro pra ter o que acompanhar.</p>;
+
+  return (
+    <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: '#E4E8EE' }}>
+      <table className="w-full text-[12.5px]">
+        <thead>
+          <tr className="border-b" style={{ borderColor: '#E4E8EE' }}>
+            <th className="text-left font-semibold text-slate-500 px-4 py-3 sticky left-0 bg-white">Pessoa</th>
+            {dados.modulos.map((m, i) => (
+              <th key={m.id} className="text-center font-semibold text-slate-500 px-3 py-3 whitespace-nowrap">Módulo {i + 1}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {dados.linhas.map((linha) => (
+            <tr key={linha.pessoa.id} className="border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
+              <td className="px-4 py-2.5 sticky left-0 bg-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: linha.pessoa.color || NAVY }}>
+                    {linha.pessoa.avatar_url ? <img src={fileUrl(linha.pessoa.avatar_url)} alt="" className="w-full h-full object-cover" /> : linha.pessoa.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+                  </div>
+                  <span className="font-medium text-slate-700 whitespace-nowrap">{linha.pessoa.name}</span>
+                </div>
+              </td>
+              {linha.modulos.map((m, i) => (
+                <td key={i} className="text-center px-3 py-2.5">
+                  {m.passou ? (
+                    <CheckCircle2 size={16} className="mx-auto text-emerald-500" />
+                  ) : m.video_assistido ? (
+                    <span className="text-[11px] text-amber-600 font-medium">Na prova</span>
+                  ) : m.tentativas > 0 ? (
+                    <XCircle size={16} className="mx-auto text-red-400" />
+                  ) : (
+                    <Circle size={14} className="mx-auto text-slate-300" />
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
