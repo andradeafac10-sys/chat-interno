@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare, UserCog, AlertTriangle } from "lucide-react";
+import { Search, ChevronDown, Megaphone, Sun, Moon, Settings, LogOut, ShieldCheck, Eye, LayoutDashboard, X, Users, MessageSquare, UserCog, AlertTriangle, GraduationCap } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { api, fileUrl } from "../api";
@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Barra global fixa no topo — logo, busca (pessoas/conversas/mensagens),
  * comunicados e o menu da conta (configurações, tema, monitoria, gestão, sair).
  */
-export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId, pendingFeedbackCount, onOpenPendingFeedback, pendingRoutinesCount }) {
+export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonitoring, onOpenUsers, isOnline, conversations, onOpenConversation, onSelectConversationId, pendingFeedbackCount, onOpenPendingFeedback, pendingRoutinesCount, onOpenTrilha }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const navigate = useNavigate();
@@ -323,6 +323,13 @@ export default function Topbar({ onOpenAccount, onOpenAnnouncement, onOpenMonito
                   {pendingFeedbackCount}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => { setMenuAberto(false); onOpenTrilha?.(); }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] hover:brightness-95 text-left"
+              style={{ color: colors.textPrimary }}
+            >
+              <GraduationCap size={15} /> Trilha do Conhecimento
             </button>
             <button
               onClick={() => { setMenuAberto(false); logout(); }}
