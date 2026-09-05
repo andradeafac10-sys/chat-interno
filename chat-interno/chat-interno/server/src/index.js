@@ -73,6 +73,7 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/feedbacks", feedbackRoutes);
+app.use("/api/trilha", require("./routes/trilha"));
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/gestao", gestaoRoutes);
