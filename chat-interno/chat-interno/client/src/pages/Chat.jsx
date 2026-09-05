@@ -8,6 +8,7 @@ import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
 import FeedbacksModal from "../components/FeedbacksModal";
+import TrilhaConhecimento from "./TrilhaConhecimento";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
@@ -39,6 +40,7 @@ export default function Chat() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
+  const [showTrilha, setShowTrilha] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
@@ -458,6 +460,7 @@ export default function Chat() {
         isOnline
         pendingFeedbackCount={pendingFeedbackCount}
         onOpenPendingFeedback={() => setShowFeedbacks(true)}
+        onOpenTrilha={() => setShowTrilha(true)}
         pendingRoutinesCount={pendingRoutinesCount}
       />
       <div className="flex-1 flex overflow-hidden">
@@ -481,6 +484,8 @@ export default function Chat() {
       />
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
+      ) : showTrilha ? (
+        <TrilhaConhecimento onBack={() => setShowTrilha(false)} />
       ) : showAnnouncements ? (
         <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
       ) : showMonitoring ? (
