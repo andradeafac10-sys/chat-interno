@@ -40,6 +40,13 @@ const app = express();
 app.set("trust proxy", 1);
 const server = http.createServer(app);
 
+// Sem isso, o próprio Node derruba sozinho qualquer requisição que passe de
+// 5 minutos (padrão dele) — não importa o que configuramos no navegador.
+// Upload de vídeo grande em internet mais lenta pode legitimamente passar
+// disso, então desligamos esse limite específico pra requisições longas.
+server.requestTimeout = 0;
+server.headersTimeout = 0;
+
 const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 
 const io = new Server(server, {
