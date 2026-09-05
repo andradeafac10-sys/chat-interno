@@ -19,11 +19,13 @@ const upload = multer({
 });
 
 // Upload de vídeo precisa de um limite bem maior que o padrão de anexo comum
-// (20MB não dá nem pra 1 minuto de vídeo decente). 500MB por padrão, dá pra
-// ajustar depois via variável de ambiente sem mexer no código.
+// (20MB não dá nem pra 1 minuto de vídeo decente). 2GB por padrão dá folga
+// tranquila pra até uns 10 minutos de vídeo, mesmo em formatos menos
+// eficientes (tipo .MOV ou .AVI sem compressão boa) — dá pra ajustar depois
+// via variável de ambiente sem mexer no código.
 const uploadVideo = multer({
   storage,
-  limits: { fileSize: Number(process.env.MAX_VIDEO_UPLOAD_SIZE || 500 * 1024 * 1024) },
+  limits: { fileSize: Number(process.env.MAX_VIDEO_UPLOAD_SIZE || 2 * 1024 * 1024 * 1024) },
 });
 
 module.exports = { upload, uploadVideo, uploadDir };
