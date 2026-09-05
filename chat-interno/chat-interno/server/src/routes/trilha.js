@@ -1,7 +1,9 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
-const { uploadVideo } = require("../middleware/upload");
+const { uploadVideo, uploadDir } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -176,10 +178,14 @@ router.post("/modulos/:id/responder", requireAuth, async (req, res) => {
 // POST /api/trilha/modulos -> cria um módulo novo (upload do vídeo)
 // Se o vídeo passar do limite (2GB por padrão), o multer dá um erro antes
 // mesmo de chegar na rota — sem isso, virava um erro genérico feio em vez de
-// uma mensagem que a pessoa entende.
+// uma mensagem que a pessoa entende. Também apaga qualquer pedaço de arquivo
+// que já tinha sido escrito no disco antes do erro — sem isso, um upload que
+// falha no meio do caminho fica ocupando espaço pra sempre, até o servidor
+// lotar (foi exatamente isso que já aconteceu aqui uma vez).
 function uploadVideoComErroAmigavel(req, res, next) {
   uploadVideo.single("video")(req, res, (err) => {
     if (err) {
+      if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({ error: "Esse vídeo é grande demais. Tente um arquivo menor ou comprimido." });
       }
@@ -193,6 +199,7 @@ function uploadVideoComErroAmigavel(req, res, next) {
 router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, async (req, res) => {
   const { title, description } = req.body || {};
   if (!title?.trim() || !req.file) {
+    if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
     return res.status(400).json({ error: "Escreva um título e escolha o vídeo." });
   }
   try {
@@ -204,6 +211,7 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
     );
     res.status(201).json({ id: rows[0].id });
   } catch (err) {
+    fs.unlink(path.join(uploadDir, req.file.filename), () => {});
     console.error(err);
     res.status(500).json({ error: "Erro ao criar o módulo." });
   }
