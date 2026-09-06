@@ -10,7 +10,6 @@ import VisaoGeral from "./gestao/pages/VisaoGeral";
 import MinhaRotina from "./gestao/pages/MinhaRotina";
 import Tarefas from "./gestao/pages/Tarefas";
 import Rotinas from "./gestao/pages/Rotinas";
-import Ranking from "./gestao/pages/Ranking";
 import GestaoFeedbacks from "./gestao/pages/Feedbacks";
 import GestaoTrilha from "./gestao/pages/Trilha";
 import Reuniao from "./gestao/pages/Reuniao";
@@ -49,7 +48,6 @@ export default function App() {
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
               <Route path="rotinas" element={<Rotinas />} />
-              <Route path="ranking" element={<Ranking />} />
               <Route path="feedbacks" element={<GestaoFeedbacks />} />
               <Route path="trilha" element={<GestaoTrilha />} />
               <Route path="reuniao" element={<Reuniao />} />
