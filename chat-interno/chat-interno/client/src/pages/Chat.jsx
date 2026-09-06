@@ -20,7 +20,7 @@ import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
 import TreinamentoPendenteBanner from "../components/TreinamentoPendenteBanner";
-import { playNotificationSound } from "../sound";
+import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
 const ORIGINAL_TITLE = "Chat Nacional";
@@ -344,11 +344,19 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
-    // Um ADM registrou um feedback novo pra mim — avisa na hora, igual tarefa nova.
+    // Um ADM registrou um feedback novo pra mim — som próprio de feedback,
+    // diferente do "pop" comum de mensagem/tarefa.
     // (o número da bolinha vermelha no menu quem atualiza sozinho é o LeftNav)
     const onFeedbackNovo = ({ titulo, corpo }) => {
-      playNotificationSound();
+      playFeedbackSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
+    // Treinamento novo atribuído na Trilha do Conhecimento — som próprio também.
+    const onTrilhaNovo = ({ titulo, corpo }) => {
+      playTrilhaSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+      window.dispatchEvent(new Event("rotina:atualizada")); // atualiza a bolinha do LeftNav na hora
     };
 
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
@@ -370,6 +378,7 @@ export default function Chat() {
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
     socket.on("feedback:novo", onFeedbackNovo);
+    socket.on("trilha:novo", onTrilhaNovo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
@@ -390,6 +399,7 @@ export default function Chat() {
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
       socket.off("feedback:novo", onFeedbackNovo);
+      socket.off("trilha:novo", onTrilhaNovo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
