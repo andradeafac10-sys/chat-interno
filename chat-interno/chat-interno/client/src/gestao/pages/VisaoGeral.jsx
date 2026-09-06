@@ -6,7 +6,7 @@ import { fileUrl } from '../../api';
 
 const MEDALHAS = [
   { bg: '#FEF3C7', fg: '#B45309' },
-  { bg: '#F1F5F9', fg: '#64748B' },
+  { bg: 'var(--pagina-borda-suave)', fg: '#64748B' },
   { bg: '#FFEDD5', fg: '#C2410C' },
 ];
 
@@ -87,10 +87,10 @@ export default function VisaoGeral() {
   ] : [];
 
   return (
-    <div style={{ background: '#F7F9FB', minHeight: '100%', padding: '24px 28px 30px' }}>
+    <div style={{ background: 'var(--pagina-fundo)', minHeight: '100%', padding: '24px 28px 30px' }}>
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#101828' }}>Visão Geral</div>
-        <div style={{ fontSize: 14, color: '#667085', marginTop: 2 }}>Cumprimento de rotinas da equipe</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--pagina-texto-1)' }}>Visão Geral</div>
+        <div style={{ fontSize: 14, color: 'var(--pagina-texto-2)', marginTop: 2 }}>Cumprimento de rotinas da equipe</div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
@@ -146,9 +146,9 @@ export default function VisaoGeral() {
                   <k.icon size={28} color={k.corIcone} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: '#667085', marginBottom: 4 }}>{k.label}</div>
+                  <div style={{ fontSize: 13, color: 'var(--pagina-texto-2)', marginBottom: 4 }}>{k.label}</div>
                   <div style={{ fontSize: 34, fontWeight: 700, color: k.corNumero, lineHeight: 1 }}>{k.valor}</div>
-                  <div style={{ fontSize: 12, color: '#667085', marginTop: 4 }}>{k.sub}</div>
+                  <div style={{ fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 4 }}>{k.sub}</div>
                 </div>
               </div>
             ))}
@@ -156,8 +156,8 @@ export default function VisaoGeral() {
 
           <div style={styles.progressCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#101828' }}>Progresso do dia</span>
-              <span style={{ fontSize: 13, color: '#667085' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' }}>Progresso do dia</span>
+              <span style={{ fontSize: 13, color: 'var(--pagina-texto-2)' }}>
                 <b style={{ color: '#2563EB' }}>{hoje.concluidas}</b> de {hoje.planejadas} rotinas concluídas
               </span>
             </div>
@@ -221,12 +221,12 @@ export default function VisaoGeral() {
                     <span style={{
                       width: 20, height: 20, borderRadius: '50%', fontSize: 10, fontWeight: 700, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: MEDALHAS[i]?.bg || '#F1F5F9', color: MEDALHAS[i]?.fg || '#98A2B3',
+                      background: MEDALHAS[i]?.bg || 'var(--pagina-borda-suave)', color: MEDALHAS[i]?.fg || 'var(--pagina-texto-2)',
                     }}>{i + 1}</span>
                     <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: r.color || '#2563EB' }}>
                       {r.avatar_url && <img src={fileUrl(r.avatar_url)} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#101828', flex: 1, minWidth: 0 }}>{r.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0 }}>{r.name}</span>
                     <div style={{ width: 70, height: 6, borderRadius: 999, background: '#EEF1F5', overflow: 'hidden', flexShrink: 0 }}>
                       <div style={{ width: `${r.percentual}%`, height: '100%', background: '#2563EB' }} />
                     </div>
@@ -302,8 +302,8 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
               {pessoa.avatar_url && <img src={fileUrl(pessoa.avatar_url)} alt={pessoa.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#101828' }}>{pessoa.name}</div>
-              <div style={{ fontSize: 11, color: '#667085' }}>Resumo de atividades</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--pagina-texto-1)' }}>{pessoa.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Resumo de atividades</div>
             </div>
           </div>
           <button onClick={onClose} style={modalStyles.fechar}>✕</button>
@@ -311,51 +311,51 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
 
         <div style={modalStyles.body}>
           {erro && <p style={{ color: '#dc2626', fontSize: 13 }}>{erro}</p>}
-          {!erro && !dados && <p style={{ color: '#98A2B3', fontSize: 13 }}>Carregando...</p>}
+          {!erro && !dados && <p style={{ color: 'var(--pagina-texto-2)', fontSize: 13 }}>Carregando...</p>}
           {dados && (
             <>
               <div style={{ display: 'flex', gap: 12, marginBottom: 18 }}>
                 <div style={modalStyles.kpi}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#101828' }}>{dados.total}</div>
-                  <div style={{ fontSize: 11, color: '#667085' }}>Total</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--pagina-texto-1)' }}>{dados.total}</div>
+                  <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Total</div>
                 </div>
                 <div style={modalStyles.kpi}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#16a34a' }}>{dados.feitas.length}</div>
-                  <div style={{ fontSize: 11, color: '#667085' }}>Feitas</div>
+                  <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Feitas</div>
                 </div>
                 <div style={modalStyles.kpi}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#dc2626' }}>{dados.pendentes.length}</div>
-                  <div style={{ fontSize: 11, color: '#667085' }}>Pendentes</div>
+                  <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Pendentes</div>
                 </div>
                 <div style={modalStyles.kpi}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#2563EB' }}>{dados.percentual}%</div>
-                  <div style={{ fontSize: 11, color: '#667085' }}>Cumprimento</div>
+                  <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Cumprimento</div>
                 </div>
               </div>
 
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#101828', marginBottom: 8 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--pagina-texto-1)', marginBottom: 8 }}>
                 Pendentes ({dados.pendentes.length})
               </div>
-              {dados.pendentes.length === 0 && <p style={{ fontSize: 12.5, color: '#98A2B3', marginBottom: 16 }}>Nada pendente nesse período. 🎉</p>}
+              {dados.pendentes.length === 0 && <p style={{ fontSize: 12.5, color: 'var(--pagina-texto-2)', marginBottom: 16 }}>Nada pendente nesse período. 🎉</p>}
               {dados.pendentes.map((item) => (
                 <div key={item.id} style={modalStyles.item}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORIDADE_COR[item.priority] || '#98A2B3', flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORIDADE_COR[item.priority] || 'var(--pagina-texto-2)', flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
-                  <span style={{ fontSize: 11, color: '#98A2B3', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--pagina-texto-2)', flexShrink: 0 }}>
                     {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')} {fmtHora(item.start_time)}
                   </span>
                 </div>
               ))}
 
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#101828', margin: '16px 0 8px' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--pagina-texto-1)', margin: '16px 0 8px' }}>
                 Feitas ({dados.feitas.length})
               </div>
-              {dados.feitas.length === 0 && <p style={{ fontSize: 12.5, color: '#98A2B3' }}>Nada concluído nesse período ainda.</p>}
+              {dados.feitas.length === 0 && <p style={{ fontSize: 12.5, color: 'var(--pagina-texto-2)' }}>Nada concluído nesse período ainda.</p>}
               {dados.feitas.map((item) => (
                 <div key={item.id} style={modalStyles.item}>
                   <CheckCircle2 size={12} color="#16A34A" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
-                  <span style={{ fontSize: 11, color: '#98A2B3', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--pagina-texto-2)', flexShrink: 0 }}>
                     {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')}
                   </span>
                 </div>
@@ -370,51 +370,51 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
 
 const modalStyles = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 12, width: 440, maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.25)' },
+  modal: { background: 'var(--pagina-cartao)', borderRadius: 12, width: 440, maxHeight: '82vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.25)' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #E4E8EE' },
-  fechar: { background: 'none', border: 'none', color: '#98A2B3', fontSize: 15, cursor: 'pointer' },
+  fechar: { background: 'none', border: 'none', color: 'var(--pagina-texto-2)', fontSize: 15, cursor: 'pointer' },
   body: { padding: 20 },
-  kpi: { flex: 1, background: '#F7F9FB', borderRadius: 8, padding: '10px 8px', textAlign: 'center' },
-  item: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px', borderBottom: '1px solid #F7F9FB' },
+  kpi: { flex: 1, background: 'var(--pagina-fundo)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' },
+  item: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px', borderBottom: '1px solid var(--pagina-borda)' },
 };
 
 const styles = {
   filtro: {
-    height: 38, padding: '0 18px', borderRadius: 7, border: '1px solid #E1E6ED', background: '#fff',
+    height: 38, padding: '0 18px', borderRadius: 7, border: '1px solid #E1E6ED', background: 'var(--pagina-cartao)',
     fontSize: 13, color: '#344054', cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   filtroAtivo: {
     height: 38, padding: '0 18px', borderRadius: 7, border: 'none', background: '#2563EB',
-    fontSize: 13, color: '#fff', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center',
+    fontSize: 13, color: 'var(--pagina-cartao)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   selectAdm: {
     height: 38, width: 185, padding: '0 12px', borderRadius: 7, border: '1px solid #DDE3EA',
-    background: '#fff', fontSize: 13, color: '#344054', cursor: 'pointer',
+    background: 'var(--pagina-cartao)', fontSize: 13, color: '#344054', cursor: 'pointer',
   },
   calendarioBox: {
-    display: 'flex', gap: 12, alignItems: 'flex-end', background: '#fff', border: '1px solid #E4E8EE',
+    display: 'flex', gap: 12, alignItems: 'flex-end', background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE',
     borderRadius: 10, padding: 14, marginBottom: 16,
   },
-  calendarioLabel: { fontSize: 11, fontWeight: 600, color: '#667085', display: 'block', marginBottom: 4 },
+  calendarioLabel: { fontSize: 11, fontWeight: 600, color: 'var(--pagina-texto-2)', display: 'block', marginBottom: 4 },
   calendarioInput: { padding: '7px 10px', borderRadius: 7, border: '1px solid #DDE3EA', fontSize: 13 },
-  calendarioBtn: { padding: '8px 16px', borderRadius: 7, border: 'none', background: '#2563EB', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  calendarioBtn: { padding: '8px 16px', borderRadius: 7, border: 'none', background: '#2563EB', color: 'var(--pagina-cartao)', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   kpiCard: {
-    minHeight: 140, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 12,
+    minHeight: 140, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE', borderRadius: 12,
     boxShadow: '0 1px 3px rgba(16,24,40,0.06)', padding: 20, display: 'flex', alignItems: 'center', gap: 16,
     transition: 'box-shadow 150ms ease, transform 150ms ease',
   },
   progressCard: {
-    minHeight: 84, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 10,
+    minHeight: 84, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE', borderRadius: 10,
     boxShadow: '0 1px 3px rgba(16,24,40,0.06)', padding: '18px 22px', marginBottom: 16,
   },
   listCard: {
-    minHeight: 200, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 12,
+    minHeight: 200, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE', borderRadius: 12,
     boxShadow: '0 1px 3px rgba(16,24,40,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column',
   },
   listCardHeader: { display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px 12px' },
-  listCardTitulo: { fontSize: 14, fontWeight: 600, color: '#101828' },
-  listItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px', borderBottom: '1px solid #F7F9FB' },
+  listCardTitulo: { fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' },
+  listItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px', borderBottom: '1px solid var(--pagina-borda)' },
   listItemNome: { fontSize: 13, color: '#344054', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   listItemHora: { fontSize: 12, color: '#475467', fontWeight: 500, flexShrink: 0 },
-  listaVazia: { padding: '18px', fontSize: 13, color: '#98A2B3', textAlign: 'center' },
+  listaVazia: { padding: '18px', fontSize: 13, color: 'var(--pagina-texto-2)', textAlign: 'center' },
 };
