@@ -71,12 +71,12 @@ export default function Announcements({ onBack }) {
         setAnnouncements(data.announcements);
         setTotalActive(data.totalActive);
       })
-      .catch((err) => setError(err.response?.data?.error || "Não foi possível carregar os comunicados."))
+      .catch((err) => setError(err.response?.data?.error || "Não foi possível carregar as notificações."))
       .finally(() => setLoading(false));
   };
 
   const remove = async (id) => {
-    if (!window.confirm("Apagar esse comunicado? Isso não pode ser desfeito.")) return;
+    if (!window.confirm("Apagar essa notificação? Isso não pode ser desfeito.")) return;
     await api.delete(`/announcements/${id}`);
     load();
   };
@@ -109,7 +109,7 @@ export default function Announcements({ onBack }) {
           <ArrowLeft size={20} />
         </button>
         <div className="text-slate-800 text-sm font-semibold flex items-center gap-2">
-          <Megaphone size={16} className="text-[#2563EB]" /> Comunicados gerais
+          <Megaphone size={16} className="text-[#2563EB]" /> Notificações gerais
         </div>
         {isAdm && (
           <button
@@ -117,7 +117,7 @@ export default function Announcements({ onBack }) {
             className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
             style={{ background: "#2563EB" }}
           >
-            <Plus size={15} /> Novo comunicado
+            <Plus size={15} /> Nova notificação
           </button>
         )}
       </div>
@@ -128,7 +128,7 @@ export default function Announcements({ onBack }) {
         ) : error ? (
           <div className="text-red-500 text-sm">{error}</div>
         ) : announcements.length === 0 ? (
-          <div className="text-slate-400 text-sm">Nenhum comunicado enviado ainda.</div>
+          <div className="text-slate-400 text-sm">Nenhuma notificação enviada ainda.</div>
         ) : (
           <div className="flex flex-col gap-3">
             {announcements.map((a) => (
@@ -160,7 +160,7 @@ export default function Announcements({ onBack }) {
                       <span
                         role="button"
                         onClick={(e) => { e.stopPropagation(); remove(a.id); }}
-                        title="Apagar comunicado"
+                        title="Apagar notificação"
                         className="p-1.5 hover:text-red-500 cursor-pointer"
                       >
                         <Trash2 size={15} />
@@ -243,13 +243,13 @@ export default function Announcements({ onBack }) {
             <div className="overflow-y-auto flex-1 min-h-0">
               {viewingAnnouncement.image_url && (
                 <button
-                  onClick={() => setViewingImage({ url: viewingAnnouncement.image_url, name: "Comunicado" })}
+                  onClick={() => setViewingImage({ url: viewingAnnouncement.image_url, name: "Notificação" })}
                   className="block w-full"
                   title="Clique para ver em tamanho maior"
                 >
                   <img
                     src={fileUrl(viewingAnnouncement.image_url)}
-                    alt="Comunicado"
+                    alt="Notificação"
                     className="w-full max-h-[50vh] object-contain bg-black cursor-zoom-in"
                   />
                 </button>
@@ -257,7 +257,7 @@ export default function Announcements({ onBack }) {
               <div className="p-6">
                 <div className="flex items-center gap-2 text-red-600 mb-3">
                   <Megaphone size={20} />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Comunicado geral</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">Notificação geral</span>
                 </div>
                 <p className="text-slate-800 text-[15px] whitespace-pre-wrap leading-relaxed select-text">
                   {formatarTexto(viewingAnnouncement.message)}
