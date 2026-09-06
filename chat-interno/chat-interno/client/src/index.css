@@ -8,6 +8,41 @@ body {
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
 }
 
+/* Tema claro/escuro pras telas que não são o Chat em si (Gestão, Feedbacks,
+   Trilha do Conhecimento, Usuários, Monitoria). O Chat já tem seu próprio
+   esquema de cores via ThemeContext — essas variáveis cobrem o resto do
+   sistema, que até então ficava sempre claro não importa o tema escolhido. */
+:root {
+  --pagina-fundo: #F7F9FB;
+  --pagina-cartao: #FFFFFF;
+  --pagina-texto-1: #101828;
+  --pagina-texto-2: #667085;
+  --pagina-borda: #E4E8EE;
+  --pagina-borda-suave: #F1F5F9;
+}
+body.tema-escuro {
+  --pagina-fundo: #061020;
+  --pagina-cartao: #12233D;
+  --pagina-texto-1: #E8EEF7;
+  --pagina-texto-2: #8CA3C4;
+  --pagina-borda: #1E3555;
+  --pagina-borda-suave: #17294A;
+}
+
+/* Sobrescreve as classes do Tailwind usadas direto nessas telas (bg-white,
+   text-slate-*, border-slate-*) — assim não precisa trocar toda classe de
+   cada arquivo, uma por uma, pra funcionar no escuro. */
+body.tema-escuro .bg-white { background-color: var(--pagina-cartao) !important; }
+body.tema-escuro [class*="text-slate-8"],
+body.tema-escuro [class*="text-slate-7"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-slate-6"],
+body.tema-escuro [class*="text-slate-5"],
+body.tema-escuro [class*="text-slate-4"] { color: var(--pagina-texto-2) !important; }
+body.tema-escuro [class*="border-slate"] { border-color: var(--pagina-borda) !important; }
+body.tema-escuro [class*="bg-slate-50"],
+body.tema-escuro [class*="bg-slate-100"] { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="hover:bg-slate-50"]:hover { background-color: var(--pagina-borda-suave) !important; }
+
 /* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
    do navegador — mais discreta e combinando com o resto da interface. */
 * {
