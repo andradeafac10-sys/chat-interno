@@ -36,26 +36,8 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
 
   return (
     <div className={`w-full md:w-[320px] flex-col border-r ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.sidebarBg, borderColor: colors.border }}>
-      {/* Perfil — só identificação, as ações (config/tema/sair) ficam no menu da Topbar */}
-      <div className="flex items-center gap-2.5 px-4 py-4">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden" style={{ background: user.color }}>
-          {user.avatar_url ? (
-            <img src={fileUrl(user.avatar_url)} alt={user.name} className="w-full h-full object-cover" />
-          ) : (
-            user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold truncate" style={{ color: colors.textPrimary }}>{user.name}</div>
-          <div className="flex items-center gap-1 text-[11px]" style={{ color: isAdm ? colors.accent : colors.textSecondary }}>
-            {isAdm && <ShieldCheck size={11} />}
-            {isAdm ? "Administrador" : "Operador"}
-          </div>
-        </div>
-      </div>
-
       {/* Filtros — segmented control discreto, sem virar tudo azul */}
-      <div className="px-3 pb-2.5 flex gap-1 p-0.5 rounded-lg" style={{ background: colors.chatBg }}>
+      <div className="px-3 pb-2.5 pt-3 flex gap-1 p-0.5 rounded-lg" style={{ background: colors.chatBg }}>
         {[
           { id: "all", label: "Todas" },
           { id: "groups", label: "Grupos" },
