@@ -114,13 +114,13 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
         <div className="overflow-y-auto flex-1 min-h-0">
           {announcement.image_url && (
             <button
-              onClick={() => setViewingImage({ url: announcement.image_url, name: "Comunicado" })}
+              onClick={() => setViewingImage({ url: announcement.image_url, name: "Notificação" })}
               className="block w-full"
               title="Clique para ver em tamanho maior"
             >
               <img
                 src={fileUrl(announcement.image_url)}
-                alt="Comunicado"
+                alt="Notificação"
                 className="w-full max-h-[38vh] object-contain bg-black cursor-zoom-in"
                 onError={(e) => { e.target.style.display = "none"; }}
               />
@@ -131,7 +131,7 @@ export default function AnnouncementOverlay({ announcement, onClose }) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-red-600">
                 <Megaphone size={20} />
-                <span className="text-xs font-semibold uppercase tracking-wide">Comunicado geral</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">Notificação geral</span>
               </div>
               {!acked && (
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
