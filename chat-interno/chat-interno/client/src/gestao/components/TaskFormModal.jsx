@@ -161,7 +161,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
   },
   modal: {
-    background: '#fff', borderRadius: 12, width: '92%', maxWidth: 480,
+    background: 'var(--pagina-cartao)', borderRadius: 12, width: '92%', maxWidth: 480,
     maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
   },
   header: {
@@ -169,8 +169,8 @@ const styles = {
     padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
     borderRadius: '12px 12px 0 0',
   },
-  title: { margin: 0, color: '#fff', fontSize: 17 },
-  closeBtn: { background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer' },
+  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 17 },
+  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
   body: { padding: 20, display: 'flex', flexDirection: 'column' },
   label: { fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 12, marginBottom: 6 },
   input: {
@@ -186,8 +186,8 @@ const styles = {
     border: '1px solid #d1d5db', borderRadius: 8, padding: '8px 10px',
     maxHeight: 140, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6,
   },
-  assigneeRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#111827', cursor: 'pointer' },
-  hint: { fontSize: 13, color: '#6b7280', margin: 0 },
+  assigneeRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer' },
+  hint: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: 0 },
   error: { fontSize: 13, color: '#ef4444', marginTop: 12 },
   footer: {
     display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px',
@@ -198,7 +198,7 @@ const styles = {
     padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
   },
   saveBtn: {
-    background: NAVY, border: 'none', color: '#fff',
+    background: NAVY, border: 'none', color: 'var(--pagina-cartao)',
     padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
   },
 };
