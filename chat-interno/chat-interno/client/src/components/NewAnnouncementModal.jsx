@@ -100,7 +100,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
       });
       onSent();
     } catch (err) {
-      setError(err.response?.data?.error || "Não deu pra enviar o comunicado. Tente de novo.");
+      setError(err.response?.data?.error || "Não deu pra enviar a notificação. Tente de novo.");
     } finally {
       setSending(false);
     }
@@ -116,7 +116,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
       <div className="bg-white rounded-2xl w-[94vw] max-w-lg shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-base">
-            <Megaphone size={18} className="text-[#2563EB]" /> Novo comunicado
+            <Megaphone size={18} className="text-[#2563EB]" /> Nova notificação
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={19} />
@@ -158,7 +158,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Escreva o comunicado..."
+            placeholder="Escreva a notificação..."
             rows={5}
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
@@ -256,7 +256,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             style={{ background: "#2563EB" }}
           >
-            {sending ? "Enviando..." : "Enviar comunicado"}
+            {sending ? "Enviando..." : "Enviar notificação"}
           </button>
         </div>
       </div>
