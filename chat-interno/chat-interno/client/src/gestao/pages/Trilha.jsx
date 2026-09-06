@@ -176,7 +176,10 @@ function NovoModuloModal({ onClose, onSaved }) {
 
   const marcarTodos = () => setUserIds(users.map((u) => u.id));
 
-  const adicionarPergunta = () => setPerguntas((prev) => [...prev, novaPerguntaVazia()]);
+  const adicionarPergunta = () => {
+    if (perguntas.length >= 6) return; // no máximo 6 perguntas por treinamento
+    setPerguntas((prev) => [...prev, novaPerguntaVazia()]);
+  };
   const removerPergunta = (i) => setPerguntas((prev) => prev.filter((_, idx) => idx !== i));
   const atualizarPergunta = (i, nova) => setPerguntas((prev) => prev.map((p, idx) => (idx === i ? nova : p)));
 
@@ -294,9 +297,20 @@ function NovoModuloModal({ onClose, onSaved }) {
           {!filtroPessoa && <div className="mb-4" />}
 
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova (opcional, 4 alternativas cada)</label>
-            <button type="button" onClick={adicionarPergunta} className="text-[12px] font-medium" style={{ color: NAVY }}>+ Adicionar pergunta</button>
+            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova ({perguntas.length}/6, opcional, 4 alternativas cada)</label>
+            <button
+              type="button"
+              onClick={adicionarPergunta}
+              disabled={perguntas.length >= 6}
+              className="text-[12px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: NAVY }}
+            >
+              + Adicionar pergunta
+            </button>
           </div>
+          {perguntas.length >= 6 && (
+            <p className="text-[11px] text-amber-600 mb-2">Máximo de 6 perguntas por treinamento já atingido.</p>
+          )}
           {perguntas.length === 0 && (
             <p className="text-[11.5px] text-slate-400 mb-3">Sem pergunta cadastrada, o treinamento conclui direto.</p>
           )}
@@ -345,9 +359,17 @@ function PerguntasModulo({ modulo, onVoltar }) {
       <div className="text-[15px] font-semibold text-slate-800 mb-1">{modulo.title}</div>
       <div className="text-[12.5px] text-slate-500 mb-4">Perguntas da prova desse treinamento (25% cada, 4 alternativas)</div>
 
-      <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg mb-4" style={{ background: NAVY }}>
-        <Plus size={15} /> Nova pergunta
+      <button
+        onClick={() => setShowForm(true)}
+        disabled={perguntas.length >= 6}
+        className="flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg mb-1 disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{ background: NAVY }}
+      >
+        <Plus size={15} /> Nova pergunta ({perguntas.length}/6)
       </button>
+      {perguntas.length >= 6 && (
+        <p className="text-[11px] text-amber-600 mb-3">Máximo de 6 perguntas por treinamento já atingido.</p>
+      )}
 
       {loading ? (
         <p className="text-sm text-slate-400">Carregando...</p>
