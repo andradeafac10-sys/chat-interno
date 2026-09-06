@@ -19,6 +19,7 @@ import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
+import TreinamentoPendenteBanner from "../components/TreinamentoPendenteBanner";
 import { playNotificationSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
@@ -449,6 +450,9 @@ export default function Chat() {
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
       />
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
+        <TreinamentoPendenteBanner onVerTreinamentos={() => navigate("/?view=trilha")} />
+      )}
       <div className="flex-1 flex overflow-hidden">
       <Sidebar
         conversations={conversations}
