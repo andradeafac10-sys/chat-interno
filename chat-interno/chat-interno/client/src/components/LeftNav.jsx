@@ -141,6 +141,12 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
             <NavLink to="/gestao/ranking" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <Trophy size={12} /> Ranking
             </NavLink>
+            <NavLink to="/gestao/feedbacks" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
+              <MessageSquareText size={12} /> Feedbacks
+            </NavLink>
+            <NavLink to="/gestao/trilha" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
+              <GraduationCap size={12} /> Trilha do Conhecimento
+            </NavLink>
             <NavLink to="/gestao/reuniao" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <Video size={12} /> Reunião
               <span className="text-[8px] font-semibold rounded px-1 py-0.5 ml-0.5" style={{ background: "#334155", color: "#CBD5E1" }}>
