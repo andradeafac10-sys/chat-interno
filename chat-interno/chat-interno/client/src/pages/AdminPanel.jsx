@@ -125,14 +125,14 @@ function MinhaContaTab() {
   };
 
   const limpar = async (tipo) => {
-    const label = tipo === "messages" ? "TODAS as mensagens de TODAS as conversas" : "TODOS os comunicados";
+    const label = tipo === "messages" ? "TODAS as mensagens de TODAS as conversas" : "TODAS as notificações";
     if (!window.confirm(`Tem certeza que quer apagar ${label}? Isso NÃO pode ser desfeito.`)) return;
     if (!window.confirm("Confirmando de novo: essa ação é definitiva. Deseja continuar?")) return;
     setCleaning(tipo);
     setCleanMsg("");
     try {
       await api.delete(`/maintenance/${tipo}`);
-      setCleanMsg(tipo === "messages" ? "Mensagens apagadas." : "Comunicados apagados.");
+      setCleanMsg(tipo === "messages" ? "Mensagens apagadas." : "Notificações apagadas.");
     } catch (err) {
       setCleanMsg(err.response?.data?.error || "Não foi possível concluir a limpeza.");
     } finally {
@@ -218,7 +218,7 @@ function MinhaContaTab() {
             onClick={() => limpar("announcements")} disabled={!!cleaning}
             className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            <Trash2 size={14} /> {cleaning === "announcements" ? "Apagando..." : "Apagar todos os comunicados"}
+            <Trash2 size={14} /> {cleaning === "announcements" ? "Apagando..." : "Apagar todas as notificações"}
           </button>
           {cleanMsg && <div className="text-[12px] mt-2" style={{ color: colors.textSecondary }}>{cleanMsg}</div>}
         </div>
