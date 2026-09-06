@@ -23,7 +23,7 @@ export default function TrilhaConhecimento({ onBack }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#F7F9FB" }}>
+    <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-200 bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700"><ArrowLeft size={20} /></button>
         <div className="text-slate-800 text-sm font-semibold">Trilha do Conhecimento</div>
@@ -126,16 +126,16 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
 
   if (erro) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3" style={{ background: "#F7F9FB" }}>
+      <div className="flex-1 flex flex-col items-center justify-center gap-3" style={{ background: "var(--pagina-fundo)" }}>
         <p className="text-sm text-red-500">{erro}</p>
         <button onClick={onVoltar} className="text-sm text-[#2563EB] font-medium">Voltar</button>
       </div>
     );
   }
-  if (!dados) return <div className="flex-1 flex items-center justify-center" style={{ background: "#F7F9FB" }}><p className="text-sm text-slate-400">Carregando...</p></div>;
+  if (!dados) return <div className="flex-1 flex items-center justify-center" style={{ background: "var(--pagina-fundo)" }}><p className="text-sm text-slate-400">Carregando...</p></div>;
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#F7F9FB" }}>
+    <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-200 bg-white shrink-0">
         <button onClick={onVoltar} className="text-slate-500 hover:text-slate-700"><ArrowLeft size={20} /></button>
         <div className="text-slate-800 text-sm font-semibold truncate flex-1">{dados.modulo.title}</div>
