@@ -29,7 +29,7 @@ router.get("/latest", requireAuth, async (req, res) => {
     res.json({ announcement: rows[0] || null });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao buscar o comunicado." });
+    res.status(500).json({ error: "Erro ao buscar a notificação." });
   }
 });
 
@@ -77,7 +77,7 @@ router.get("/", requireAuth, async (req, res) => {
     res.json({ announcements: rows, totalActive });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao listar comunicados." });
+    res.status(500).json({ error: "Erro ao listar notificações." });
   }
 });
 
@@ -118,7 +118,7 @@ router.post("/:id/ack", requireAuth, async (req, res) => {
     // recebia resposta e o botão "ESTOU CIENTE" ficava preso em "Enviando..."
     // pra sempre, só saindo com F5. Agora sempre responde, mesmo em erro.
     console.error(err);
-    res.status(500).json({ error: "Erro ao confirmar o comunicado." });
+    res.status(500).json({ error: "Erro ao confirmar a notificação." });
   }
 });
 
@@ -126,7 +126,7 @@ router.post("/:id/ack", requireAuth, async (req, res) => {
 // body: message, audience ('all' | 'users' | 'groups'), userIds[], groupIds[], image (arquivo)
 router.post("/", requireAuth, requireAdmin, upload.single("image"), async (req, res) => {
   const { message, audience } = req.body || {};
-  if (!message || !message.trim()) return res.status(400).json({ error: "Escreva o texto do comunicado." });
+  if (!message || !message.trim()) return res.status(400).json({ error: "Escreva o texto da notificação." });
 
   const aud = ["all", "users", "groups"].includes(audience) ? audience : "all";
   const parseIds = (v) => {
@@ -180,7 +180,7 @@ router.post("/", requireAuth, requireAdmin, upload.single("image"), async (req, 
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Erro ao criar comunicado." });
+    res.status(500).json({ error: "Erro ao criar notificação." });
   } finally {
     client.release();
   }
