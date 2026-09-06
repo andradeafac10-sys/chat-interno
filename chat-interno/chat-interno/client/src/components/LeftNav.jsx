@@ -25,9 +25,11 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   const [pendingFeedback, setPendingFeedback] = useState(0);
   const [pendingRoutines, setPendingRoutines] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
+  const [pendingTrilha, setPendingTrilha] = useState(0);
 
   const carregarContadores = () => {
     api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedback(data.count)).catch(() => {});
+    api.get("/trilha/pendentes-count").then(({ data }) => setPendingTrilha(data.count)).catch(() => {});
     if (isAdm) {
       api.get("/gestao/recurrences/minhas/pendentes-count").then(({ data }) => setPendingRoutines(data.count)).catch(() => {});
       api.get("/gestao/tasks/minhas/pendentes-count").then(({ data }) => setPendingTasks(data.count)).catch(() => {});
@@ -103,7 +105,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
       <ItemChat view="chat" icon={MessageCircle} label="Chat" badge={unreadTotal} />
       <ItemChat view="notificacoes" icon={Bell} label="Notificação" />
       <ItemChat view="feedbacks" icon={MessageSquareText} label="Feedbacks" badge={pendingFeedback} />
-      <ItemChat view="trilha" icon={GraduationCap} label="Trilha do Conhecimento" />
+      <ItemChat view="trilha" icon={GraduationCap} label="Trilha do Conhecimento" badge={pendingTrilha} />
 
       {isAdm && (
         <>
