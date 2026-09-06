@@ -129,7 +129,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   border: priority === p.value ? `2px solid ${p.cor}` : '1px solid #d1d5db',
-                  background: priority === p.value ? `${p.cor}15` : '#fff',
+                  background: priority === p.value ? `${p.cor}15` : 'var(--pagina-cartao)',
                   color: priority === p.value ? p.cor : '#374151',
                 }}
               >
@@ -225,7 +225,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
   },
   modal: {
-    background: '#fff', borderRadius: 12, width: '90%', maxWidth: 480,
+    background: 'var(--pagina-cartao)', borderRadius: 12, width: '90%', maxWidth: 480,
     maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
   },
   header: {
@@ -233,39 +233,39 @@ const styles = {
     padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
     borderRadius: '12px 12px 0 0',
   },
-  title: { margin: 0, color: '#fff', fontSize: 18 },
-  closeBtn: { background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer' },
+  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 18 },
+  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
   body: { padding: 20, display: 'flex', flexDirection: 'column', gap: 4 },
   label: { fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 12, marginBottom: 4 },
   input: {
     width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #d1d5db',
-    fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#fff',
+    fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--pagina-cartao)',
   },
   row: { display: 'flex', gap: 12 },
   diasRow: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   diaBtn: {
-    padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff',
+    padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
     fontSize: 12, cursor: 'pointer', color: '#374151',
   },
   diaBtnAtivo: {
     padding: '7px 10px', borderRadius: 8, border: `1px solid ${NAVY}`, background: NAVY,
-    fontSize: 12, cursor: 'pointer', color: '#fff', fontWeight: 600,
+    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-cartao)', fontWeight: 600,
   },
   assigneeList: {
     display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto',
     border: '1px solid #E4E8EE', borderRadius: 8, padding: 10,
   },
   assigneeItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 },
-  hint: { fontSize: 13, color: '#6b7280', margin: 0 },
-  avisoTexto: { fontSize: 12, color: '#6b7280', marginTop: 12, fontStyle: 'italic' },
+  hint: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: 0 },
+  avisoTexto: { fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 12, fontStyle: 'italic' },
   error: { color: '#ef4444', fontSize: 13, marginTop: 8 },
   footer: { display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
   cancelBtn: {
-    padding: '9px 16px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff',
+    padding: '9px 16px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
     cursor: 'pointer', fontSize: 14,
   },
   saveBtn: {
-    padding: '9px 16px', borderRadius: 8, border: 'none', background: NAVY, color: '#fff',
+    padding: '9px 16px', borderRadius: 8, border: 'none', background: NAVY, color: 'var(--pagina-cartao)',
     cursor: 'pointer', fontSize: 14, fontWeight: 600,
   },
 };
