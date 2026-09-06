@@ -140,9 +140,6 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
             <NavLink to="/gestao/rotinas" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <Repeat size={12} /> Rotinas
             </NavLink>
-            <NavLink to="/gestao/ranking" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
-              <Trophy size={12} /> Ranking
-            </NavLink>
             <NavLink to="/gestao/feedbacks" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <MessageSquareText size={12} /> Feedbacks
             </NavLink>
