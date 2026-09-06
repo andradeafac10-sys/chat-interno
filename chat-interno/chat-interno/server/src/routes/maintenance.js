@@ -67,7 +67,7 @@ router.delete("/announcements", requireAuth, requireSuperAdmin, async (req, res)
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao limpar os comunicados." });
+    res.status(500).json({ error: "Erro ao limpar as notificações." });
   }
 });
 
