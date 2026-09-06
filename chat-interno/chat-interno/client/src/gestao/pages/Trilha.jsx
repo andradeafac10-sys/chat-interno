@@ -1,6 +1,6 @@
 // client/src/gestao/pages/Trilha.jsx
 import { useEffect, useState } from 'react';
-import { GraduationCap, Plus, X, Trash2, CheckCircle2, XCircle, Circle } from 'lucide-react';
+import { GraduationCap, Plus, X, Trash2, CheckCircle2, XCircle, Circle, PlayCircle, FileQuestion } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
@@ -11,7 +11,7 @@ export default function Trilha() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Módulos de treinamento com vídeo e prova" />
+      <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Treinamentos com vídeo e/ou avaliação" />
 
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
         {[
@@ -49,7 +49,7 @@ function AbaConteudo() {
   useEffect(() => { load(); }, []);
 
   const apagarModulo = async (id) => {
-    if (!confirm('Apagar esse módulo, o vídeo e a prova dele? Essa ação não tem volta.')) return;
+    if (!confirm('Apagar esse treinamento (vídeo e prova)? Essa ação não tem volta.')) return;
     await api.delete(`/trilha/modulos/${id}`);
     load();
   };
@@ -65,20 +65,23 @@ function AbaConteudo() {
         className="flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg mb-4"
         style={{ background: NAVY }}
       >
-        <Plus size={15} /> Novo módulo
+        <Plus size={15} /> NOVO TREINAMENTO
       </button>
 
       {loading ? (
         <p className="text-sm text-slate-400">Carregando...</p>
       ) : modulos.length === 0 ? (
-        <p className="text-sm text-slate-400">Nenhum módulo criado ainda.</p>
+        <p className="text-sm text-slate-400">Nenhum treinamento criado ainda.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {modulos.map((m, i) => (
             <div key={m.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#E4E8EE' }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-semibold text-slate-400">MÓDULO {i + 1}</div>
+                  <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                    {m.tipo === 'avaliacao' ? <FileQuestion size={12} /> : <PlayCircle size={12} />}
+                    TREINAMENTO {i + 1} · {m.tipo === 'avaliacao' ? 'AVALIAÇÃO' : 'VÍDEO'}
+                  </div>
                   <div className="text-[14px] font-semibold text-slate-800">{m.title}</div>
                   {m.description && <div className="text-[12.5px] text-slate-500 mt-0.5">{m.description}</div>}
                   <div className="text-[11.5px] text-slate-400 mt-1">{m.total_perguntas} pergunta(s) na prova</div>
@@ -87,7 +90,9 @@ function AbaConteudo() {
                   <Trash2 size={15} />
                 </button>
               </div>
-              <video src={fileUrl(m.video_url)} controls className="w-full rounded-lg mt-3 max-h-52 bg-black" />
+              {m.tipo === 'video' && m.video_url && (
+                <video src={fileUrl(m.video_url)} controls className="w-full rounded-lg mt-3 max-h-52 bg-black" />
+              )}
               <button
                 onClick={() => setModuloAberto(m)}
                 className="mt-3 text-[12.5px] font-medium"
@@ -105,7 +110,47 @@ function AbaConteudo() {
   );
 }
 
+function PerguntaBuilder({ pergunta, onChange, onRemover, indice }) {
+  const atualizarPergunta = (texto) => onChange({ ...pergunta, question: texto });
+  const atualizarOpcaoTexto = (oi, texto) => onChange({ ...pergunta, opcoes: pergunta.opcoes.map((o, j) => (j === oi ? { ...o, text: texto } : o)) });
+  const marcarCorreta = (oi) => onChange({ ...pergunta, opcoes: pergunta.opcoes.map((o, j) => ({ ...o, isCorrect: j === oi })) });
+
+  return (
+    <div className="border border-slate-200 rounded-lg p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <input
+          value={pergunta.question}
+          onChange={(e) => atualizarPergunta(e.target.value)}
+          placeholder={`Pergunta ${indice + 1}`}
+          className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+        />
+        <button type="button" onClick={onRemover} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+      </div>
+      <p className="text-[10.5px] text-slate-400 mb-1.5 ml-1">Exatamente 4 alternativas — marque a certa</p>
+      <div className="flex flex-col gap-1.5 pl-1">
+        {pergunta.opcoes.map((o, oi) => (
+          <div key={oi} className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-slate-400 w-4 shrink-0">{String.fromCharCode(65 + oi)}</span>
+            <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(oi)} className="accent-[#2563EB] shrink-0" />
+            <input
+              value={o.text}
+              onChange={(e) => atualizarOpcaoTexto(oi, e.target.value)}
+              placeholder={`Alternativa ${String.fromCharCode(65 + oi)}`}
+              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function novaPerguntaVazia() {
+  return { question: '', opcoes: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }] };
+}
+
 function NovoModuloModal({ onClose, onSaved }) {
+  const [tipo, setTipo] = useState('video'); // 'video' | 'avaliacao'
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [video, setVideo] = useState(null);
@@ -113,12 +158,11 @@ function NovoModuloModal({ onClose, onSaved }) {
   const [progresso, setProgresso] = useState(0);
   const [error, setError] = useState('');
 
-  // Destinatários: se ninguém for marcado, o módulo fica aberto pra todo mundo
+  // Destinatários: se ninguém for marcado, o treinamento fica aberto pra todo mundo
   const [users, setUsers] = useState([]);
   const [userIds, setUserIds] = useState([]);
   const [filtroPessoa, setFiltroPessoa] = useState('');
 
-  // Perguntas da prova, já cadastradas junto na criação do módulo
   const [perguntas, setPerguntas] = useState([]);
 
   useEffect(() => {
@@ -130,22 +174,18 @@ function NovoModuloModal({ onClose, onSaved }) {
     (u) => !userIds.includes(u.id) && u.name.toLowerCase().includes(filtroPessoa.toLowerCase())
   );
 
-  const adicionarPergunta = () => {
-    setPerguntas((prev) => [...prev, { question: '', opcoes: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
-  };
+  const marcarTodos = () => setUserIds(users.map((u) => u.id));
+
+  const adicionarPergunta = () => setPerguntas((prev) => [...prev, novaPerguntaVazia()]);
   const removerPergunta = (i) => setPerguntas((prev) => prev.filter((_, idx) => idx !== i));
-  const atualizarPergunta = (i, texto) => setPerguntas((prev) => prev.map((p, idx) => (idx === i ? { ...p, question: texto } : p)));
-  const adicionarOpcao = (pi) => setPerguntas((prev) => prev.map((p, idx) => (idx === pi ? { ...p, opcoes: [...p.opcoes, { text: '', isCorrect: false }] } : p)));
-  const removerOpcao = (pi, oi) => setPerguntas((prev) => prev.map((p, idx) => (idx === pi ? { ...p, opcoes: p.opcoes.filter((_, j) => j !== oi) } : p)));
-  const atualizarOpcaoTexto = (pi, oi, texto) => setPerguntas((prev) => prev.map((p, idx) => (idx === pi ? { ...p, opcoes: p.opcoes.map((o, j) => (j === oi ? { ...o, text: texto } : o)) } : p)));
-  const marcarCorreta = (pi, oi) => setPerguntas((prev) => prev.map((p, idx) => (idx === pi ? { ...p, opcoes: p.opcoes.map((o, j) => ({ ...o, isCorrect: j === oi })) } : p)));
+  const atualizarPergunta = (i, nova) => setPerguntas((prev) => prev.map((p, idx) => (idx === i ? nova : p)));
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!video) { setError('Escolha o arquivo de vídeo.'); return; }
+    if (tipo === 'video' && !video) { setError('Escolha o arquivo de vídeo (ou mude o tipo pra Avaliação).'); return; }
     for (const p of perguntas) {
       if (!p.question.trim() || p.opcoes.some((o) => !o.text.trim())) {
-        setError('Preencha o texto de todas as perguntas e alternativas (ou apague as que não vai usar).');
+        setError('Preencha o texto de todas as perguntas e das 4 alternativas.');
         return;
       }
     }
@@ -155,20 +195,18 @@ function NovoModuloModal({ onClose, onSaved }) {
       const form = new FormData();
       form.append('title', title);
       form.append('description', description);
-      form.append('video', video);
+      form.append('tipo', tipo);
+      if (video) form.append('video', video);
       form.append('userIds', JSON.stringify(userIds));
       form.append('perguntas', JSON.stringify(perguntas));
       await api.post('/trilha/modulos', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        // Vídeo grande demora pra subir de verdade — sem isso, herdava o
-        // limite de 15s do resto do sistema e sempre dava erro de "demorou
-        // demais", mesmo o envio estando indo bem, só que devagar.
-        timeout: 0,
-        onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / evt.total)),
+        timeout: 0, // vídeo grande demora — sem isso, herdava o limite de 15s do resto do sistema
+        onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / (evt.total || 1))),
       });
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.error || 'Não deu pra criar o módulo. Vídeos muito grandes podem falhar — tente um arquivo menor.');
+      setError(err.response?.data?.error || 'Não deu pra criar o treinamento. Vídeos muito grandes podem falhar — tente um arquivo menor.');
     } finally {
       setSaving(false);
     }
@@ -176,25 +214,52 @@ function NovoModuloModal({ onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl w-[460px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-xl w-[480px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Novo módulo</h3>
+          <h3 className="text-slate-800 font-semibold text-base">NOVO TREINAMENTO</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Tipo de treinamento</label>
+          <div className="flex gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setTipo('video')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'video' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: '#E2E8F0', color: '#64748B' }}
+            >
+              <PlayCircle size={14} /> Vídeo
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo('avaliacao')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'avaliacao' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: '#E2E8F0', color: '#64748B' }}
+            >
+              <FileQuestion size={14} /> Avaliação/Prova
+            </button>
+          </div>
+
           <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" required />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Descrição (opcional)</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
 
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Vídeo</label>
-          <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] || null)} className="w-full text-[13px] mb-1" required />
-          <p className="text-[11px] text-slate-400 mb-4">Vídeos grandes podem demorar pra subir — não feche essa janela enquanto envia.</p>
+          {tipo === 'video' && (
+            <>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Vídeo</label>
+              <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] || null)} className="w-full text-[13px] mb-1" required={tipo === 'video'} />
+              <p className="text-[11px] text-slate-400 mb-4">Vídeos grandes podem demorar pra subir — não feche essa janela enquanto envia.</p>
+            </>
+          )}
 
-          <label className="text-xs font-medium text-slate-500 mb-1 block">
-            Quem vai receber (deixe em branco pra liberar pra todo mundo)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-medium text-slate-500 block">
+              Quem vai receber (em branco = todo mundo)
+            </label>
+            <button type="button" onClick={marcarTodos} className="text-[11.5px] font-medium" style={{ color: NAVY }}>Marcar todos</button>
+          </div>
           {pessoasEscolhidas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {pessoasEscolhidas.map((u) => (
@@ -208,7 +273,7 @@ function NovoModuloModal({ onClose, onSaved }) {
           <input
             value={filtroPessoa}
             onChange={(e) => setFiltroPessoa(e.target.value)}
-            placeholder="Buscar pessoa pra adicionar..."
+            placeholder="Buscar pessoa, equipe..."
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
           {filtroPessoa && (
@@ -229,42 +294,15 @@ function NovoModuloModal({ onClose, onSaved }) {
           {!filtroPessoa && <div className="mb-4" />}
 
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova (opcional)</label>
+            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova (opcional, 4 alternativas cada)</label>
             <button type="button" onClick={adicionarPergunta} className="text-[12px] font-medium" style={{ color: NAVY }}>+ Adicionar pergunta</button>
           </div>
           {perguntas.length === 0 && (
-            <p className="text-[11.5px] text-slate-400 mb-3">Sem pergunta cadastrada, o módulo libera direto depois do vídeo.</p>
+            <p className="text-[11.5px] text-slate-400 mb-3">Sem pergunta cadastrada, o treinamento conclui direto.</p>
           )}
           <div className="flex flex-col gap-3 mb-2">
             {perguntas.map((p, pi) => (
-              <div key={pi} className="border border-slate-200 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    value={p.question}
-                    onChange={(e) => atualizarPergunta(pi, e.target.value)}
-                    placeholder={`Pergunta ${pi + 1}`}
-                    className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-                  />
-                  <button type="button" onClick={() => removerPergunta(pi)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
-                </div>
-                <div className="flex flex-col gap-1.5 pl-1">
-                  {p.opcoes.map((o, oi) => (
-                    <div key={oi} className="flex items-center gap-2">
-                      <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(pi, oi)} className="accent-[#2563EB] shrink-0" />
-                      <input
-                        value={o.text}
-                        onChange={(e) => atualizarOpcaoTexto(pi, oi, e.target.value)}
-                        placeholder={`Alternativa ${oi + 1}`}
-                        className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-                      />
-                      {p.opcoes.length > 2 && (
-                        <button type="button" onClick={() => removerOpcao(pi, oi)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={13} /></button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => adicionarOpcao(pi)} className="text-[11.5px] font-medium mt-1.5 ml-1" style={{ color: NAVY }}>+ Adicionar alternativa</button>
-              </div>
+              <PerguntaBuilder key={pi} pergunta={p} indice={pi} onChange={(nova) => atualizarPergunta(pi, nova)} onRemover={() => removerPergunta(pi)} />
             ))}
           </div>
 
@@ -276,7 +314,7 @@ function NovoModuloModal({ onClose, onSaved }) {
           {error && <div className="text-red-500 text-xs mb-3 mt-2">{error}</div>}
 
           <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mt-2" style={{ background: NAVY }}>
-            {saving ? `Enviando... ${progresso}%` : 'Criar módulo'}
+            {saving ? `Enviando... ${progresso}%` : 'Criar treinamento'}
           </button>
         </form>
       </div>
@@ -303,9 +341,9 @@ function PerguntasModulo({ modulo, onVoltar }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <button onClick={onVoltar} className="text-[12.5px] font-medium mb-4" style={{ color: NAVY }}>← Voltar pros módulos</button>
+      <button onClick={onVoltar} className="text-[12.5px] font-medium mb-4" style={{ color: NAVY }}>← Voltar pros treinamentos</button>
       <div className="text-[15px] font-semibold text-slate-800 mb-1">{modulo.title}</div>
-      <div className="text-[12.5px] text-slate-500 mb-4">Perguntas da prova desse módulo</div>
+      <div className="text-[12.5px] text-slate-500 mb-4">Perguntas da prova desse treinamento (25% cada, 4 alternativas)</div>
 
       <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg mb-4" style={{ background: NAVY }}>
         <Plus size={15} /> Nova pergunta
@@ -314,7 +352,7 @@ function PerguntasModulo({ modulo, onVoltar }) {
       {loading ? (
         <p className="text-sm text-slate-400">Carregando...</p>
       ) : perguntas.length === 0 ? (
-        <p className="text-sm text-slate-400">Nenhuma pergunta cadastrada ainda — sem prova, o módulo libera direto depois do vídeo.</p>
+        <p className="text-sm text-slate-400">Nenhuma pergunta cadastrada ainda — sem prova, o treinamento conclui direto.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {perguntas.map((p, i) => (
@@ -324,8 +362,9 @@ function PerguntasModulo({ modulo, onVoltar }) {
                 <button onClick={() => apagar(p.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
               </div>
               <div className="flex flex-col gap-1">
-                {p.opcoes.map((o) => (
+                {p.opcoes.map((o, oi) => (
                   <div key={o.id} className="flex items-center gap-2 text-[12.5px]" style={{ color: o.is_correct ? '#16A34A' : '#475569' }}>
+                    <span className="text-[10px] font-semibold text-slate-400 w-3">{String.fromCharCode(65 + oi)}</span>
                     {o.is_correct ? <CheckCircle2 size={13} /> : <Circle size={13} className="text-slate-300" />}
                     {o.text}
                   </div>
@@ -342,27 +381,20 @@ function PerguntasModulo({ modulo, onVoltar }) {
 }
 
 function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
-  const [question, setQuestion] = useState('');
-  const [opcoes, setOpcoes] = useState([{ text: '', isCorrect: true }, { text: '', isCorrect: false }]);
+  const [pergunta, setPergunta] = useState(novaPerguntaVazia());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const atualizarOpcao = (i, campo, valor) => {
-    setOpcoes((prev) => prev.map((o, idx) => (idx === i ? { ...o, [campo]: valor } : o)));
-  };
-  const marcarCorreta = (i) => {
-    setOpcoes((prev) => prev.map((o, idx) => ({ ...o, isCorrect: idx === i })));
-  };
-  const adicionarOpcao = () => setOpcoes((prev) => [...prev, { text: '', isCorrect: false }]);
-  const removerOpcao = (i) => setOpcoes((prev) => prev.filter((_, idx) => idx !== i));
-
   const submit = async (e) => {
     e.preventDefault();
-    if (opcoes.some((o) => !o.text.trim())) { setError('Preencha o texto de todas as alternativas.'); return; }
+    if (!pergunta.question.trim() || pergunta.opcoes.some((o) => !o.text.trim())) {
+      setError('Preencha a pergunta e as 4 alternativas.');
+      return;
+    }
     setError('');
     setSaving(true);
     try {
-      await api.post(`/trilha/modulos/${moduloId}/perguntas`, { question, opcoes });
+      await api.post(`/trilha/modulos/${moduloId}/perguntas`, pergunta);
       onSaved();
     } catch (err) {
       setError(err.response?.data?.error || 'Não deu pra salvar a pergunta.');
@@ -379,31 +411,9 @@ function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Pergunta</label>
-          <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" required />
-
-          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Alternativas (marque a certa)</label>
-          <div className="flex flex-col gap-2 mb-2">
-            {opcoes.map((o, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(i)} className="accent-[#2563EB] shrink-0" />
-                <input
-                  value={o.text}
-                  onChange={(e) => atualizarOpcao(i, 'text', e.target.value)}
-                  placeholder={`Alternativa ${i + 1}`}
-                  className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-                />
-                {opcoes.length > 2 && (
-                  <button type="button" onClick={() => removerOpcao(i)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14} /></button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={adicionarOpcao} className="text-[12px] font-medium mb-4" style={{ color: NAVY }}>+ Adicionar alternativa</button>
-
-          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
-
-          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+          <PerguntaBuilder pergunta={pergunta} indice={0} onChange={setPergunta} onRemover={onClose} />
+          {error && <div className="text-red-500 text-xs mb-3 mt-3">{error}</div>}
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mt-3" style={{ background: NAVY }}>
             {saving ? 'Salvando...' : 'Salvar pergunta'}
           </button>
         </form>
@@ -414,61 +424,93 @@ function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
 
 function AbaAcompanhamento() {
   const [dados, setDados] = useState(null);
+  const [moduloSelecionado, setModuloSelecionado] = useState(null); // id ou null (visão geral)
 
   useEffect(() => {
     api.get('/trilha/admin/progresso').then(({ data }) => setDados(data));
   }, []);
 
   if (!dados) return <p className="text-sm text-slate-400">Carregando...</p>;
-  if (dados.modulos.length === 0) return <p className="text-sm text-slate-400">Crie um módulo primeiro pra ter o que acompanhar.</p>;
+  if (dados.modulos.length === 0) return <p className="text-sm text-slate-400">Crie um treinamento primeiro pra ter o que acompanhar.</p>;
+
+  if (moduloSelecionado) {
+    const modulo = dados.modulos.find((m) => m.id === moduloSelecionado);
+    const resumo = dados.resumoModulos.find((r) => r.moduloId === moduloSelecionado);
+    const linhasDoModulo = dados.linhas
+      .map((l) => ({ pessoa: l.pessoa, dado: l.modulos[dados.modulos.findIndex((m) => m.id === moduloSelecionado)] }))
+      .filter((l) => l.dado !== null);
+
+    return (
+      <div className="max-w-3xl mx-auto">
+        <button onClick={() => setModuloSelecionado(null)} className="text-[12.5px] font-medium mb-4" style={{ color: NAVY }}>← Voltar pra visão geral</button>
+        <div className="text-[16px] font-bold text-slate-800 mb-1 uppercase">TREINAMENTO: {modulo.title}</div>
+        <div className="flex gap-4 text-[12px] text-slate-500 mb-4">
+          <span>{resumo.concluidos} de {resumo.totalPessoas} concluíram ({resumo.percentualConclusao}%)</span>
+          {resumo.mediaNota != null && <span>Média: {resumo.mediaNota}%</span>}
+        </div>
+        <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: '#E4E8EE' }}>
+          <table className="w-full text-[12.5px]">
+            <thead>
+              <tr className="border-b" style={{ borderColor: '#E4E8EE' }}>
+                <th className="text-left font-semibold text-slate-500 px-4 py-3">Colaborador</th>
+                <th className="text-center font-semibold text-slate-500 px-3 py-3">Status</th>
+                <th className="text-center font-semibold text-slate-500 px-3 py-3">Data conclusão</th>
+                <th className="text-center font-semibold text-slate-500 px-3 py-3">Nota</th>
+                <th className="text-center font-semibold text-slate-500 px-3 py-3">Certas</th>
+                <th className="text-center font-semibold text-slate-500 px-3 py-3">Erradas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhasDoModulo.map(({ pessoa, dado }) => (
+                <tr key={pessoa.id} className="border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
+                  <td className="px-4 py-2.5 font-medium text-slate-700">{pessoa.name}</td>
+                  <td className="text-center px-3 py-2.5">
+                    {dado.concluido ? (
+                      <span className="text-[11px] font-semibold text-emerald-600">Concluído</span>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-slate-400">Não concluído</span>
+                    )}
+                  </td>
+                  <td className="text-center px-3 py-2.5 text-slate-500">
+                    {dado.concluidoEm ? new Date(dado.concluidoEm).toLocaleString('pt-BR') : '—'}
+                  </td>
+                  <td className="text-center px-3 py-2.5 font-semibold" style={{ color: dado.nota == null ? '#94A3B8' : dado.nota === 100 ? '#16A34A' : dado.nota >= 50 ? '#EA4E1B' : '#DC2626' }}>
+                    {dado.nota != null ? `${dado.nota}%` : '—'}
+                  </td>
+                  <td className="text-center px-3 py-2.5 text-emerald-600">{dado.acertos}</td>
+                  <td className="text-center px-3 py-2.5 text-red-500">{dado.erros}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: '#E4E8EE' }}>
-      <table className="w-full text-[12.5px]">
-        <thead>
-          <tr className="border-b" style={{ borderColor: '#E4E8EE' }}>
-            <th className="text-left font-semibold text-slate-500 px-4 py-3 sticky left-0 bg-white">Pessoa</th>
-            {dados.modulos.map((m) => (
-              <th key={m.id} className="text-center font-semibold text-slate-500 px-3 py-3 whitespace-nowrap max-w-[160px] truncate" title={m.title}>{m.title}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {dados.linhas.map((linha) => (
-            <tr key={linha.pessoa.id} className="border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
-              <td className="px-4 py-2.5 sticky left-0 bg-white">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: linha.pessoa.color || NAVY }}>
-                    {linha.pessoa.avatar_url ? <img src={fileUrl(linha.pessoa.avatar_url)} alt="" className="w-full h-full object-cover" /> : linha.pessoa.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
-                  </div>
-                  <span className="font-medium text-slate-700 whitespace-nowrap">{linha.pessoa.name}</span>
-                </div>
-              </td>
-              {linha.modulos.map((m, i) => (
-                <td key={i} className="text-center px-3 py-2.5">
-                  {m === null ? (
-                    <span className="text-slate-300">—</span>
-                  ) : m.passou ? (
-                    <div className="flex flex-col items-center">
-                      <CheckCircle2 size={16} className="text-emerald-500" />
-                      <span className="text-[10px] text-emerald-600 font-semibold mt-0.5">{m.ultima_nota}%</span>
-                    </div>
-                  ) : m.video_assistido ? (
-                    <span className="text-[11px] text-amber-600 font-medium">Na prova</span>
-                  ) : m.tentativas > 0 ? (
-                    <div className="flex flex-col items-center">
-                      <XCircle size={16} className="text-red-400" />
-                      <span className="text-[10px] text-red-500 font-semibold mt-0.5">{m.ultima_nota}%</span>
-                    </div>
-                  ) : (
-                    <Circle size={14} className="mx-auto text-slate-300" />
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="max-w-2xl mx-auto flex flex-col gap-3">
+      {dados.modulos.map((m, i) => {
+        const resumo = dados.resumoModulos.find((r) => r.moduloId === m.id);
+        return (
+          <button
+            key={m.id}
+            onClick={() => setModuloSelecionado(m.id)}
+            className="bg-white rounded-xl border p-4 text-left hover:border-[#2563EB] transition-colors"
+            style={{ borderColor: '#E4E8EE' }}
+          >
+            <div className="text-[11px] font-semibold text-slate-400">TREINAMENTO {i + 1}</div>
+            <div className="text-[14px] font-semibold text-slate-800 mb-2">{m.title}</div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full" style={{ width: `${resumo.percentualConclusao}%`, background: NAVY }} />
+              </div>
+              <span className="text-[11.5px] text-slate-500 shrink-0">{resumo.concluidos}/{resumo.totalPessoas} concluíram</span>
+              {resumo.mediaNota != null && <span className="text-[11.5px] font-semibold shrink-0" style={{ color: NAVY }}>Média {resumo.mediaNota}%</span>}
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
