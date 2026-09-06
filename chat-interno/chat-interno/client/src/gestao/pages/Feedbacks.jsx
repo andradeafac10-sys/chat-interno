@@ -7,6 +7,7 @@ import { api, fileUrl } from '../../api';
 const NAVY = '#2563EB';
 
 export default function Feedbacks() {
+  const [aba, setAba] = useState('lista'); // 'lista' | 'ranking'
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
@@ -70,6 +71,27 @@ export default function Feedbacks() {
         </button>
       </div>
 
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
+        <button
+          onClick={() => setAba('lista')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+          style={{ background: aba === 'lista' ? '#081328' : '#F1F5F9', color: aba === 'lista' ? '#fff' : '#64748B' }}
+        >
+          Feedbacks
+        </button>
+        <button
+          onClick={() => setAba('ranking')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+          style={{ background: aba === 'ranking' ? '#081328' : '#F1F5F9', color: aba === 'ranking' ? '#fff' : '#64748B' }}
+        >
+          Ranking
+        </button>
+      </div>
+
+      {aba === 'ranking' ? (
+        <RankingFeedbacks />
+      ) : (
+      <>
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
         {[
           { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: '#fff' },
@@ -168,11 +190,15 @@ export default function Feedbacks() {
       {showForm && (
         <NewFeedbackModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
       )}
+      </>
+      )}
     </div>
   );
 }
 
 function NewFeedbackModal({ onClose, onSaved }) {
+  const [etapa, setEtapa] = useState('form'); // 'form' | 'perguntar' | 'agendar'
+  const [feedbackCriadoId, setFeedbackCriadoId] = useState(null);
   const [users, setUsers] = useState([]);
   const [userIds, setUserIds] = useState([]);
   const [filtroPessoa, setFiltroPessoa] = useState('');
@@ -205,14 +231,41 @@ function NewFeedbackModal({ onClose, onSaved }) {
       form.append('content', content);
       form.append('userIds', JSON.stringify(userIds));
       if (attachment) form.append('attachment', attachment);
-      await api.post('/feedbacks', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      onSaved();
+      const { data } = await api.post('/feedbacks', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setFeedbackCriadoId(data.feedbackId);
+      setEtapa('perguntar');
     } catch (err) {
       setError(err.response?.data?.error || 'Não deu pra registrar o feedback.');
     } finally {
       setSaving(false);
     }
   };
+
+  if (etapa === 'perguntar') {
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl w-[360px] p-5 text-center">
+          <h3 className="text-slate-800 font-semibold text-base mb-2">Feedback registrado!</h3>
+          <p className="text-[13.5px] text-slate-600 mb-5">Cadastrar novo feedback?</p>
+          <div className="flex gap-2">
+            <button onClick={onSaved} className="flex-1 rounded-lg py-2.5 text-sm font-medium border border-slate-200 text-slate-600">Não</button>
+            <button onClick={() => setEtapa('agendar')} className="flex-1 rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: NAVY }}>Sim</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (etapa === 'agendar') {
+    return (
+      <AgendarProximoModal
+        feedbackAnteriorId={feedbackCriadoId}
+        colaboradores={pessoasEscolhidas}
+        onClose={onSaved}
+        onSaved={onSaved}
+      />
+    );
+  }
 
   return (
     // Sem fechar ao clicar fora: só pelo X ou registrando o feedback — pra não
@@ -308,6 +361,140 @@ function NewFeedbackModal({ onClose, onSaved }) {
             {saving ? 'Salvando...' : `Registrar feedback${userIds.length > 1 ? ` (${userIds.length} pessoas)` : ''}`}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function AgendarProximoModal({ feedbackAnteriorId, colaboradores, onClose, onSaved }) {
+  const [colaboradorId, setColaboradorId] = useState(colaboradores[0]?.id || null);
+  const [users, setUsers] = useState([]);
+  const [responsavelId, setResponsavelId] = useState(null);
+  const [dataPrevista, setDataPrevista] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/users/manage').then(({ data }) => {
+      setUsers(data.users);
+      const admins = data.users.filter((u) => u.role === 'admin');
+      if (admins[0]) setResponsavelId(admins[0].id);
+    });
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!colaboradorId || !responsavelId || !dataPrevista || !motivo.trim()) {
+      setError('Preencha colaborador, responsável, data e motivo.');
+      return;
+    }
+    setError('');
+    setSaving(true);
+    try {
+      await api.post('/feedbacks/agendar-proximo', {
+        feedbackAnteriorId, colaboradorId, responsavelId,
+        dataPrevista: new Date(dataPrevista).toISOString(),
+        motivo, observacao,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Não deu pra agendar o próximo feedback.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-[400px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Agendar próximo feedback</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Colaborador</label>
+          <select value={colaboradorId || ''} onChange={(e) => setColaboradorId(Number(e.target.value))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3">
+            {colaboradores.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Responsável por aplicar</label>
+          <select value={responsavelId || ''} onChange={(e) => setResponsavelId(Number(e.target.value))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3">
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Data prevista</label>
+          <input type="datetime-local" value={dataPrevista} onChange={(e) => setDataPrevista(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Motivo/assunto</label>
+          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Observação (opcional)</label>
+          <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none" />
+
+          <p className="text-[11px] text-slate-400 mb-3">Isso vai criar uma tarefa automaticamente na rotina do responsável, com a data marcada.</p>
+
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
+
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+            {saving ? 'Salvando...' : 'Agendar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RankingFeedbacks() {
+  const [ranking, setRanking] = useState(null);
+  const [periodo, setPeriodo] = useState('30'); // dias, ou 'tudo'
+
+  useEffect(() => {
+    const params = {};
+    if (periodo !== 'tudo') {
+      const ate = new Date();
+      const de = new Date();
+      de.setDate(de.getDate() - Number(periodo));
+      params.de = de.toISOString().slice(0, 10);
+      params.ate = ate.toISOString().slice(0, 10);
+    }
+    api.get('/feedbacks/ranking', { params }).then(({ data }) => setRanking(data.ranking));
+  }, [periodo]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6" style={{ background: '#F7F9FB' }}>
+      <div className="max-w-xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-[13px] font-semibold text-slate-700">Quem mais recebeu feedback</div>
+          <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px]">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="tudo">Desde sempre</option>
+          </select>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Filtro por supervisor/coordenador/equipe ainda não disponível — o sistema não tem esses papéis cadastrados hoje.
+        </p>
+        {ranking === null ? (
+          <p className="text-sm text-slate-400">Carregando...</p>
+        ) : ranking.length === 0 ? (
+          <p className="text-sm text-slate-400">Nenhum feedback nesse período.</p>
+        ) : (
+          <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#E4E8EE' }}>
+            {ranking.map((r, i) => (
+              <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
+                <span className="text-[12px] font-bold text-slate-400 w-5">{i + 1}º</span>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden shrink-0" style={{ background: r.color || NAVY }}>
+                  {r.avatar_url ? <img src={fileUrl(r.avatar_url)} alt="" className="w-full h-full object-cover" /> : r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+                </div>
+                <span className="text-[13px] font-medium text-slate-700 flex-1">{r.name}</span>
+                <span className="text-[13px] font-bold" style={{ color: NAVY }}>{r.total}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
