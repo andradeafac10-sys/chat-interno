@@ -121,11 +121,11 @@ export default function MinhaRotina() {
                     <div
                       style={{
                         ...styles.checkVisual,
-                        background: item.done ? '#16a34a' : '#fff',
+                        background: item.done ? '#16a34a' : 'var(--pagina-cartao)',
                         borderColor: item.done ? '#16a34a' : '#d1d5db',
                       }}
                     >
-                      {item.done && <span style={{ color: '#fff', fontSize: 13 }}>✓</span>}
+                      {item.done && <span style={{ color: 'var(--pagina-cartao)', fontSize: 13 }}>✓</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                       <div style={{ ...styles.itemTexto, textDecoration: item.done ? 'line-through' : 'none' }}>
@@ -155,7 +155,7 @@ export default function MinhaRotina() {
                         <div
                           style={{
                             ...styles.semanaBolinha,
-                            background: pct === null ? '#E4E8EE' : pct === 100 ? '#16a34a' : pct > 0 ? '#f59e0b' : '#dc2626',
+                            background: pct === null ? 'var(--pagina-borda)' : pct === 100 ? '#16a34a' : pct > 0 ? '#f59e0b' : '#dc2626',
                           }}
                         >
                           {pct === null ? '' : `${pct}%`}
@@ -303,7 +303,7 @@ function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
               // na tela, pra pessoa poder corrigir/rever sem precisar abrir de novo.
               if (marcandoComoFeito) onClose();
             }}
-            style={{ ...styles.botaoFinalizar, background: item.done ? '#6b7280' : '#16a34a' }}
+            style={{ ...styles.botaoFinalizar, background: item.done ? 'var(--pagina-texto-2)' : '#16a34a' }}
           >
             {item.done ? 'Desmarcar' : '✓ Marcar como finalizado'}
           </button>
@@ -315,37 +315,37 @@ function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
 }
 
 const styles = {
-  hint: { color: '#6b7280', fontSize: 14, marginTop: 20 },
+  hint: { color: 'var(--pagina-texto-2)', fontSize: 14, marginTop: 20 },
   hintPequeno: { color: '#9ca3af', fontSize: 11, marginTop: 2 },
   error: { color: '#ef4444', fontSize: 14, marginTop: 20 },
   abasRow: { display: 'flex', gap: 8, marginTop: 20, marginBottom: 4 },
   aba: { border: 'none', borderRadius: 16, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
-  abaAtiva: { background: NAVY, color: '#fff' },
-  abaInativa: { background: '#fff', color: '#667085', border: '1px solid #E4E8EE' },
+  abaAtiva: { background: NAVY, color: 'var(--pagina-cartao)' },
+  abaInativa: { background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-2)', border: '1px solid #E4E8EE' },
   painelEstat: {
-    marginTop: 20, background: '#fff', border: '1px solid #E4E8EE', borderRadius: 12, padding: 18,
+    marginTop: 20, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE', borderRadius: 12, padding: 18,
     display: 'flex', alignItems: 'center', gap: 20,
   },
   estatGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 },
-  estatNumero: { fontSize: 22, fontWeight: 700, color: '#111827' },
-  estatLabel: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  estatNumero: { fontSize: 22, fontWeight: 700, color: 'var(--pagina-texto-1)' },
+  estatLabel: { fontSize: 11, color: 'var(--pagina-texto-2)', marginTop: 2 },
   lista: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 },
   item: {
-    display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #E4E8EE',
+    display: 'flex', alignItems: 'center', gap: 12, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE',
     borderRadius: 10, padding: '12px 14px', cursor: 'pointer', width: '100%', textAlign: 'left',
   },
   checkVisual: {
     width: 24, height: 24, borderRadius: '50%', border: '2px solid #d1d5db', flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  itemTexto: { fontSize: 14, color: '#111827', fontWeight: 500 },
-  itemMeta: { display: 'flex', gap: 10, fontSize: 12, color: '#6b7280', marginTop: 3 },
+  itemTexto: { fontSize: 14, color: 'var(--pagina-texto-1)', fontWeight: 500 },
+  itemMeta: { display: 'flex', gap: 10, fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 3 },
   semanaTitulo: { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 },
   semanaRow: { display: 'flex', gap: 8 },
   semanaDia: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
   semanaLetra: { fontSize: 11, color: '#9ca3af' },
   semanaBolinha: {
-    width: 40, height: 40, borderRadius: '50%', color: '#fff', fontSize: 10, fontWeight: 700,
+    width: 40, height: 40, borderRadius: '50%', color: 'var(--pagina-cartao)', fontSize: 10, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   overlay: {
@@ -353,15 +353,15 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
   },
   modal: {
-    background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420,
+    background: 'var(--pagina-cartao)', borderRadius: 14, width: '100%', maxWidth: 420,
     maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
   },
   modalHeader: { padding: '18px 24px 0' },
   prioridadeBadge: { fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999 },
-  modalTitulo: { fontSize: 19, fontWeight: 700, color: '#111827', margin: '10px 0 6px' },
+  modalTitulo: { fontSize: 19, fontWeight: 700, color: 'var(--pagina-texto-1)', margin: '10px 0 6px' },
   modalDescricao: { fontSize: 13.5, color: '#4b5563', lineHeight: 1.5, margin: '0 0 8px' },
-  modalHorario: { fontSize: 13, color: '#6b7280', margin: '0 0 16px' },
-  modalLabel: { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 6, marginTop: 14 },
+  modalHorario: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: '0 0 16px' },
+  modalLabel: { fontSize: 12, fontWeight: 600, color: 'var(--pagina-texto-2)', display: 'block', marginBottom: 6, marginTop: 14 },
   modalTextarea: {
     width: '100%', border: '1px solid #E4E8EE', borderRadius: 8, padding: '8px 10px',
     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
@@ -375,11 +375,11 @@ const styles = {
     fontSize: 13, color: NAVY, fontWeight: 600, textDecoration: 'none',
   },
   botaoFinalizar: {
-    width: '100%', border: 'none', borderRadius: 10, padding: '13px', color: '#fff',
+    width: '100%', border: 'none', borderRadius: 10, padding: '13px', color: 'var(--pagina-cartao)',
     fontSize: 14.5, fontWeight: 700, cursor: 'pointer', marginTop: 22,
   },
   fecharBtn: {
-    width: '100%', border: 'none', background: 'none', color: '#6b7280',
+    width: '100%', border: 'none', background: 'none', color: 'var(--pagina-texto-2)',
     fontSize: 13, cursor: 'pointer', marginTop: 10, padding: 8,
   },
 };
