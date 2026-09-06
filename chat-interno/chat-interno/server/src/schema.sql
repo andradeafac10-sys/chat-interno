@@ -356,3 +356,52 @@ CREATE TABLE IF NOT EXISTS trilha_progresso (
   PRIMARY KEY (user_id, modulo_id)
 );
 CREATE INDEX IF NOT EXISTS idx_trilha_progresso_user ON trilha_progresso(user_id);
+ALTER TABLE trilha_progresso ADD COLUMN IF NOT EXISTS ultima_nota INTEGER;
+
+-- "video" (tem vídeo + prova) ou "avaliacao" (só prova, sem vídeo)
+ALTER TABLE trilha_modulos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'video' CHECK (tipo IN ('video', 'avaliacao'));
+ALTER TABLE trilha_modulos ALTER COLUMN video_url DROP NOT NULL; -- avaliação não tem vídeo
+
+-- Se um treinamento não tiver ninguém aqui, é visível pra todo mundo. Se tiver,
+-- só quem está listado (+ qualquer ADM, pra poder conferir) enxerga.
+CREATE TABLE IF NOT EXISTS trilha_modulo_destinatarios (
+  modulo_id INTEGER NOT NULL REFERENCES trilha_modulos(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (modulo_id, user_id)
+);
+
+-- Cada pergunta vale 25% (assumindo as 4 obrigatórias). No máximo 2 tentativas
+-- POR PERGUNTA — depois disso, o resultado daquela pergunta é definitivo.
+CREATE TABLE IF NOT EXISTS trilha_pergunta_tentativas (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  pergunta_id INTEGER NOT NULL REFERENCES trilha_perguntas(id) ON DELETE CASCADE,
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  acertou BOOLEAN NOT NULL DEFAULT false,
+  finalizada BOOLEAN NOT NULL DEFAULT false, -- true quando já não pode mais tentar essa pergunta
+  PRIMARY KEY (user_id, pergunta_id)
+);
+
+-- Anotação livre do colaborador sobre um treinamento — uma por pessoa por
+-- treinamento, editável, continua disponível mesmo depois de concluído.
+CREATE TABLE IF NOT EXISTS trilha_anotacoes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  modulo_id INTEGER NOT NULL REFERENCES trilha_modulos(id) ON DELETE CASCADE,
+  texto TEXT NOT NULL DEFAULT '',
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, modulo_id)
+);
+
+-- Próximo feedback agendado, vinculado ao anterior. A tarefa criada junto
+-- (na tabela tasks) é o que faz ele aparecer na rotina do responsável.
+CREATE TABLE IF NOT EXISTS feedback_agendamentos (
+  id SERIAL PRIMARY KEY,
+  feedback_anterior_id INTEGER REFERENCES feedbacks(id) ON DELETE SET NULL,
+  colaborador_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  responsavel_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+  data_prevista TIMESTAMPTZ NOT NULL,
+  motivo TEXT NOT NULL,
+  observacao TEXT,
+  criado_por INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
