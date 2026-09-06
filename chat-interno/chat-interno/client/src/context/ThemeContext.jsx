@@ -60,6 +60,11 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     localStorage.setItem("chatinterno_theme", theme);
     document.body.style.background = THEMES[theme].chatBg;
+    // Classe no <body> pra qualquer tela do sistema (Gestão, Feedbacks, Trilha,
+    // Usuários, Monitoria...) responder ao tema, não só o Chat em si — as
+    // variáveis CSS que essas telas usam (--pagina-fundo etc.) mudam sozinhas
+    // via index.css quando essa classe está presente.
+    document.body.classList.toggle("tema-escuro", theme === "dark");
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
