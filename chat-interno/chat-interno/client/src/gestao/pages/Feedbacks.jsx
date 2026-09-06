@@ -53,7 +53,7 @@ export default function Feedbacks() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader icon={MessageSquareText} title="Feedbacks" subtitle="Registre e acompanhe feedbacks dados à equipe" />
 
-      <div className="px-6 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: '#E4E8EE' }}>
+      <div className="px-6 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: 'var(--pagina-borda)' }}>
         <div className="relative flex-1 max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -72,18 +72,18 @@ export default function Feedbacks() {
         </button>
       </div>
 
-      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         <button
           onClick={() => setAba('lista')}
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
-          style={{ background: aba === 'lista' ? '#081328' : '#F1F5F9', color: aba === 'lista' ? '#fff' : '#64748B' }}
+          style={{ background: aba === 'lista' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'lista' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
           Feedbacks
         </button>
         <button
           onClick={() => setAba('ranking')}
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
-          style={{ background: aba === 'ranking' ? '#081328' : '#F1F5F9', color: aba === 'ranking' ? '#fff' : '#64748B' }}
+          style={{ background: aba === 'ranking' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'ranking' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
           Ranking
         </button>
@@ -93,9 +93,9 @@ export default function Feedbacks() {
         <RankingFeedbacks />
       ) : (
       <>
-      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
-          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: '#fff' },
+          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: 'var(--pagina-cartao)' },
           { key: 'assinados', label: `Assinados (${contagem.assinados})`, corBg: '#F0FDF4', corTexto: '#16A34A' },
           { key: 'pendentes', label: `Pendentes (${contagem.pendentes})`, corBg: '#FEF2F2', corTexto: '#DC2626' },
         ].map((op) => (
@@ -104,7 +104,7 @@ export default function Feedbacks() {
             onClick={() => setFiltroStatus(op.key)}
             className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
             style={{
-              background: filtroStatus === op.key ? op.corBg : '#F1F5F9',
+              background: filtroStatus === op.key ? op.corBg : 'var(--pagina-borda-suave)',
               color: filtroStatus === op.key ? op.corTexto : '#64748B',
             }}
           >
@@ -113,7 +113,7 @@ export default function Feedbacks() {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6" style={{ background: '#F7F9FB' }}>
+      <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
         {loading ? (
           <p className="text-sm text-slate-400">Carregando...</p>
         ) : filtrados.length === 0 ? (
@@ -129,7 +129,7 @@ export default function Feedbacks() {
                 ? f.recipients[0].name
                 : `${f.recipients[0]?.name || ''} + ${f.recipients.length - 1} pessoa${f.recipients.length - 1 > 1 ? 's' : ''}`;
               return (
-              <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#E4E8EE' }}>
+              <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
                 <button
                   onClick={() => setAbertoId(aberto ? null : f.id)}
                   className="w-full flex items-center gap-3 p-4 text-left"
@@ -148,7 +148,7 @@ export default function Feedbacks() {
                 </button>
 
                 {aberto && (
-                <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: '#F1F5F9' }}>
+                <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2 mt-3">
                   <span><b className="text-slate-500 font-semibold">Aplicador:</b> {f.created_by_name}</span>
                   <span className="text-slate-300">·</span>
@@ -167,7 +167,7 @@ export default function Feedbacks() {
                   </a>
                 )}
 
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#F1F5F9' }}>
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                   <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                     Operador{f.recipients.length > 1 ? "es" : ""}
                   </div>
@@ -482,7 +482,7 @@ function RankingFeedbacks() {
   }, [periodo]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-6" style={{ background: '#F7F9FB' }}>
+    <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
       <div className="max-w-xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="text-[13px] font-semibold text-slate-700">Quem mais recebeu feedback</div>
@@ -501,9 +501,9 @@ function RankingFeedbacks() {
         ) : ranking.length === 0 ? (
           <p className="text-sm text-slate-400">Nenhum feedback nesse período.</p>
         ) : (
-          <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#E4E8EE' }}>
+          <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
             {ranking.map((r, i) => (
-              <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
+              <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-0" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                 <span className="text-[12px] font-bold text-slate-400 w-5">{i + 1}º</span>
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden shrink-0" style={{ background: r.color || NAVY }}>
                   {r.avatar_url ? <img src={fileUrl(r.avatar_url)} alt="" className="w-full h-full object-cover" /> : r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
