@@ -13,7 +13,7 @@ export default function Trilha() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Treinamentos com vídeo e/ou avaliação" />
 
-      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: '#E4E8EE' }}>
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
           { key: 'conteudo', label: 'Conteúdo' },
           { key: 'acompanhamento', label: 'Acompanhamento' },
@@ -22,14 +22,14 @@ export default function Trilha() {
             key={op.key}
             onClick={() => setAba(op.key)}
             className="text-[12px] font-semibold rounded-full px-3.5 py-1.5 mb-3"
-            style={{ background: aba === op.key ? NAVY : '#F1F5F9', color: aba === op.key ? '#fff' : '#64748B' }}
+            style={{ background: aba === op.key ? NAVY : 'var(--pagina-borda-suave)', color: aba === op.key ? 'var(--pagina-cartao)' : '#64748B' }}
           >
             {op.label}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6" style={{ background: '#F7F9FB' }}>
+      <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
         {aba === 'conteudo' ? <AbaConteudo /> : <AbaAcompanhamento />}
       </div>
     </div>
@@ -75,7 +75,7 @@ function AbaConteudo() {
       ) : (
         <div className="flex flex-col gap-3">
           {modulos.map((m, i) => (
-            <div key={m.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#E4E8EE' }}>
+            <div key={m.id} className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
@@ -378,7 +378,7 @@ function PerguntasModulo({ modulo, onVoltar }) {
       ) : (
         <div className="flex flex-col gap-3">
           {perguntas.map((p, i) => (
-            <div key={p.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#E4E8EE' }}>
+            <div key={p.id} className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="text-[13.5px] font-medium text-slate-800">{i + 1}. {p.question}</div>
                 <button onClick={() => apagar(p.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
@@ -470,10 +470,10 @@ function AbaAcompanhamento() {
           <span>{resumo.concluidos} de {resumo.totalPessoas} concluíram ({resumo.percentualConclusao}%)</span>
           {resumo.mediaNota != null && <span>Média: {resumo.mediaNota}%</span>}
         </div>
-        <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: '#E4E8EE' }}>
+        <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: 'var(--pagina-borda)' }}>
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr className="border-b" style={{ borderColor: '#E4E8EE' }}>
+              <tr className="border-b" style={{ borderColor: 'var(--pagina-borda)' }}>
                 <th className="text-left font-semibold text-slate-500 px-4 py-3">Colaborador</th>
                 <th className="text-center font-semibold text-slate-500 px-3 py-3">Status</th>
                 <th className="text-center font-semibold text-slate-500 px-3 py-3">Data conclusão</th>
@@ -484,7 +484,7 @@ function AbaAcompanhamento() {
             </thead>
             <tbody>
               {linhasDoModulo.map(({ pessoa, dado }) => (
-                <tr key={pessoa.id} className="border-b last:border-0" style={{ borderColor: '#F1F5F9' }}>
+                <tr key={pessoa.id} className="border-b last:border-0" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                   <td className="px-4 py-2.5 font-medium text-slate-700">{pessoa.name}</td>
                   <td className="text-center px-3 py-2.5">
                     {dado.concluido ? (
@@ -519,7 +519,7 @@ function AbaAcompanhamento() {
             key={m.id}
             onClick={() => setModuloSelecionado(m.id)}
             className="bg-white rounded-xl border p-4 text-left hover:border-[#2563EB] transition-colors"
-            style={{ borderColor: '#E4E8EE' }}
+            style={{ borderColor: 'var(--pagina-borda)' }}
           >
             <div className="text-[11px] font-semibold text-slate-400">TREINAMENTO {i + 1}</div>
             <div className="text-[14px] font-semibold text-slate-800 mb-2">{m.title}</div>
