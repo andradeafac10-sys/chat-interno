@@ -454,6 +454,7 @@ export default function Chat() {
         <TreinamentoPendenteBanner onVerTreinamentos={() => navigate("/?view=trilha")} />
       )}
       <div className="flex-1 flex overflow-hidden">
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Sidebar
         conversations={conversations}
         activeConvId={activeConvId}
@@ -472,6 +473,7 @@ export default function Chat() {
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
         escondidoNoMobile={!!activeConv}
       />
+      )}
       {showUsers ? (
         <UsersPage onBack={() => setShowUsers(false)} />
       ) : showTrilha ? (
