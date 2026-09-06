@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Lock, CheckCircle2, PlayCircle, Circle } from "lucide-react";
+import { ArrowLeft, Lock, CheckCircle2, PlayCircle, FileQuestion, Play, Pause, Volume2, VolumeX, StickyNote, X } from "lucide-react";
 import { api, fileUrl } from "../api";
 
 export default function TrilhaConhecimento({ onBack }) {
@@ -16,8 +16,8 @@ export default function TrilhaConhecimento({ onBack }) {
     return (
       <ModuloView
         moduloId={moduloAberto}
-        onVoltar={() => { setModuloAberto(null); carregar(); }}
-        onConcluido={() => { setModuloAberto(null); carregar(); }}
+        onVoltar={() => { setModuloAberto(null); carregar(); window.dispatchEvent(new Event("rotina:atualizada")); }}
+        onConcluido={() => { setModuloAberto(null); carregar(); window.dispatchEvent(new Event("rotina:atualizada")); }}
       />
     );
   }
@@ -33,10 +33,11 @@ export default function TrilhaConhecimento({ onBack }) {
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           {modulos === null && <p className="text-sm text-slate-400">Carregando...</p>}
           {modulos?.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-16">Nenhum módulo publicado ainda.</p>
+            <p className="text-sm text-slate-400 text-center py-16">Nenhum treinamento publicado ainda.</p>
           )}
           {modulos?.map((m, i) => {
-            const status = m.progresso.passou ? "concluido" : m.bloqueado ? "bloqueado" : "disponivel";
+            const status = m.progresso.concluido_em ? "concluido" : m.bloqueado ? "bloqueado" : "disponivel";
+            const IconeTipo = m.tipo === "avaliacao" ? FileQuestion : PlayCircle;
             return (
               <button
                 key={m.id}
@@ -47,18 +48,19 @@ export default function TrilhaConhecimento({ onBack }) {
               >
                 <div className="shrink-0">
                   {status === "concluido" && <CheckCircle2 size={26} color="#16A34A" />}
-                  {status === "disponivel" && <PlayCircle size={26} color="#2563EB" />}
+                  {status === "disponivel" && <IconeTipo size={26} color="#2563EB" />}
                   {status === "bloqueado" && <Lock size={22} color="#94A3B8" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold text-slate-500">Módulo {i + 1}</div>
+                  <div className="text-[13px] font-semibold text-slate-500">
+                    Treinamento {i + 1} · {m.tipo === "avaliacao" ? "Avaliação" : "Vídeo"}
+                  </div>
                   <div className="text-[14.5px] font-semibold text-slate-800">{m.title}</div>
                   {m.description && <div className="text-[12.5px] text-slate-500 mt-0.5">{m.description}</div>}
-                  {status === "bloqueado" && <div className="text-[11.5px] text-slate-400 mt-1">Termine o módulo anterior pra liberar</div>}
-                  {status === "concluido" && <div className="text-[11.5px] text-emerald-600 font-medium mt-1">Concluído</div>}
-                  {m.progresso.tentativas > 0 && !m.progresso.passou && status !== "bloqueado" && (
-                    <div className="text-[11.5px] text-amber-600 font-medium mt-1">
-                      {m.progresso.tentativas} tentativa{m.progresso.tentativas > 1 ? "s" : ""} — precisa assistir de novo
+                  {status === "bloqueado" && <div className="text-[11.5px] text-slate-400 mt-1">Termine o treinamento anterior pra liberar</div>}
+                  {status === "concluido" && (
+                    <div className="text-[11.5px] text-emerald-600 font-medium mt-1">
+                      Concluído {m.progresso.ultima_nota != null ? `— nota ${m.progresso.ultima_nota}%` : ""}
                     </div>
                   )}
                 </div>
@@ -71,44 +73,23 @@ export default function TrilhaConhecimento({ onBack }) {
   );
 }
 
-// Tela de um módulo: vídeo (sem poder adiantar) e, quando termina, a prova.
+// Tela de um treinamento: vídeo (se tiver, sem poder adiantar/voltar) e a
+// prova, pergunta por pergunta (2 tentativas cada, alternativas embaralhadas).
 function ModuloView({ moduloId, onVoltar, onConcluido }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
   const [videoTerminou, setVideoTerminou] = useState(false);
-  const videoRef = useRef(null);
-  const maxTimeRef = useRef(0);
+  const [mostrarAnotacao, setMostrarAnotacao] = useState(false);
 
-  useEffect(() => {
+  const carregar = () => {
     api.get(`/trilha/modulos/${moduloId}`)
       .then(({ data }) => {
         setDados(data);
-        setVideoTerminou(!!data.progresso.video_assistido);
-        maxTimeRef.current = 0;
+        setVideoTerminou(data.modulo.tipo === "avaliacao" || !!data.progresso.video_assistido);
       })
-      .catch((err) => setErro(err.response?.data?.error || "Não deu pra abrir esse módulo."));
-  }, [moduloId]);
-
-  const onTimeUpdate = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.currentTime > maxTimeRef.current) maxTimeRef.current = v.currentTime;
+      .catch((err) => setErro(err.response?.data?.error || "Não deu pra abrir esse treinamento."));
   };
-
-  // O pulo do gato do "não pode adiantar": se a pessoa arrastar a barra pra
-  // frente do que já assistiu de verdade, volta pro ponto máximo já visto.
-  const onSeeking = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.currentTime > maxTimeRef.current + 0.5) {
-      v.currentTime = maxTimeRef.current;
-    }
-  };
-
-  const onEnded = () => {
-    setVideoTerminou(true);
-    api.post(`/trilha/modulos/${moduloId}/video-assistido`).catch(() => {});
-  };
+  useEffect(() => { carregar(); }, [moduloId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (erro) {
     return (
@@ -124,121 +105,305 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
     <div className="flex-1 flex flex-col" style={{ background: "#F7F9FB" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-200 bg-white shrink-0">
         <button onClick={onVoltar} className="text-slate-500 hover:text-slate-700"><ArrowLeft size={20} /></button>
-        <div className="text-slate-800 text-sm font-semibold truncate">{dados.modulo.title}</div>
+        <div className="text-slate-800 text-sm font-semibold truncate flex-1">{dados.modulo.title}</div>
+        <button
+          onClick={() => setMostrarAnotacao(true)}
+          className="flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-[#2563EB] shrink-0"
+        >
+          <StickyNote size={16} /> Anotação
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto">
           {dados.modulo.description && <p className="text-[13px] text-slate-600 mb-3">{dados.modulo.description}</p>}
 
-          <div className="bg-black rounded-xl overflow-hidden mb-2">
-            <video
-              ref={videoRef}
-              src={fileUrl(dados.modulo.video_url)}
-              controls
-              controlsList="nodownload noplaybackrate"
-              onContextMenu={(e) => e.preventDefault()}
-              onTimeUpdate={onTimeUpdate}
-              onSeeking={onSeeking}
-              onEnded={onEnded}
-              className="w-full max-h-[60vh]"
-              // Se já assistiu antes (voltou aqui de novo), libera arrastar à
-              // vontade — a trava é só pra impedir pular no primeiro watch.
-              key={videoTerminou ? "livre" : "travado"}
-              onLoadedMetadata={() => { if (videoTerminou) maxTimeRef.current = 999999; }}
+          {dados.modulo.tipo === "video" && (
+            <VideoPlayer
+              videoUrl={dados.modulo.video_url}
+              jaAssistiu={!!dados.progresso.video_assistido}
+              onTerminou={() => {
+                setVideoTerminou(true);
+                api.post(`/trilha/modulos/${moduloId}/video-assistido`).catch(() => {});
+              }}
             />
-          </div>
-          {!videoTerminou && (
-            <p className="text-[11.5px] text-slate-400 mb-6">Não dá pra adiantar o vídeo — assista até o fim pra liberar a prova.</p>
+          )}
+          {dados.modulo.tipo === "video" && !videoTerminou && (
+            <p className="text-[11.5px] text-slate-400 mb-6">Não dá pra adiantar nem voltar o vídeo — assista até o fim pra liberar a prova.</p>
           )}
 
           {videoTerminou && dados.perguntas.length > 0 && (
-            <Prova moduloId={moduloId} perguntas={dados.perguntas} onConcluido={onConcluido} onReprovou={() => setVideoTerminou(false)} />
+            <Prova moduloId={moduloId} perguntasIniciais={dados.perguntas} onConcluido={onConcluido} />
           )}
           {videoTerminou && dados.perguntas.length === 0 && (
-            <p className="text-[13px] text-slate-500 mt-6">Esse módulo ainda não tem prova cadastrada.</p>
+            <div className="bg-white rounded-xl border p-5 text-center" style={{ borderColor: "#E4E8EE" }}>
+              <p className="text-[13px] text-slate-500 mb-3">Esse treinamento ainda não tem prova cadastrada.</p>
+              <button
+                onClick={async () => { await api.post(`/trilha/modulos/${moduloId}/concluir`); onConcluido(); }}
+                className="rounded-lg py-2 px-5 text-sm font-semibold text-white"
+                style={{ background: "#2563EB" }}
+              >
+                Marcar como concluído
+              </button>
+            </div>
           )}
         </div>
+      </div>
+
+      {mostrarAnotacao && <AnotacaoModal moduloId={moduloId} onClose={() => setMostrarAnotacao(false)} />}
+    </div>
+  );
+}
+
+function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
+  const [tocando, setTocando] = useState(false);
+  const [mudo, setMudo] = useState(false);
+  const [tempoAtual, setTempoAtual] = useState(0);
+  const [duracao, setDuracao] = useState(0);
+  const videoRef = useRef(null);
+
+  // Trava total: não dá pra arrastar a barra nem pra frente nem pra trás — a
+  // única forma de garantir isso é não ter barra clicável nenhuma, só os
+  // nossos botões (o navegador sempre desenha uma barra arrastável junto do
+  // "controls" nativo, mesmo escondendo pedaços dela).
+  const onSeeking = () => {
+    const v = videoRef.current;
+    if (!v || jaAssistiu) return; // já assistiu antes: libera arrastar à vontade
+    if (Math.abs(v.currentTime - tempoAtual) > 0.5) v.currentTime = tempoAtual;
+  };
+
+  const alternarPlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setTocando(true); } else { v.pause(); setTocando(false); }
+  };
+
+  const fmt = (s) => {
+    if (!Number.isFinite(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="bg-black rounded-xl overflow-hidden mb-2">
+      <video
+        ref={videoRef}
+        src={fileUrl(videoUrl)}
+        controlsList="nodownload noplaybackrate"
+        onContextMenu={(e) => e.preventDefault()}
+        onClick={alternarPlay}
+        onTimeUpdate={(e) => setTempoAtual(e.target.currentTime)}
+        onSeeking={onSeeking}
+        onEnded={() => { setTocando(false); onTerminou(); }}
+        onLoadedMetadata={(e) => setDuracao(e.target.duration)}
+        className="w-full max-h-[60vh] cursor-pointer"
+      />
+      <div className="flex items-center gap-3 px-3 py-2" style={{ background: "#111827" }}>
+        <button onClick={alternarPlay} className="text-white shrink-0">
+          {tocando ? <Pause size={18} /> : <Play size={18} />}
+        </button>
+        <div className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
+          <div className="h-full bg-white" style={{ width: duracao ? `${(tempoAtual / duracao) * 100}%` : "0%" }} />
+        </div>
+        <span className="text-[11px] text-white/70 shrink-0 font-mono">{fmt(tempoAtual)} / {fmt(duracao)}</span>
+        <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setMudo(v.muted); } }} className="text-white shrink-0">
+          {mudo ? <VolumeX size={16} /> : <Volume2 size={16} />}
+        </button>
       </div>
     </div>
   );
 }
 
-function Prova({ moduloId, perguntas, onConcluido, onReprovou }) {
-  const [respostas, setRespostas] = useState({});
-  const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState(null); // { passou, acertos, total }
+// Embaralha um array sem alterar o original (usado pra reembaralhar as 4
+// alternativas antes da 2ª tentativa)
+function embaralhar(lista) {
+  return [...lista].sort(() => Math.random() - 0.5);
+}
 
-  const todasRespondidas = perguntas.every((p) => respostas[p.id] != null);
+function Prova({ moduloId, perguntasIniciais, onConcluido }) {
+  const [indice, setIndice] = useState(0);
+  const [perguntas, setPerguntas] = useState(perguntasIniciais);
+  const [opcaoSelecionada, setOpcaoSelecionada] = useState(null);
+  const [respondendo, setRespondendo] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { correto, finalizada }
+  const [resultadoFinal, setResultadoFinal] = useState(null);
+  const [concluindo, setConcluindo] = useState(false);
 
-  const enviar = async () => {
-    setEnviando(true);
+  const perguntaAtual = perguntas[indice];
+  const jaFinalizada = perguntaAtual?.minhaTentativa?.finalizada;
+
+  const responder = async () => {
+    if (opcaoSelecionada == null) return;
+    setRespondendo(true);
     try {
-      const { data } = await api.post(`/trilha/modulos/${moduloId}/responder`, { respostas });
-      setResultado(data);
-      if (!data.passou) onReprovou();
+      const { data } = await api.post(`/trilha/perguntas/${perguntaAtual.id}/responder`, { opcaoId: opcaoSelecionada });
+      setFeedback(data);
+      setPerguntas((prev) => prev.map((p, i) => (i === indice ? { ...p, minhaTentativa: { tentativas: data.tentativas, acertou: data.correto, finalizada: data.finalizada } } : p)));
     } catch (err) {
-      alert(err.response?.data?.error || "Não deu pra enviar a prova.");
+      alert(err.response?.data?.error || "Não deu pra enviar a resposta.");
     } finally {
-      setEnviando(false);
+      setRespondendo(false);
     }
   };
 
-  if (resultado) {
+  const proxima = () => {
+    if (indice + 1 < perguntas.length) {
+      setIndice((i) => i + 1);
+      setOpcaoSelecionada(null);
+      setFeedback(null);
+    } else {
+      concluirTreinamento();
+    }
+  };
+
+  const tentarDeNovo = () => {
+    // Reembaralha as alternativas antes da 2ª tentativa
+    setPerguntas((prev) => prev.map((p, i) => (i === indice ? { ...p, opcoes: embaralhar(p.opcoes) } : p)));
+    setOpcaoSelecionada(null);
+    setFeedback(null);
+  };
+
+  const concluirTreinamento = async () => {
+    setConcluindo(true);
+    try {
+      const { data } = await api.post(`/trilha/modulos/${moduloId}/concluir`);
+      setResultadoFinal(data);
+    } catch (err) {
+      alert(err.response?.data?.error || "Não deu pra concluir o treinamento.");
+    } finally {
+      setConcluindo(false);
+    }
+  };
+
+  if (resultadoFinal) {
     return (
-      <div className="bg-white rounded-xl border p-5 text-center" style={{ borderColor: resultado.passou ? "#86EFAC" : "#FCA5A5" }}>
-        {resultado.passou ? (
-          <>
-            <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
-            <div className="text-[15px] font-semibold text-slate-800">Parabéns, você passou!</div>
-            <div className="text-[12.5px] text-slate-500 mt-1">Acertou {resultado.acertos} de {resultado.total}</div>
-            <button onClick={onConcluido} className="mt-4 rounded-lg py-2 px-5 text-sm font-semibold text-white" style={{ background: "#2563EB" }}>
-              Continuar
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-[15px] font-semibold text-red-600">Não foi dessa vez</div>
-            <div className="text-[12.5px] text-slate-500 mt-1">Acertou {resultado.acertos} de {resultado.total} — precisa acertar todas</div>
-            <p className="text-[12px] text-slate-500 mt-2">Assista o vídeo de novo pra tentar outra vez.</p>
-          </>
-        )}
+      <div className="bg-white rounded-xl border p-5 text-center" style={{ borderColor: "#E4E8EE" }}>
+        <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
+        <div className="text-[15px] font-semibold text-slate-800">Treinamento concluído!</div>
+        <div className="text-[13px] text-slate-600 mt-1">
+          Nota final: <b>{resultadoFinal.nota}%</b> ({resultadoFinal.acertos} certas, {resultadoFinal.erros} erradas)
+        </div>
+        <button onClick={onConcluido} className="mt-4 rounded-lg py-2 px-5 text-sm font-semibold text-white" style={{ background: "#2563EB" }}>
+          Continuar
+        </button>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#E4E8EE" }}>
-      <div className="text-[14px] font-semibold text-slate-800 mb-4">Prova do módulo</div>
-      <div className="flex flex-col gap-5">
-        {perguntas.map((p, i) => (
-          <div key={p.id}>
-            <div className="text-[13.5px] font-medium text-slate-800 mb-2">{i + 1}. {p.question}</div>
-            <div className="flex flex-col gap-1.5">
-              {p.opcoes.map((o) => (
-                <label key={o.id} className="flex items-center gap-2 text-[13px] text-slate-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`pergunta-${p.id}`}
-                    checked={respostas[p.id] === o.id}
-                    onChange={() => setRespostas((prev) => ({ ...prev, [p.id]: o.id }))}
-                    className="accent-[#2563EB]"
-                  />
-                  {o.text}
-                </label>
-              ))}
-            </div>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[14px] font-semibold text-slate-800">Prova do treinamento</div>
+        <div className="text-[12px] text-slate-400">Pergunta {indice + 1} de {perguntas.length} · vale 25%</div>
+      </div>
+
+      <div className="text-[13.5px] font-medium text-slate-800 mb-3">{perguntaAtual.question}</div>
+      <div className="flex flex-col gap-2 mb-4">
+        {perguntaAtual.opcoes.map((o) => (
+          <label
+            key={o.id}
+            className="flex items-center gap-2 text-[13px] text-slate-700 border rounded-lg px-3 py-2 cursor-pointer"
+            style={{
+              borderColor: opcaoSelecionada === o.id ? "#2563EB" : "#E2E8F0",
+              background: opcaoSelecionada === o.id ? "#EFF4FF" : "white",
+              opacity: feedback ? 0.7 : 1,
+              pointerEvents: feedback ? "none" : "auto",
+            }}
+          >
+            <input
+              type="radio"
+              name={`pergunta-${perguntaAtual.id}`}
+              checked={opcaoSelecionada === o.id}
+              onChange={() => setOpcaoSelecionada(o.id)}
+              className="accent-[#2563EB]"
+            />
+            {o.text}
+          </label>
         ))}
       </div>
-      <button
-        onClick={enviar}
-        disabled={!todasRespondidas || enviando}
-        className="w-full mt-5 rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
-        style={{ background: "#2563EB" }}
-      >
-        {enviando ? "Enviando..." : "Enviar prova"}
-      </button>
+
+      {feedback && (
+        <div
+          className="rounded-lg p-3 mb-4 text-[13px] font-medium"
+          style={feedback.correto ? { background: "#F0FDF4", color: "#16A34A" } : { background: "#FEF2F2", color: "#DC2626" }}
+        >
+          {feedback.correto
+            ? "Certa resposta! ✓"
+            : feedback.finalizada
+              ? "Errou nas duas tentativas — essa pergunta já ficou definida."
+              : "Resposta errada. Você ainda tem mais uma tentativa nessa pergunta."}
+        </div>
+      )}
+
+      {!feedback && (
+        <button
+          onClick={responder}
+          disabled={opcaoSelecionada == null || respondendo}
+          className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+          style={{ background: "#2563EB" }}
+        >
+          {respondendo ? "Enviando..." : "Responder"}
+        </button>
+      )}
+      {feedback && !feedback.finalizada && (
+        <button onClick={tentarDeNovo} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: "#EA4E1B" }}>
+          Tentar de novo
+        </button>
+      )}
+      {feedback && feedback.finalizada && (
+        <button onClick={proxima} disabled={concluindo} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40" style={{ background: "#2563EB" }}>
+          {concluindo ? "Enviando..." : indice + 1 < perguntas.length ? "Próxima pergunta" : "Concluir treinamento"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AnotacaoModal({ moduloId, onClose }) {
+  const [texto, setTexto] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    api.get(`/trilha/modulos/${moduloId}/anotacao`).then(({ data }) => { setTexto(data.texto); setCarregando(false); });
+  }, [moduloId]);
+
+  const salvar = async () => {
+    setSalvando(true);
+    try {
+      await api.put(`/trilha/modulos/${moduloId}/anotacao`, { texto });
+      onClose();
+    } catch {
+      alert("Não deu pra salvar a anotação agora.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl w-[420px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-slate-800 font-semibold text-base flex items-center gap-2"><StickyNote size={17} /> Anotação</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        <p className="text-[11.5px] text-slate-400 mb-2">Só você vê isso. Fica salvo mesmo depois de concluir o treinamento.</p>
+        {carregando ? (
+          <p className="text-[13px] text-slate-400">Carregando...</p>
+        ) : (
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            rows={6}
+            placeholder="Escreva livremente suas observações sobre esse treinamento..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-3"
+          />
+        )}
+        <button onClick={salvar} disabled={salvando || carregando} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: "#2563EB" }}>
+          {salvando ? "Salvando..." : "Salvar anotação"}
+        </button>
+      </div>
     </div>
   );
 }
