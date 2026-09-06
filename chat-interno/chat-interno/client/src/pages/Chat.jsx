@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import LeftNav from "../components/LeftNav";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
-import FeedbacksModal from "../components/FeedbacksModal";
+import FeedbacksPage from "./FeedbacksPage";
 import TrilhaConhecimento from "./TrilhaConhecimento";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
@@ -33,6 +35,8 @@ const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [pendingConversation, setPendingConversation] = useState(null); // conversa aberta pelo painel de online, ainda sem mensagem
@@ -43,8 +47,6 @@ export default function Chat() {
   const [showTrilha, setShowTrilha] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
-  const [pendingFeedbackCount, setPendingFeedbackCount] = useState(0);
-  const [pendingRoutinesCount, setPendingRoutinesCount] = useState(0);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
@@ -71,28 +73,18 @@ export default function Chat() {
     pedirPermissaoNotificacao();
   }, []);
 
-  // Carrega quantos feedbacks eu ainda não confirmei, pra já mostrar a tarja
-  // vermelha desde o primeiro carregamento (sem precisar receber um novo primeiro)
+  // Lê a tela pedida pela URL (?view=...) — é assim que o LeftNav "navega" pra
+  // Feedbacks/Trilha/Usuários/Monitoria/Notificações sem precisar de rotas
+  // próprias pra cada uma (essas telas vivem como estado aqui dentro mesmo).
   useEffect(() => {
-    api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedbackCount(data.count)).catch(() => {});
-  }, []);
-
-  // Rotinas atrasadas — só ADM tem "Minha Rotina". Confere de novo a cada 60s
-  // (o atraso muda sozinho com o relógio, não só quando alguém faz algo) e
-  // também na hora, assim que a pessoa marca uma rotina como feita.
-  useEffect(() => {
-    if (user.role !== "admin") return;
-    const carregar = () => {
-      api.get("/gestao/recurrences/minhas/pendentes-count").then(({ data }) => setPendingRoutinesCount(data.count)).catch(() => {});
-    };
-    carregar();
-    const intervalo = setInterval(carregar, 60000);
-    window.addEventListener("rotina:atualizada", carregar);
-    return () => {
-      clearInterval(intervalo);
-      window.removeEventListener("rotina:atualizada", carregar);
-    };
-  }, [user.role]);
+    const params = new URLSearchParams(location.search);
+    const view = params.get("view");
+    setShowFeedbacks(view === "feedbacks");
+    setShowTrilha(view === "trilha");
+    setShowUsers(view === "users");
+    setShowMonitoring(view === "monitoring");
+    setShowAnnouncements(view === "notificacoes");
+  }, [location.search]);
 
   // Quando a pessoa clica na notificação do Windows, o service worker avisa
   // a página aqui pra abrir a conversa certa
@@ -352,10 +344,10 @@ export default function Chat() {
     };
 
     // Um ADM registrou um feedback novo pra mim — avisa na hora, igual tarefa nova.
+    // (o número da bolinha vermelha no menu quem atualiza sozinho é o LeftNav)
     const onFeedbackNovo = ({ titulo, corpo }) => {
       playNotificationSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
-      setPendingFeedbackCount((n) => n + 1);
     };
 
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
@@ -446,22 +438,16 @@ export default function Chat() {
   };
 
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
+  const unreadTotal = Object.values(unreadCounts).reduce((soma, n) => soma + (n || 0), 0);
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden" style={{ background: "#111B21" }}>
+    <div className="w-screen h-screen flex overflow-hidden" style={{ background: "#111B21" }}>
+      <LeftNav unreadTotal={unreadTotal} onOpenAccount={() => setShowAccount(true)} />
+      <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar
-        onOpenAccount={() => setShowAccount(true)}
-        onOpenAnnouncement={() => setShowAnnouncements(true)}
-        onOpenMonitoring={() => setShowMonitoring(true)}
-        onOpenUsers={() => setShowUsers(true)}
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
-        isOnline
-        pendingFeedbackCount={pendingFeedbackCount}
-        onOpenPendingFeedback={() => setShowFeedbacks(true)}
-        onOpenTrilha={() => setShowTrilha(true)}
-        pendingRoutinesCount={pendingRoutinesCount}
       />
       <div className="flex-1 flex overflow-hidden">
       <Sidebar
@@ -492,6 +478,8 @@ export default function Chat() {
         <MonitoringPage onBack={() => setShowMonitoring(false)} />
       ) : showAdminPanel ? (
         <AdminPanel onBack={() => setShowAdminPanel(false)} />
+      ) : showFeedbacks ? (
+        <FeedbacksPage />
       ) : (
         <>
           {activeConv ? (
@@ -531,12 +519,6 @@ export default function Chat() {
           onOpenMonitoring={() => setShowMonitoring(true)}
         />
       )}
-      {showFeedbacks && (
-        <FeedbacksModal
-          onClose={() => setShowFeedbacks(false)}
-          onFeedbackAcked={() => setPendingFeedbackCount((n) => Math.max(0, n - 1))}
-        />
-      )}
 
       {showHiddenGroups && (
         <HiddenGroupsModal
@@ -555,6 +537,7 @@ export default function Chat() {
       />
 
       <UpdateBanner />
+      </div>
     </div>
   );
 }
