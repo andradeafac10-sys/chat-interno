@@ -132,10 +132,13 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
             <p className="text-[11.5px] text-slate-400 mb-6">Não dá pra adiantar nem voltar o vídeo — assista até o fim pra liberar a prova.</p>
           )}
 
-          {videoTerminou && dados.perguntas.length > 0 && (
+          {videoTerminou && dados.progresso.concluido_em && (
+            <ResultadoFinal perguntas={dados.perguntas} nota={dados.progresso.ultima_nota} />
+          )}
+          {videoTerminou && !dados.progresso.concluido_em && dados.perguntas.length > 0 && (
             <Prova moduloId={moduloId} perguntasIniciais={dados.perguntas} onConcluido={onConcluido} />
           )}
-          {videoTerminou && dados.perguntas.length === 0 && (
+          {videoTerminou && !dados.progresso.concluido_em && dados.perguntas.length === 0 && (
             <div className="bg-white rounded-xl border p-5 text-center" style={{ borderColor: "#E4E8EE" }}>
               <p className="text-[13px] text-slate-500 mb-3">Esse treinamento ainda não tem prova cadastrada.</p>
               <button
@@ -219,6 +222,40 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
 // alternativas antes da 2ª tentativa)
 function embaralhar(lista) {
   return [...lista].sort(() => Math.random() - 0.5);
+}
+
+// Depois de concluído, a prova nunca mais pode ser refeita — só mostra o
+// resultado final que já ficou registrado. A pessoa ainda pode reassistir o
+// vídeo e mexer na anotação à vontade, só não responde as perguntas de novo.
+function ResultadoFinal({ perguntas, nota }) {
+  const acertos = perguntas.filter((p) => p.minhaTentativa?.acertou).length;
+  const erros = perguntas.length - acertos;
+
+  return (
+    <div className="bg-white rounded-xl border p-5" style={{ borderColor: "#E4E8EE" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <CheckCircle2 size={20} className="text-emerald-500" />
+        <div className="text-[14px] font-semibold text-slate-800">Treinamento já concluído</div>
+      </div>
+      <div className="text-[13px] text-slate-600 mb-4">
+        Nota final: <b>{nota}%</b> ({acertos} certas, {erros} erradas). Esse resultado é definitivo — a prova não pode ser refeita.
+      </div>
+      {perguntas.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {perguntas.map((p, i) => (
+            <div key={p.id} className="flex items-center gap-2 text-[12.5px] text-slate-600">
+              {p.minhaTentativa?.acertou ? (
+                <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              ) : (
+                <span className="w-3.5 h-3.5 rounded-full bg-red-400 shrink-0" />
+              )}
+              <span className="truncate">{i + 1}. {p.question}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Prova({ moduloId, perguntasIniciais, onConcluido }) {
