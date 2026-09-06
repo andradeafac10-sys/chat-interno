@@ -31,6 +31,7 @@ export default function TrilhaConhecimento({ onBack }) {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
+          {modulos?.length > 0 && <ResumoTrilha modulos={modulos} />}
           {modulos === null && <p className="text-sm text-slate-400">Carregando...</p>}
           {modulos?.length === 0 && (
             <p className="text-sm text-slate-400 text-center py-16">Nenhum treinamento publicado ainda.</p>
@@ -68,6 +69,38 @@ export default function TrilhaConhecimento({ onBack }) {
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Barra de resumo no topo da lista: quantos treinamentos já foram concluídos
+// e a nota média geral (só considerando os que já têm nota).
+function ResumoTrilha({ modulos }) {
+  const total = modulos.length;
+  const concluidos = modulos.filter((m) => m.progresso.concluido_em).length;
+  const notas = modulos.map((m) => m.progresso.ultima_nota).filter((n) => n != null);
+  const mediaGeral = notas.length > 0 ? Math.round(notas.reduce((a, b) => a + b, 0) / notas.length) : null;
+  const percentual = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+
+  return (
+    <div className="bg-white rounded-xl border p-4 mb-1" style={{ borderColor: "#E4E8EE" }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[12.5px] font-semibold text-slate-700">Seu progresso na trilha</span>
+        <span className="text-[12px] text-slate-500">{concluidos} de {total} treinamentos concluídos</span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-3">
+        <div className="h-full" style={{ width: `${percentual}%`, background: "#2563EB" }} />
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="text-[12px] text-slate-500">
+          <span className="font-semibold" style={{ color: "#2563EB" }}>{percentual}%</span> concluído
+        </div>
+        {mediaGeral != null && (
+          <div className="text-[12px] text-slate-500">
+            Nota média geral: <span className="font-semibold" style={{ color: mediaGeral === 100 ? "#16A34A" : mediaGeral >= 50 ? "#EA4E1B" : "#DC2626" }}>{mediaGeral}%</span>
+          </div>
+        )}
       </div>
     </div>
   );
