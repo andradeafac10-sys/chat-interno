@@ -117,10 +117,14 @@ router.get("/modulos/:id", requireAuth, async (req, res) => {
       }
     }
 
-    const { rows: perguntas } = await pool.query(
+    const { rows: perguntasOrdenadas } = await pool.query(
       `SELECT id, question, order_index FROM trilha_perguntas WHERE modulo_id = $1 ORDER BY order_index, id`,
       [modulo.id]
     );
+    // Embaralha também a ORDEM das perguntas (não só as alternativas) — cada
+    // vez que a pessoa abre o treinamento, a sequência das 6 perguntas vem
+    // diferente, além das 4 alternativas de cada uma.
+    const perguntas = [...perguntasOrdenadas].sort(() => Math.random() - 0.5);
     const { rows: opcoes } = await pool.query(
       `SELECT id, pergunta_id, text FROM trilha_opcoes WHERE pergunta_id = ANY($1::int[])`,
       [perguntas.map((p) => p.id)]
@@ -360,6 +364,10 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
     return res.status(400).json({ error: "Dados de destinatários ou perguntas inválidos." });
   }
   // Cada pergunta precisa ter exatamente 4 alternativas, com uma marcada como certa
+  if (perguntas.length > 6) {
+    if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
+    return res.status(400).json({ error: "No máximo 6 perguntas por treinamento." });
+  }
   for (const p of perguntas) {
     if (!p.question?.trim() || !Array.isArray(p.opcoes) || p.opcoes.length !== 4 || !p.opcoes.some((o) => o.isCorrect) || p.opcoes.some((o) => !o.text?.trim())) {
       if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
@@ -430,6 +438,10 @@ router.post("/modulos/:id/perguntas", requireAuth, requireAdmin, async (req, res
   const { question, opcoes } = req.body || {};
   if (!question?.trim() || !Array.isArray(opcoes) || opcoes.length !== 4 || !opcoes.some((o) => o.isCorrect) || opcoes.some((o) => !o.text?.trim())) {
     return res.status(400).json({ error: "Escreva a pergunta, as 4 alternativas e marque a correta." });
+  }
+  const { rows: contagemRows } = await pool.query(`SELECT COUNT(*)::int AS total FROM trilha_perguntas WHERE modulo_id = $1`, [req.params.id]);
+  if (contagemRows[0].total >= 6) {
+    return res.status(400).json({ error: "Esse treinamento já tem 6 perguntas — esse é o máximo permitido." });
   }
   const client = await pool.connect();
   try {
