@@ -73,3 +73,59 @@ export function startAlertLoop() {
     try { ctx?.close(); } catch (err) { /* ignora */ }
   };
 }
+
+// Som de feedback novo: três notas descendo, tom mais "quente" (dente de
+// serra suave), bem diferente do "pop" comum — pra dar pra reconhecer de
+// ouvido que é um feedback, sem nem olhar a tela.
+export function playFeedbackSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notas = [
+      { freq: 880, inicio: 0, duracao: 0.11 },
+      { freq: 698, inicio: 0.09, duracao: 0.11 },
+      { freq: 587, inicio: 0.18, duracao: 0.18 },
+    ];
+    notas.forEach(({ freq, inicio, duracao }) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(freq, ctx.currentTime + inicio);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + inicio);
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + inicio + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + inicio + duracao);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(ctx.currentTime + inicio);
+      o.stop(ctx.currentTime + inicio + duracao);
+    });
+  } catch (err) {
+    // navegador bloqueou áudio automático — sem problema, ignora
+  }
+}
+
+// Som de treinamento novo na Trilha do Conhecimento: duas notas subindo, tom
+// mais "de estudo/aula" (onda quadrada suave), diferente dos outros três.
+export function playTrilhaSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notas = [
+      { freq: 523, inicio: 0, duracao: 0.12 },
+      { freq: 784, inicio: 0.11, duracao: 0.2 },
+    ];
+    notas.forEach(({ freq, inicio, duracao }) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq, ctx.currentTime + inicio);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + inicio);
+      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + inicio + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + inicio + duracao);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(ctx.currentTime + inicio);
+      o.stop(ctx.currentTime + inicio + duracao);
+    });
+  } catch (err) {
+    // navegador bloqueou áudio automático — sem problema, ignora
+  }
+}
