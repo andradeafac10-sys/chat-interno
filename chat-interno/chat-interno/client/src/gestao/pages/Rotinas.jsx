@@ -27,6 +27,7 @@ export default function Rotinas() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [filtroNome, setFiltroNome] = useState('');
 
   async function load() {
     setLoading(true);
@@ -78,18 +79,41 @@ export default function Rotinas() {
     }
   }
 
+  // Ordena por horário (quem não tem horário cadastrado vai pro final, por
+  // ordem de título) e filtra por nome de responsável, se a pessoa buscou algo.
+  const recurrencesOrdenadasEFiltradas = [...recurrences]
+    .sort((a, b) => {
+      if (!a.start_time && !b.start_time) return a.title.localeCompare(b.title);
+      if (!a.start_time) return 1;
+      if (!b.start_time) return -1;
+      return a.start_time.localeCompare(b.start_time);
+    })
+    .filter((r) => {
+      const alvo = filtroNome.trim().toLowerCase();
+      if (!alvo) return true;
+      return (r.assignees || []).some((a) => a.name.toLowerCase().includes(alvo));
+    });
+
   return (
     <div>
       <PageHeader title="Rotinas" subtitle="Cadastro geral — o que se repete, pra quem e quando" />
 
       <div style={{ padding: '0 24px 32px' }}>
         <div style={styles.topRow}>
-          <button style={styles.deleteAllBtn} onClick={apagarTodas} disabled={recurrences.length === 0}>
-            Apagar todas
-          </button>
-          <button style={styles.newBtn} onClick={() => { setEditing(null); setShowForm(true); }}>
-            + Nova rotina
-          </button>
+          <input
+            value={filtroNome}
+            onChange={(e) => setFiltroNome(e.target.value)}
+            placeholder="Filtrar por pessoa (ver rotinas de alguém)..."
+            style={styles.filtroInput}
+          />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button style={styles.deleteAllBtn} onClick={apagarTodas} disabled={recurrences.length === 0}>
+              Apagar todas
+            </button>
+            <button style={styles.newBtn} onClick={() => { setEditing(null); setShowForm(true); }}>
+              + Nova rotina
+            </button>
+          </div>
         </div>
 
         <p style={styles.explicacao}>
@@ -103,9 +127,12 @@ export default function Rotinas() {
         {!loading && !error && recurrences.length === 0 && (
           <p style={styles.hint}>Nenhuma rotina cadastrada ainda.</p>
         )}
+        {!loading && !error && recurrences.length > 0 && recurrencesOrdenadasEFiltradas.length === 0 && (
+          <p style={styles.hint}>Nenhuma rotina encontrada com esse nome.</p>
+        )}
 
         <div style={styles.list}>
-          {recurrences.map((r) => (
+          {recurrencesOrdenadasEFiltradas.map((r) => (
             <div key={r.id} style={styles.card}>
               <div style={styles.cardTop}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: CORES_PRIORIDADE[r.priority] || CORES_PRIORIDADE.medium, flexShrink: 0 }} title={`Prioridade ${LABEL_PRIORIDADE[r.priority] || 'Média'}`} />
@@ -155,6 +182,10 @@ const styles = {
   topRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     marginTop: 20, marginBottom: 8, flexWrap: 'wrap', gap: 12,
+  },
+  filtroInput: {
+    border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 12px',
+    fontSize: 13, minWidth: 260, flex: '1 1 260px', maxWidth: 360,
   },
   newBtn: {
     background: NAVY, color: '#fff', border: 'none', borderRadius: 8,
