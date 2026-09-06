@@ -1,6 +1,6 @@
 // client/src/gestao/pages/Feedbacks.jsx
 import { useEffect, useState } from 'react';
-import { MessageSquareText, Plus, X, Search, Paperclip, Check } from 'lucide-react';
+import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
@@ -13,6 +13,7 @@ export default function Feedbacks() {
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos' | 'assinados' | 'pendentes'
   const [showForm, setShowForm] = useState(false);
+  const [abertoId, setAbertoId] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -122,18 +123,33 @@ export default function Feedbacks() {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
-            {filtrados.map((f) => (
-              <div key={f.id} className="bg-white rounded-xl border p-4" style={{ borderColor: '#E4E8EE' }}>
-                <div className="flex items-start justify-between gap-3 mb-1">
-                  <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
+            {filtrados.map((f) => {
+              const aberto = abertoId === f.id;
+              const resumoPessoas = f.recipients.length === 1
+                ? f.recipients[0].name
+                : `${f.recipients[0]?.name || ''} + ${f.recipients.length - 1} pessoa${f.recipients.length - 1 > 1 ? 's' : ''}`;
+              return (
+              <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#E4E8EE' }}>
+                <button
+                  onClick={() => setAbertoId(aberto ? null : f.id)}
+                  className="w-full flex items-center gap-3 p-4 text-left"
+                >
+                  {aberto ? <ChevronDown size={15} className="text-slate-400 shrink-0" /> : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] font-semibold text-slate-800 truncate">{f.title}</div>
+                    <div className="text-[11.5px] text-slate-500 truncate">{resumoPessoas}</div>
+                  </div>
                   <span
                     className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0"
                     style={estaAssinado(f) ? { background: '#F0FDF4', color: '#16A34A' } : { background: '#FEF2F2', color: '#DC2626' }}
                   >
                     {estaAssinado(f) ? 'Assinado' : 'Pendente'}
                   </span>
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2">
+                </button>
+
+                {aberto && (
+                <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: '#F1F5F9' }}>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2 mt-3">
                   <span><b className="text-slate-500 font-semibold">Aplicador:</b> {f.created_by_name}</span>
                   <span className="text-slate-300">·</span>
                   <span>{new Date(f.created_at).toLocaleDateString('pt-BR')}</span>
@@ -181,8 +197,11 @@ export default function Feedbacks() {
                   ))}
                   </div>
                 </div>
+                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
