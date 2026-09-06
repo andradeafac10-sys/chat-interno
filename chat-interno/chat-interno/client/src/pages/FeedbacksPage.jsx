@@ -43,7 +43,7 @@ export default function FeedbacksPage() {
         <div className="text-slate-800 text-sm font-semibold">Feedbacks</div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6" style={{ background: "#F7F9FB" }}>
+      <div className="flex-1 overflow-y-auto p-6" style={{ background: "var(--pagina-fundo)" }}>
         <div className="max-w-2xl mx-auto">
           {erro && <p className="text-[13px] text-red-500">{erro}</p>}
           {!erro && feedbacks === null && <p className="text-[13px] text-slate-400">Carregando...</p>}
