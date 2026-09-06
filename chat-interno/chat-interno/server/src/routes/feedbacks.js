@@ -120,7 +120,7 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
     const { rows } = await client.query(
       `INSERT INTO feedbacks (created_by, title, content, attachment_url, attachment_name)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [req.user.id, title.trim(), content.trim(), attachmentUrl, attachmentName]
+      [req.user.id, title.trim().toUpperCase(), content.trim(), attachmentUrl, attachmentName]
     );
     const feedbackId = rows[0].id;
 
@@ -146,6 +146,76 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
     await client.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ error: "Erro ao registrar o feedback." });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/feedbacks/ranking?de=&ate= -> quem mais recebeu feedback no período
+// (nota: esse sistema não tem conceito de "supervisor/coordenador/equipe"
+// cadastrado ainda, então o filtro disponível por enquanto é só por período)
+router.get("/ranking", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const params = [];
+    let filtroData = "";
+    if (req.query.de && req.query.ate) {
+      params.push(req.query.de, req.query.ate);
+      filtroData = `AND f.created_at::date BETWEEN $1 AND $2`;
+    }
+    const { rows } = await pool.query(
+      `SELECT u.id, u.name, u.avatar_url, u.color, COUNT(fr.feedback_id)::int AS total
+       FROM feedback_recipients fr
+       JOIN feedbacks f ON f.id = fr.feedback_id
+       JOIN users u ON u.id = fr.user_id
+       WHERE 1=1 ${filtroData}
+       GROUP BY u.id, u.name, u.avatar_url, u.color
+       ORDER BY total DESC, u.name`,
+      params
+    );
+    res.json({ ranking: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao montar o ranking." });
+  }
+});
+
+// POST /api/feedbacks/agendar-proximo -> agenda o próximo feedback de alguém,
+// vinculado ao anterior, e já cria uma tarefa pro responsável (é isso que faz
+// aparecer na rotina/tarefas dele)
+router.post("/agendar-proximo", requireAuth, requireAdmin, async (req, res) => {
+  const { feedbackAnteriorId, colaboradorId, responsavelId, dataPrevista, motivo, observacao } = req.body || {};
+  if (!colaboradorId || !responsavelId || !dataPrevista || !motivo?.trim()) {
+    return res.status(400).json({ error: "Preencha colaborador, responsável, data e motivo." });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: colabRows } = await client.query(`SELECT name FROM users WHERE id = $1`, [colaboradorId]);
+    const nomeColaborador = colabRows[0]?.name || "colaborador";
+
+    const { rows: taskRows } = await client.query(
+      `INSERT INTO tasks (title, description, priority, due_date, created_by, progress_type)
+       VALUES ($1, $2, 'medium', $3, $4, 'manual') RETURNING id`,
+      [`Feedback: ${motivo.trim()} — ${nomeColaborador}`, observacao?.trim() || null, dataPrevista, req.user.id]
+    );
+    const taskId = taskRows[0].id;
+    await client.query(`INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2)`, [taskId, responsavelId]);
+
+    const { rows } = await client.query(
+      `INSERT INTO feedback_agendamentos (feedback_anterior_id, colaborador_id, responsavel_id, task_id, data_prevista, motivo, observacao, criado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [feedbackAnteriorId || null, colaboradorId, responsavelId, taskId, dataPrevista, motivo.trim(), observacao?.trim() || null, req.user.id]
+    );
+    await client.query("COMMIT");
+
+    const io = req.app.get("io");
+    io.to(`user-${responsavelId}`).emit("gestao:notify", { titulo: "Nova tarefa de feedback", corpo: `Feedback com ${nomeColaborador}: ${motivo.trim()}` });
+
+    res.status(201).json({ id: rows[0].id });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Erro ao agendar o próximo feedback." });
   } finally {
     client.release();
   }
