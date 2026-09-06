@@ -13,7 +13,7 @@ export default function GestaoApp() {
   return (
     <div className="w-screen h-screen flex overflow-hidden">
       <LeftNav onOpenAccount={() => setShowAccount(true)} />
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "#F7F9FB" }}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--pagina-fundo)" }}>
         <Outlet />
       </div>
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
