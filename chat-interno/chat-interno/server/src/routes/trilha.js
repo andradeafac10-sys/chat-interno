@@ -411,6 +411,18 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
     }
 
     await client.query("COMMIT");
+
+    // Avisa na hora (som + notificação do sistema) quem já pode ver esse
+    // treinamento novo — pra destinatários específicos, manda só pra eles;
+    // se é pra todo mundo, avisa geral.
+    const io = req.app.get("io");
+    const aviso = { titulo: "Novo treinamento disponível", corpo: title.trim() };
+    if (userIds.length > 0) {
+      userIds.forEach((userId) => io.to(`user-${userId}`).emit("trilha:novo", aviso));
+    } else {
+      io.emit("trilha:novo", aviso);
+    }
+
     res.status(201).json({ id: moduloId });
   } catch (err) {
     await client.query("ROLLBACK");
