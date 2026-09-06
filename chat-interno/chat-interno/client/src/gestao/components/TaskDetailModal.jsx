@@ -305,7 +305,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
   },
   modal: {
-    background: '#fff', borderRadius: 12, width: '92%', maxWidth: 600,
+    background: 'var(--pagina-cartao)', borderRadius: 12, width: '92%', maxWidth: 600,
     maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
   },
   header: {
@@ -313,37 +313,37 @@ const styles = {
     padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
     borderRadius: '12px 12px 0 0',
   },
-  title: { margin: 0, color: '#fff', fontSize: 18 },
+  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 18 },
   badges: { display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' },
-  badge: { color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999 },
+  badge: { color: 'var(--pagina-cartao)', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999 },
   dueDate: { color: '#cbd5e1', fontSize: 12 },
-  closeBtn: { background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer' },
+  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
   body: { padding: 20 },
   description: { color: '#374151', fontSize: 14, marginTop: 0 },
   statusRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 },
   finalizarBtn: {
     width: '100%', border: 'none', borderRadius: 8, padding: '11px', background: '#16a34a',
-    color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 14,
+    color: 'var(--pagina-cartao)', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 14,
   },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
   statusSelect: { padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 },
   assignees: { fontSize: 13, color: '#374151', marginBottom: 10 },
-  progressBarOuter: { height: 8, background: '#E4E8EE', borderRadius: 999, marginBottom: 14, overflow: 'hidden' },
+  progressBarOuter: { height: 8, background: 'var(--pagina-borda)', borderRadius: 999, marginBottom: 14, overflow: 'hidden' },
   progressBarInner: { height: '100%', background: NAVY, transition: 'width .2s' },
   tabs: { display: 'flex', gap: 4, borderBottom: '1px solid #E4E8EE', marginBottom: 14 },
   tab: {
     padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
-    fontSize: 13, color: '#6b7280', borderBottom: '2px solid transparent',
+    fontSize: 13, color: 'var(--pagina-texto-2)', borderBottom: '2px solid transparent',
   },
   tabActive: {
     padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 13, color: NAVY, fontWeight: 700, borderBottom: `2px solid ${NAVY}`,
   },
   checklistRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' },
-  checklistText: { flex: 1, fontSize: 14, color: '#111827' },
+  checklistText: { flex: 1, fontSize: 14, color: 'var(--pagina-texto-1)' },
   done: { textDecoration: 'line-through', color: '#9ca3af' },
   removeBtn: { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13 },
-  hint: { fontSize: 13, color: '#6b7280' },
+  hint: { fontSize: 13, color: 'var(--pagina-texto-2)' },
   addForm: { display: 'flex', gap: 8, marginTop: 10 },
   input: {
     flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db',
@@ -351,17 +351,17 @@ const styles = {
   },
   addBtn: {
     padding: '8px 14px', borderRadius: 8, border: 'none', background: NAVY,
-    color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    color: 'var(--pagina-cartao)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
   },
   commentRow: { padding: '8px 0', borderBottom: '1px solid #f3f4f6' },
-  commentAuthor: { fontSize: 13, color: '#111827', marginRight: 8 },
+  commentAuthor: { fontSize: 13, color: 'var(--pagina-texto-1)', marginRight: 8 },
   commentDate: { fontSize: 11, color: '#9ca3af' },
   commentText: { fontSize: 13, color: '#374151', margin: '4px 0 0' },
   anexoLink: {
     display: 'inline-block', marginTop: 4, fontSize: 12, fontWeight: 600, color: NAVY, textDecoration: 'none',
   },
   anexoBtn: {
-    padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff',
+    padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
     cursor: 'pointer', fontSize: 14,
   },
   anexoPreview: {
@@ -373,7 +373,7 @@ const styles = {
     display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 0',
     borderBottom: '1px solid #f3f4f6', fontSize: 12, color: '#4b5563',
   },
-  historyUser: { fontWeight: 600, color: '#111827' },
+  historyUser: { fontWeight: 600, color: 'var(--pagina-texto-1)' },
   historyAction: { flex: 1 },
   historyDate: { color: '#9ca3af' },
   footer: {
@@ -385,7 +385,7 @@ const styles = {
     padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
   },
   editBtn: {
-    background: NAVY, border: 'none', color: '#fff',
+    background: NAVY, border: 'none', color: 'var(--pagina-cartao)',
     padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
   },
 };
