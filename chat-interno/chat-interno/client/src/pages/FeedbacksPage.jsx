@@ -100,7 +100,7 @@ export default function FeedbacksPage() {
                       </>
                     ) : (
                       <div className="text-[11px] text-emerald-600 font-medium mt-2">
-                        ✓ Confirmado em {new Date(f.acknowledged_at).toLocaleDateString("pt-BR")}
+                        ✓ Confirmado como lido em: {new Date(f.acknowledged_at).toLocaleDateString("pt-BR")} às {new Date(f.acknowledged_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
                   </div>
