@@ -84,6 +84,18 @@ export default function VisaoGeral() {
       label: 'Atrasadas', valor: hoje.atrasadas, sub: 'Precisam de atenção',
       icon: Clock, corIcone: '#EA4E1B', corFundo: '#FFF4ED', corNumero: '#EA4E1B',
     },
+    {
+      label: 'Tarefas em aberto', valor: hoje.tarefasPendentes, sub: 'Ainda não concluídas',
+      icon: Target, corIcone: '#7C3AED', corFundo: '#F5F3FF', corNumero: '#7C3AED',
+    },
+    {
+      label: 'Feedbacks pendentes', valor: hoje.feedbacksPendentes, sub: `${hoje.feedbacksConcluidos} já confirmados`,
+      icon: Clock, corIcone: '#DC2626', corFundo: '#FEF2F2', corNumero: '#DC2626',
+    },
+    {
+      label: 'Treinamentos pendentes', valor: hoje.treinamentosPendentes, sub: `${hoje.treinamentosConcluidos} já concluídos`,
+      icon: CheckCircle2, corIcone: '#0EA5E9', corFundo: '#F0F9FF', corNumero: '#0EA5E9',
+    },
   ] : [];
 
   return (
