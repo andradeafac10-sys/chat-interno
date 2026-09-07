@@ -20,7 +20,7 @@ import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
 import TreinamentoPendenteBanner from "../components/TreinamentoPendenteBanner";
-import { playNotificationSound } from "../sound";
+import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
 const ORIGINAL_TITLE = "Chat Nacional";
@@ -44,6 +44,7 @@ export default function Chat() {
   const [messagesByConv, setMessagesByConv] = useState({});
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [showTrilha, setShowTrilha] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -251,11 +252,6 @@ export default function Chat() {
         !!message.content &&
         new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
       const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
-      // LOG TEMPORÁRIO — pra investigar o caso de notificação de grupo sumindo.
-      // Depois de resolver, é só apagar essas 2 linhas.
-      if (!isMine && grupoId !== null) {
-        console.log("[debug-notif-grupo]", { grupoId, isMine, isViewingIt, souParticipante, souMencionado, grupoSilenciado, convEncontrada: !!conv, convIsMember: conv?.isMember, activeConvId: activeConvIdRef.current, msgConvId: message.conversation_id });
-      }
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
@@ -349,11 +345,19 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
-    // Um ADM registrou um feedback novo pra mim — avisa na hora, igual tarefa nova.
+    // Um ADM registrou um feedback novo pra mim — som próprio de feedback,
+    // diferente do "pop" comum de mensagem/tarefa.
     // (o número da bolinha vermelha no menu quem atualiza sozinho é o LeftNav)
     const onFeedbackNovo = ({ titulo, corpo }) => {
-      playNotificationSound();
+      playFeedbackSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
+    // Treinamento novo atribuído na Trilha do Conhecimento — som próprio também.
+    const onTrilhaNovo = ({ titulo, corpo }) => {
+      playTrilhaSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+      window.dispatchEvent(new Event("rotina:atualizada")); // atualiza a bolinha do LeftNav na hora
     };
 
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
@@ -375,6 +379,7 @@ export default function Chat() {
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
     socket.on("feedback:novo", onFeedbackNovo);
+    socket.on("trilha:novo", onTrilhaNovo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
@@ -395,6 +400,7 @@ export default function Chat() {
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
       socket.off("feedback:novo", onFeedbackNovo);
+      socket.off("trilha:novo", onTrilhaNovo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
@@ -454,6 +460,10 @@ export default function Chat() {
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
+        onJumpToMessage={(conversationId, messageId) => {
+          setActiveConvIdAndStopBlink(conversationId);
+          setPendingJumpMessageId(messageId);
+        }}
       />
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
         <TreinamentoPendenteBanner onVerTreinamentos={() => navigate("/?view=trilha")} />
@@ -503,6 +513,8 @@ export default function Chat() {
               onGroupUpdated={loadConversations}
               isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
               onVoltarMobile={() => setActiveConvId(null)}
+              jumpToMessageId={pendingJumpMessageId}
+              onJumpHandled={() => setPendingJumpMessageId(null)}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
