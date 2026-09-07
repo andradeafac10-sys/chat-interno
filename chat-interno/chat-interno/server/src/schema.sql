@@ -405,3 +405,10 @@ CREATE TABLE IF NOT EXISTS feedback_agendamentos (
   criado_por INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Corrige grupos já existentes onde quem criou nunca foi adicionado como
+-- membro de verdade (bug corrigido no código — isso aqui só arruma o que já
+-- tinha sido criado antes da correção). Rodar de novo não faz mal nenhum.
+INSERT INTO group_members (group_id, user_id)
+SELECT g.id, g.created_by FROM groups g
+ON CONFLICT DO NOTHING;
