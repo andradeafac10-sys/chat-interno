@@ -410,6 +410,38 @@ router.get('/visao-geral-hoje', async (req, res) => {
       .filter((r) => r.done && r.done_at)
       .sort((a, b) => new Date(b.done_at) - new Date(a.done_at));
 
+    // Tarefas, feedbacks e treinamentos entraram depois que essa tela foi
+    // criada e nunca tinham sido ligados aqui — os cards ficavam sempre
+    // mostrando só rotina. Adicionando os números de verdade agora.
+    const { rows: tarefasRows } = await pool.query(
+      `SELECT COUNT(DISTINCT t.id)::int AS total FROM tasks t
+       JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE t.status NOT IN ('done', 'canceled') AND ($1::int IS NULL OR ta.user_id = $1)`,
+      [assigneeId]
+    );
+    const { rows: feedbacksRows } = await pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE fr.acknowledged_at IS NULL)::int AS pendentes,
+         COUNT(*) FILTER (WHERE fr.acknowledged_at IS NOT NULL)::int AS concluidos
+       FROM feedback_recipients fr
+       WHERE ($1::int IS NULL OR fr.user_id = $1)`,
+      [assigneeId]
+    );
+    const { rows: treinamentosRows } = await pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE p.concluido_em IS NULL)::int AS pendentes,
+         COUNT(*) FILTER (WHERE p.concluido_em IS NOT NULL)::int AS concluidos
+       FROM users u
+       CROSS JOIN trilha_modulos m
+       LEFT JOIN trilha_progresso p ON p.modulo_id = m.id AND p.user_id = u.id
+       WHERE u.active = true AND ($1::int IS NULL OR u.id = $1)
+         AND (
+           NOT EXISTS (SELECT 1 FROM trilha_modulo_destinatarios d WHERE d.modulo_id = m.id)
+           OR EXISTS (SELECT 1 FROM trilha_modulo_destinatarios d WHERE d.modulo_id = m.id AND d.user_id = u.id)
+         )`,
+      [assigneeId]
+    );
+
     const formatar = (r) => ({
       id: r.id, title: r.title, start_time: r.start_time,
       user_name: r.user_name, avatar_url: r.avatar_url, done_at: r.done_at,
@@ -423,6 +455,11 @@ router.get('/visao-geral-hoje', async (req, res) => {
       atencao: atrasadasRows.slice(0, 5).map(formatar),
       proximas: proximasRows.slice(0, 5).map(formatar),
       recentes: recentesRows.slice(0, 5).map(formatar),
+      tarefasPendentes: tarefasRows[0].total,
+      feedbacksPendentes: feedbacksRows[0].pendentes,
+      feedbacksConcluidos: feedbacksRows[0].concluidos,
+      treinamentosPendentes: treinamentosRows[0].pendentes,
+      treinamentosConcluidos: treinamentosRows[0].concluidos,
     });
   } catch (err) {
     console.error('Erro ao montar visão geral de hoje:', err);
