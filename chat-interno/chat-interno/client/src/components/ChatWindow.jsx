@@ -119,7 +119,7 @@ function calcularNaoRespondidas(messages, meuId) {
   return set;
 }
 
-export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline, onVoltarMobile }) {
+export default function ChatWindow({ conversation, messages, setMessagesForConv, onTogglePin, onGroupUpdated, isOnline, onVoltarMobile, jumpToMessageId, onJumpHandled }) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const isAdm = user.role === "admin";
@@ -173,11 +173,18 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     setReplyingTo(null);
     setEditingMessage(null);
     setDraft("");
-    api.get(`/conversations/${conversation.id}/messages`).then(({ data }) => {
-      setMessagesForConv(conversation.id, data.messages);
-      setHasMoreOlder(data.messages.length >= 50);
+    // Se veio um pedido de pular direto pra uma mensagem (busca global), quem
+    // carrega o histórico é o efeito de "jumpToMessageId" logo abaixo — evita
+    // buscar duas vezes ao mesmo tempo e uma sobrescrever a outra.
+    if (jumpToMessageId) {
       setLoadingHistory(false);
-    });
+    } else {
+      api.get(`/conversations/${conversation.id}/messages`).then(({ data }) => {
+        setMessagesForConv(conversation.id, data.messages);
+        setHasMoreOlder(data.messages.length >= 50);
+        setLoadingHistory(false);
+      });
+    }
     // Já deixa o campo de digitar pronto pra escrever, sem precisar clicar nele
     setTimeout(() => inputRef.current?.focus(), 0);
   }, [conversation.id]);
@@ -636,6 +643,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
     }
   };
 
+  // Veio de um clique na busca global (Topbar) pedindo pra abrir direto numa
+  // mensagem específica dessa conversa — pula pra ela assim que a tela monta.
+  useEffect(() => {
+    if (!jumpToMessageId) return;
+    jumpToMessage(jumpToMessageId);
+    onJumpHandled?.();
+  }, [jumpToMessageId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="w-full flex-1 flex flex-col relative" style={{ background: colors.chatBg }}>
       <button
@@ -962,13 +977,14 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
+            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
+              <ImageIcon size={19} />
+            </button>
             <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
               <Paperclip size={19} />
             </button>
-            {/* Um botão só de anexo agora — aceita qualquer tipo de arquivo (imagem,
-                PDF, Excel, Word, áudio, vídeo, o que for). O handlePick já detecta
-                sozinho se é imagem e trata como tal, senão vai como arquivo comum. */}
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => handlePick(e, "file")} />
+            <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePick(e, "image")} />
+            <input ref={fileInputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <div className="flex-1 relative">
               <textarea
