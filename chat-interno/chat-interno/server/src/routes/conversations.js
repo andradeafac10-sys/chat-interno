@@ -248,11 +248,13 @@ router.get("/:id/messages", requireAuth, async (req, res) => {
   let reactionsByMessage = {};
   if (ids.length > 0) {
     const { rows: reactions } = await pool.query(
-      `SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id = ANY($1::int[])`,
+      `SELECT mr.message_id, mr.user_id, mr.emoji, u.name
+       FROM message_reactions mr JOIN users u ON u.id = mr.user_id
+       WHERE mr.message_id = ANY($1::int[])`,
       [ids]
     );
     reactionsByMessage = reactions.reduce((acc, r) => {
-      (acc[r.message_id] ||= []).push({ userId: r.user_id, emoji: r.emoji });
+      (acc[r.message_id] ||= []).push({ userId: r.user_id, emoji: r.emoji, name: r.name });
       return acc;
     }, {});
   }
@@ -507,7 +509,7 @@ router.delete("/:id/messages/:msgId", requireAuth, requireAdmin, async (req, res
 });
 
 // POST /api/conversations/:id/messages/:msgId/reactions -> reagir (👍 ou ❌); clicar de novo no mesmo remove
-const REACOES_PERMITIDAS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+const REACOES_PERMITIDAS = ["👍", "❤️", "😂", "😮", "😢", "👏", "✅", "❌"];
 
 router.post("/:id/messages/:msgId/reactions", requireAuth, async (req, res) => {
   const { emoji } = req.body || {};
@@ -532,11 +534,11 @@ router.post("/:id/messages/:msgId/reactions", requireAuth, async (req, res) => {
   }
 
   const { rows: reactions } = await pool.query(
-    "SELECT user_id, emoji FROM message_reactions WHERE message_id = $1",
+    "SELECT mr.user_id, mr.emoji, u.name FROM message_reactions mr JOIN users u ON u.id = mr.user_id WHERE mr.message_id = $1",
     [req.params.msgId]
   );
 
-  const payload = { messageId: Number(req.params.msgId), conversationId: req.params.id, reactions: reactions.map((r) => ({ userId: r.user_id, emoji: r.emoji })) };
+  const payload = { messageId: Number(req.params.msgId), conversationId: req.params.id, reactions: reactions.map((r) => ({ userId: r.user_id, emoji: r.emoji, name: r.name })) };
   broadcast(req, req.params.id, "message:reaction", payload);
   res.json(payload);
 });
