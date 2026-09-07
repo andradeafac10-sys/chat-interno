@@ -3,7 +3,7 @@ import { File as FileIcon, Download, Pin, PinOff, Play, Pause, Reply, Pencil, Tr
 import { fileUrl } from "../api";
 import { useTheme } from "../context/ThemeContext";
 
-const REACOES = ["👍", "❤️", "😂", "😮", "😢", "🙏", "❌"];
+const REACOES = ["👍", "❤️", "😂", "😮", "😢", "👏", "✅", "❌"];
 
 const fmtHora = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -358,15 +358,19 @@ function MessageLine({
 
       {Object.keys(reactionCounts).length > 0 && (
         <div className="flex gap-1 mt-0.5 flex-wrap">
-          {Object.entries(reactionCounts).map(([emoji, count]) => (
+          {Object.entries(reactionCounts).map(([emoji, count]) => {
+            const nomes = (m.reactions || []).filter((r) => r.emoji === emoji).map((r) => r.name).join(", ");
+            return (
             <span
               key={emoji}
-              className="text-[12px] rounded-full px-2 py-0.5 border flex items-center gap-1"
+              title={nomes}
+              className="text-[12px] rounded-full px-2 py-0.5 border flex items-center gap-1 cursor-default"
               style={{ background: colors.panelBg, borderColor: myReaction === emoji ? "#2563EB" : colors.border, color: colors.textPrimary }}
             >
               <span>{emoji}</span> <span className="text-[10px]">{count}</span>
             </span>
-          ))}
+            );
+          })}
         </div>
       )}
 
