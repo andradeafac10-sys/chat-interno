@@ -222,11 +222,12 @@ const NAVY = '#2563EB';
 const styles = {
   overlay: {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+    overflowY: 'auto', padding: '4vh 16px', zIndex: 1000,
   },
   modal: {
     background: 'var(--pagina-cartao)', borderRadius: 12, width: '90%', maxWidth: 480,
-    maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.3)', margin: 'auto',
   },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
