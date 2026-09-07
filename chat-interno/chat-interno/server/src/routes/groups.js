@@ -90,6 +90,14 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
         [group.id, memberId]
       );
     }
+    // Quem cria o grupo também precisa ser membro de verdade — sem isso, o ADM
+    // que criou nunca era avisado de mensagem nova nesse grupo (só via porque
+    // ADM enxerga todo grupo pra monitorar, mas "monitorar" é diferente de
+    // "participar" — e só participante de verdade recebe notificação).
+    await client.query(
+      "INSERT INTO group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [group.id, req.user.id]
+    );
     await client.query("COMMIT");
 
     const io = req.app.get("io");
