@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Configurações, Monitoria, Gestão, Usuários, Feedbacks, Trilha e Sair saíram
  * daqui e foram morar na coluna de navegação (LeftNav), fixa e sempre visível.
  */
-export default function Topbar({ conversations, onOpenConversation, onSelectConversationId }) {
+export default function Topbar({ conversations, onOpenConversation, onSelectConversationId, onJumpToMessage }) {
   const { user } = useAuth();
   const { colors } = useTheme();
 
@@ -162,7 +162,11 @@ export default function Topbar({ conversations, onOpenConversation, onSelectConv
                 {mensagens.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => abrirConversa(m.conversation_id)}
+                    onClick={() => {
+                      onJumpToMessage?.(m.conversation_id, m.id);
+                      setBusca("");
+                      setBuscaAberta(false);
+                    }}
                     className="w-full flex items-start gap-2.5 px-3.5 py-2 text-left hover:brightness-95"
                   >
                     <MessageSquare size={14} className="mt-0.5 shrink-0" style={{ color: colors.textSecondary }} />
