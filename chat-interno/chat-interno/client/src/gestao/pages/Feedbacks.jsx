@@ -1,6 +1,6 @@
 // client/src/gestao/pages/Feedbacks.jsx
 import { useEffect, useState } from 'react';
-import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
@@ -24,6 +24,16 @@ export default function Feedbacks() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const apagarFeedback = async (id) => {
+    if (!confirm('Deseja realmente excluir este feedback?')) return;
+    try {
+      await api.delete(`/feedbacks/${id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra apagar o feedback.');
+    }
+  };
 
   // "Assinado" = todo mundo que recebeu já confirmou; "Pendente" = falta pelo
   // menos uma pessoa confirmar ainda.
@@ -130,22 +140,28 @@ export default function Feedbacks() {
                 : `${f.recipients[0]?.name || ''} + ${f.recipients.length - 1} pessoa${f.recipients.length - 1 > 1 ? 's' : ''}`;
               return (
               <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
-                <button
-                  onClick={() => setAbertoId(aberto ? null : f.id)}
-                  className="w-full flex items-center gap-3 p-4 text-left"
-                >
-                  {aberto ? <ChevronDown size={15} className="text-slate-400 shrink-0" /> : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-semibold text-slate-800 truncate">{f.title}</div>
-                    <div className="text-[11.5px] text-slate-500 truncate">{resumoPessoas}</div>
-                  </div>
+                <div className="w-full flex items-center gap-3 p-4">
+                  <button onClick={() => setAbertoId(aberto ? null : f.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                    {aberto ? <ChevronDown size={15} className="text-slate-400 shrink-0" /> : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-semibold text-slate-800 truncate">{f.title}</div>
+                      <div className="text-[11.5px] text-slate-500 truncate">{resumoPessoas}</div>
+                    </div>
+                  </button>
                   <span
                     className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0"
                     style={estaAssinado(f) ? { background: '#F0FDF4', color: '#16A34A' } : { background: '#FEF2F2', color: '#DC2626' }}
                   >
                     {estaAssinado(f) ? 'Assinado' : 'Pendente'}
                   </span>
-                </button>
+                  <button
+                    onClick={() => apagarFeedback(f.id)}
+                    title="Apagar feedback"
+                    className="text-slate-400 hover:text-red-500 shrink-0"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
 
                 {aberto && (
                 <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
