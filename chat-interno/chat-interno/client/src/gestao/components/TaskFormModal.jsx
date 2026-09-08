@@ -172,7 +172,7 @@ const styles = {
   title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 17 },
   closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
   body: { padding: 20, display: 'flex', flexDirection: 'column' },
-  label: { fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 12, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginTop: 12, marginBottom: 6 },
   input: {
     padding: '9px 10px', borderRadius: 8, border: '1px solid #d1d5db',
     fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
@@ -194,7 +194,7 @@ const styles = {
     borderTop: '1px solid #E4E8EE',
   },
   cancelBtn: {
-    background: 'none', border: '1px solid #d1d5db', color: '#374151',
+    background: 'none', border: '1px solid #d1d5db', color: 'var(--pagina-texto-1)',
     padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
   },
   saveBtn: {
