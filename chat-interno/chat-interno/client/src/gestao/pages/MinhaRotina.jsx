@@ -115,14 +115,14 @@ export default function MinhaRotina() {
                     style={{
                       ...styles.item,
                       opacity: item.done ? 0.65 : 1,
-                      borderLeft: `4px solid ${atrasada ? '#dc2626' : CORES_PRIORIDADE[item.priority] || '#d1d5db'}`,
+                      borderLeft: `4px solid ${atrasada ? '#dc2626' : CORES_PRIORIDADE[item.priority] || 'var(--pagina-borda)'}`,
                     }}
                   >
                     <div
                       style={{
                         ...styles.checkVisual,
                         background: item.done ? '#16a34a' : 'var(--pagina-cartao)',
-                        borderColor: item.done ? '#16a34a' : '#d1d5db',
+                        borderColor: item.done ? '#16a34a' : 'var(--pagina-borda)',
                       }}
                     >
                       {item.done && <span style={{ color: 'var(--pagina-cartao)', fontSize: 13 }}>✓</span>}
@@ -316,7 +316,7 @@ function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
 
 const styles = {
   hint: { color: 'var(--pagina-texto-2)', fontSize: 14, marginTop: 20 },
-  hintPequeno: { color: '#9ca3af', fontSize: 11, marginTop: 2 },
+  hintPequeno: { color: 'var(--pagina-texto-2)', fontSize: 11, marginTop: 2 },
   error: { color: '#ef4444', fontSize: 14, marginTop: 20 },
   abasRow: { display: 'flex', gap: 8, marginTop: 20, marginBottom: 4 },
   aba: { border: 'none', borderRadius: 16, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
@@ -340,10 +340,10 @@ const styles = {
   },
   itemTexto: { fontSize: 14, color: 'var(--pagina-texto-1)', fontWeight: 500 },
   itemMeta: { display: 'flex', gap: 10, fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 3 },
-  semanaTitulo: { fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 },
+  semanaTitulo: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginBottom: 10 },
   semanaRow: { display: 'flex', gap: 8 },
   semanaDia: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
-  semanaLetra: { fontSize: 11, color: '#9ca3af' },
+  semanaLetra: { fontSize: 11, color: 'var(--pagina-texto-2)' },
   semanaBolinha: {
     width: 40, height: 40, borderRadius: '50%', color: 'var(--pagina-cartao)', fontSize: 10, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -359,7 +359,7 @@ const styles = {
   modalHeader: { padding: '18px 24px 0' },
   prioridadeBadge: { fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999 },
   modalTitulo: { fontSize: 19, fontWeight: 700, color: 'var(--pagina-texto-1)', margin: '10px 0 6px' },
-  modalDescricao: { fontSize: 13.5, color: '#4b5563', lineHeight: 1.5, margin: '0 0 8px' },
+  modalDescricao: { fontSize: 13.5, color: 'var(--pagina-texto-2)', lineHeight: 1.5, margin: '0 0 8px' },
   modalHorario: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: '0 0 16px' },
   modalLabel: { fontSize: 12, fontWeight: 600, color: 'var(--pagina-texto-2)', display: 'block', marginBottom: 6, marginTop: 14 },
   modalTextarea: {
@@ -367,11 +367,11 @@ const styles = {
     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
   },
   anexoBtn: {
-    background: '#f3f4f6', border: '1px dashed #d1d5db', borderRadius: 8, padding: '9px 14px',
-    fontSize: 13, color: '#374151', cursor: 'pointer', width: '100%',
+    background: 'var(--pagina-borda-suave)', border: '1px dashed #d1d5db', borderRadius: 8, padding: '9px 14px',
+    fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer', width: '100%',
   },
   anexoLink: {
-    display: 'block', background: '#eef2f7', borderRadius: 8, padding: '9px 14px',
+    display: 'block', background: 'var(--pagina-borda-suave)', borderRadius: 8, padding: '9px 14px',
     fontSize: 13, color: NAVY, fontWeight: 600, textDecoration: 'none',
   },
   botaoFinalizar: {
