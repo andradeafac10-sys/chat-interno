@@ -130,7 +130,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
                   padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   border: priority === p.value ? `2px solid ${p.cor}` : '1px solid #d1d5db',
                   background: priority === p.value ? `${p.cor}15` : 'var(--pagina-cartao)',
-                  color: priority === p.value ? p.cor : '#374151',
+                  color: priority === p.value ? p.cor : 'var(--pagina-texto-1)',
                 }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.cor }} />
@@ -237,7 +237,7 @@ const styles = {
   title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 18 },
   closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
   body: { padding: 20, display: 'flex', flexDirection: 'column', gap: 4 },
-  label: { fontSize: 13, fontWeight: 600, color: '#374151', marginTop: 12, marginBottom: 4 },
+  label: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginTop: 12, marginBottom: 4 },
   input: {
     width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #d1d5db',
     fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--pagina-cartao)',
@@ -246,7 +246,7 @@ const styles = {
   diasRow: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   diaBtn: {
     padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
-    fontSize: 12, cursor: 'pointer', color: '#374151',
+    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-texto-1)',
   },
   diaBtnAtivo: {
     padding: '7px 10px', borderRadius: 8, border: `1px solid ${NAVY}`, background: NAVY,
