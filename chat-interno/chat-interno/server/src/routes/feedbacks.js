@@ -155,6 +155,20 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
 // GET /api/feedbacks/ranking?de=&ate= -> quem mais recebeu feedback no período
 // (nota: esse sistema não tem conceito de "supervisor/coordenador/equipe"
 // cadastrado ainda, então o filtro disponível por enquanto é só por período)
+// DELETE /api/feedbacks/:id -> apaga um feedback (com confirmação já feita no
+// front). Registra quem apagou e quando no log do servidor.
+router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`DELETE FROM feedbacks WHERE id = $1 RETURNING title`, [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: "Feedback não encontrado." });
+    console.log(`[feedback apagado] "${rows[0].title}" apagado por user_id=${req.user.id} em ${new Date().toISOString()}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao apagar o feedback." });
+  }
+});
+
 router.get("/ranking", requireAuth, requireAdmin, async (req, res) => {
   try {
     const params = [];
