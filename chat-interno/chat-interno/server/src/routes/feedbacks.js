@@ -2,6 +2,7 @@ const express = require("express");
 const { pool } = require("../db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const { upload } = require("../middleware/upload");
+const { gerarOcorrenciasDaRotina } = require("./gestaoRecurrences");
 
 const router = express.Router();
 
@@ -193,23 +194,34 @@ router.post("/agendar-proximo", requireAuth, requireAdmin, async (req, res) => {
     const { rows: colabRows } = await client.query(`SELECT name FROM users WHERE id = $1`, [colaboradorId]);
     const nomeColaborador = colabRows[0]?.name || "colaborador";
 
-    const { rows: taskRows } = await client.query(
-      `INSERT INTO tasks (title, description, priority, due_date, created_by, progress_type)
-       VALUES ($1, $2, 'medium', $3, $4, 'manual') RETURNING id`,
-      [`Feedback: ${motivo.trim()} — ${nomeColaborador}`, observacao?.trim() || null, dataPrevista, req.user.id]
+    // Vira um item na "Minha Rotina" do responsável (não uma tarefa) — uma
+    // rotina que só ocorre nessa data específica (início e fim iguais).
+    const dataObj = new Date(dataPrevista);
+    const dataSomente = dataObj.toISOString().slice(0, 10);
+    const horaSomente = dataObj.toISOString().slice(11, 16);
+
+    const { rows: recRows } = await client.query(
+      `INSERT INTO task_recurrences (title, description, priority, recurrence_type, start_time, start_date, end_date, active, created_by)
+       VALUES ($1, $2, 'medium', 'daily', $3, $4, $4, true, $5) RETURNING *`,
+      [`Feedback de acompanhamento — ${nomeColaborador}`, [motivo.trim(), observacao?.trim()].filter(Boolean).join(" — "), horaSomente, dataSomente, req.user.id]
     );
-    const taskId = taskRows[0].id;
-    await client.query(`INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2)`, [taskId, responsavelId]);
+    const recurrence = recRows[0];
+    await client.query(`INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2)`, [recurrence.id, responsavelId]);
 
     const { rows } = await client.query(
       `INSERT INTO feedback_agendamentos (feedback_anterior_id, colaborador_id, responsavel_id, task_id, data_prevista, motivo, observacao, criado_por)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [feedbackAnteriorId || null, colaboradorId, responsavelId, taskId, dataPrevista, motivo.trim(), observacao?.trim() || null, req.user.id]
+      [feedbackAnteriorId || null, colaboradorId, responsavelId, null, dataPrevista, motivo.trim(), observacao?.trim() || null, req.user.id]
     );
     await client.query("COMMIT");
 
+    // Gera a ocorrência na hora (não espera o próximo ciclo automático),
+    // pra já aparecer na Minha Rotina do responsável imediatamente.
+    await gerarOcorrenciasDaRotina(recurrence);
+
     const io = req.app.get("io");
-    io.to(`user-${responsavelId}`).emit("gestao:notify", { titulo: "Nova tarefa de feedback", corpo: `Feedback com ${nomeColaborador}: ${motivo.trim()}` });
+    io.to(`user-${responsavelId}`).emit("gestao:notify", { titulo: "Novo item na sua rotina", corpo: `Feedback de acompanhamento com ${nomeColaborador}: ${motivo.trim()}` });
+    io.to(`user-${responsavelId}`).emit("rotina:atualizada", {});
 
     res.status(201).json({ id: rows[0].id });
   } catch (err) {
