@@ -6,7 +6,7 @@ import { fileUrl } from '../../api';
 
 const MEDALHAS = [
   { bg: '#FEF3C7', fg: '#B45309' },
-  { bg: 'var(--pagina-borda-suave)', fg: '#64748B' },
+  { bg: 'var(--pagina-borda-suave)', fg: 'var(--pagina-texto-1)' },
   { bg: '#FFEDD5', fg: '#C2410C' },
 ];
 
@@ -173,7 +173,7 @@ export default function VisaoGeral() {
                 <b style={{ color: '#2563EB' }}>{hoje.concluidas}</b> de {hoje.planejadas} rotinas concluídas
               </span>
             </div>
-            <div style={{ height: 12, borderRadius: 999, background: '#EEF1F5', overflow: 'hidden' }}>
+            <div style={{ height: 12, borderRadius: 999, background: 'var(--pagina-borda-suave)', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${hoje.percentual}%`, background: '#2563EB', borderRadius: 999, transition: 'width .2s' }} />
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function VisaoGeral() {
                     key={r.id}
                     onClick={() => setPessoaSelecionada(r)}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--pagina-borda-suave)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   >
                     <span style={{
@@ -239,7 +239,7 @@ export default function VisaoGeral() {
                       {r.avatar_url && <img src={fileUrl(r.avatar_url)} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0 }}>{r.name}</span>
-                    <div style={{ width: 70, height: 6, borderRadius: 999, background: '#EEF1F5', overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ width: 70, height: 6, borderRadius: 999, background: 'var(--pagina-borda-suave)', overflow: 'hidden', flexShrink: 0 }}>
                       <div style={{ width: `${r.percentual}%`, height: '100%', background: '#2563EB' }} />
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', width: 34, textAlign: 'right', flexShrink: 0 }}>{r.percentual}%</span>
@@ -352,7 +352,7 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
               {dados.pendentes.map((item) => (
                 <div key={item.id} style={modalStyles.item}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORIDADE_COR[item.priority] || 'var(--pagina-texto-2)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0 }}>{item.title}</span>
                   <span style={{ fontSize: 11, color: 'var(--pagina-texto-2)', flexShrink: 0 }}>
                     {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')} {fmtHora(item.start_time)}
                   </span>
@@ -366,7 +366,7 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
               {dados.feitas.map((item) => (
                 <div key={item.id} style={modalStyles.item}>
                   <CheckCircle2 size={12} color="#16A34A" style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 12.5, color: '#344054', flex: 1, minWidth: 0 }}>{item.title}</span>
+                  <span style={{ fontSize: 12.5, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0 }}>{item.title}</span>
                   <span style={{ fontSize: 11, color: 'var(--pagina-texto-2)', flexShrink: 0 }}>
                     {new Date(item.occurrence_date + 'T00:00:00').toLocaleDateString('pt-BR')}
                   </span>
@@ -393,7 +393,7 @@ const modalStyles = {
 const styles = {
   filtro: {
     height: 38, padding: '0 18px', borderRadius: 7, border: '1px solid #E1E6ED', background: 'var(--pagina-cartao)',
-    fontSize: 13, color: '#344054', cursor: 'pointer', display: 'flex', alignItems: 'center',
+    fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   filtroAtivo: {
     height: 38, padding: '0 18px', borderRadius: 7, border: 'none', background: '#2563EB',
@@ -401,7 +401,7 @@ const styles = {
   },
   selectAdm: {
     height: 38, width: 185, padding: '0 12px', borderRadius: 7, border: '1px solid #DDE3EA',
-    background: 'var(--pagina-cartao)', fontSize: 13, color: '#344054', cursor: 'pointer',
+    background: 'var(--pagina-cartao)', fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer',
   },
   calendarioBox: {
     display: 'flex', gap: 12, alignItems: 'flex-end', background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE',
@@ -426,7 +426,7 @@ const styles = {
   listCardHeader: { display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px 12px' },
   listCardTitulo: { fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' },
   listItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px', borderBottom: '1px solid var(--pagina-borda)' },
-  listItemNome: { fontSize: 13, color: '#344054', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  listItemHora: { fontSize: 12, color: '#475467', fontWeight: 500, flexShrink: 0 },
+  listItemNome: { fontSize: 13, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  listItemHora: { fontSize: 12, color: 'var(--pagina-texto-2)', fontWeight: 500, flexShrink: 0 },
   listaVazia: { padding: '18px', fontSize: 13, color: 'var(--pagina-texto-2)', textAlign: 'center' },
 };
