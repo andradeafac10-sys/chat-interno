@@ -84,12 +84,12 @@ CREATE TABLE IF NOT EXISTS message_reactions (
   PRIMARY KEY (message_id, user_id)
 );
 
--- Libera todos os emojis padrão de reação (bancos antigos tinham só um
--- subconjunto — essa trava no banco tinha ficado desatualizada em relação ao
--- que o app já aceitava, causando erro ao reagir com ✅/👏/❌)
+-- Libera todos os emojis padrão de reação. Mantém o 🙏 na lista mesmo ele não
+-- sendo mais oferecido como opção nova — só pra não quebrar reações antigas
+-- que já foram salvas com ele (senão essa trava nem consegue ser aplicada).
 ALTER TABLE message_reactions DROP CONSTRAINT IF EXISTS message_reactions_emoji_check;
 ALTER TABLE message_reactions ADD CONSTRAINT message_reactions_emoji_check
-  CHECK (emoji IN ('👍','❤️','😂','😮','😢','👏','✅','❌'));
+  CHECK (emoji IN ('👍','❤️','😂','😮','😢','👏','✅','❌','🙏'));
 
 CREATE TABLE IF NOT EXISTS announcements (
   id SERIAL PRIMARY KEY,
