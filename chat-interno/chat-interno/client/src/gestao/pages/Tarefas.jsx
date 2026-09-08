@@ -182,7 +182,7 @@ const styles = {
   filters: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   filter: {
     padding: '7px 14px', borderRadius: 999, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
-    fontSize: 13, cursor: 'pointer', color: '#374151',
+    fontSize: 13, cursor: 'pointer', color: 'var(--pagina-texto-1)',
   },
   filterActive: {
     padding: '7px 14px', borderRadius: 999, border: `1px solid ${NAVY}`, background: NAVY,
@@ -207,13 +207,13 @@ const styles = {
     padding: '2px 8px', borderRadius: 999,
   },
   deleteIconBtn: {
-    marginLeft: 'auto', background: 'none', border: 'none', color: '#9ca3af',
+    marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--pagina-texto-2)',
     fontSize: 14, cursor: 'pointer', padding: '2px 6px', flexShrink: 0,
   },
   cardMeta: { fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 6, display: 'flex', gap: 6 },
   assigneesRow: { display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' },
   assigneeChip: {
-    background: '#eef2f7', color: '#1c4270', fontSize: 11, padding: '3px 9px',
+    background: 'var(--pagina-borda-suave)', color: '#1c4270', fontSize: 11, padding: '3px 9px',
     borderRadius: 999,
   },
   progressOuter: { height: 6, background: 'var(--pagina-borda)', borderRadius: 999, marginTop: 10, overflow: 'hidden' },
