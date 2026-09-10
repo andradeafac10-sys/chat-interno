@@ -285,6 +285,29 @@ router.get('/minhas/pendentes-count', async (req, res) => {
   }
 });
 
+// GET /api/gestao/recurrences/minhas/atrasadas-count -> rotinas de HOJE que
+// já passaram do horário marcado e continuam sem fazer. Diferente do
+// "pendentes-count", que conta tudo que falta (mesmo sem horário/ainda no prazo).
+router.get('/minhas/atrasadas-count', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE rc.user_id = $1
+         AND rc.occurrence_date = CURRENT_DATE
+         AND rc.done = false
+         AND r.start_time IS NOT NULL
+         AND r.start_time < CURRENT_TIME`,
+      [req.user.id]
+    );
+    res.json({ count: rows[0].count });
+  } catch (err) {
+    console.error('Erro ao contar rotinas atrasadas:', err);
+    res.status(500).json({ error: 'Erro ao contar rotinas atrasadas' });
+  }
+});
+
 router.get('/minhas', async (req, res) => {
   try {
     const hoje = chaveDia(new Date());
