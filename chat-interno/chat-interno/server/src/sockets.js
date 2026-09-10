@@ -43,8 +43,16 @@ function setupSockets(io) {
       operators.forEach((op) => socket.join(`conv-${pairDmId(user.id, op.id)}`));
       const { rows: otherAdmins } = await pool.query("SELECT id FROM users WHERE role = 'admin' AND id != $1", [user.id]);
       otherAdmins.forEach((adm) => socket.join(`conv-${pairDmId(user.id, adm.id)}`));
+      // ADM entra na sala de TODO grupo (inclusive os que não participa) porque
+      // precisa conseguir monitorar. Mas isso fazia ele tocar som de mensagem
+      // nova de grupo que não é dele — por isso mandamos junto a lista dos
+      // grupos em que ele é membro DE VERDADE, e o app só avisa nesses.
       const { rows: groups } = await pool.query("SELECT id FROM groups");
       groups.forEach((g) => socket.join(`conv-${groupConvId(g.id)}`));
+      const { rows: meusGrupos } = await pool.query(
+        "SELECT group_id FROM group_members WHERE user_id = $1", [user.id]
+      );
+      socket.emit("grupos:participo", meusGrupos.map((g) => g.group_id));
     } else {
       const { rows: admins } = await pool.query("SELECT id FROM users WHERE role = 'admin'");
       admins.forEach((adm) => socket.join(`conv-${pairDmId(user.id, adm.id)}`));
@@ -69,6 +77,14 @@ function setupSockets(io) {
       );
       if (rows.length > 0 || user.role === "admin") {
         socket.join(`conv-${groupConvId(groupId)}`);
+      }
+      // Se agora ela é membro de verdade, reenvia a lista atualizada pra que o
+      // app volte a notificar desse grupo (ex: ADM que acabou de ser adicionado)
+      if (rows.length > 0) {
+        const { rows: meusGrupos } = await pool.query(
+          "SELECT group_id FROM group_members WHERE user_id = $1", [user.id]
+        );
+        socket.emit("grupos:participo", meusGrupos.map((g) => g.group_id));
       }
     });
 
