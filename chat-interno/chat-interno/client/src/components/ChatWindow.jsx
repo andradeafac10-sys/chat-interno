@@ -977,14 +977,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <button onClick={() => imageInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
-              <ImageIcon size={19} />
-            </button>
             <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
               <Paperclip size={19} />
             </button>
-            <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePick(e, "image")} />
-            <input ref={fileInputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={(e) => handlePick(e, "file")} />
+            {/* Um botão só de anexo — aceita qualquer tipo de arquivo (imagem,
+                PDF, Excel, Word, áudio, vídeo, o que for). O handlePick detecta
+                sozinho se é imagem e mostra como foto; o resto vai como anexo. */}
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => handlePick(e, "file")} />
 
             <div className="flex-1 relative">
               <textarea
