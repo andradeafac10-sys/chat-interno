@@ -137,6 +137,10 @@ export default function Chat() {
 
 
   const hiddenGroupIdsRef = useRef(new Set()); // grupos silenciados por mim — nunca deve notificar/tocar som
+  // Grupos em que sou membro DE VERDADE (o servidor manda ao conectar). null =
+  // ainda não chegou. Só serve pra decidir som/notificação — o ADM continua
+  // enxergando e podendo abrir todo grupo pra monitorar, como antes.
+  const gruposQueParticipoRef = useRef(null);
 
   const loadHiddenGroupsCount = useCallback(async () => {
     try {
@@ -251,7 +255,17 @@ export default function Chat() {
         message.type === "text" &&
         !!message.content &&
         new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
-      const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
+      // Fonte confiável de "sou membro de verdade desse grupo": a lista que o
+      // servidor manda no socket (grupos:participo). A checagem antiga olhava
+      // só a conversa carregada na tela — quando o grupo não estava na lista
+      // (caso do ADM, que entra em todo grupo pra monitorar), ela passava batido
+      // e tocava som de grupo que não é dele.
+      const ehGrupo = grupoId !== null;
+      const souMembroDeVerdade = !ehGrupo || gruposQueParticipoRef.current === null
+        ? true // operador (só entra em grupo que participa) ou lista ainda não chegou
+        : gruposQueParticipoRef.current.has(grupoId);
+
+      const souParticipante = (souMencionado || !grupoSilenciado) && souMembroDeVerdade;
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
@@ -375,6 +389,10 @@ export default function Chat() {
       });
     };
 
+    const onGruposQueParticipo = (ids) => {
+      gruposQueParticipoRef.current = new Set(ids);
+    };
+    socket.on("grupos:participo", onGruposQueParticipo);
     socket.on("message:new", onNewMessage);
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
@@ -396,6 +414,7 @@ export default function Chat() {
     socket.on("presence:offline", onPresenceOffline);
 
     return () => {
+      socket.off("grupos:participo", onGruposQueParticipo);
       socket.off("message:new", onNewMessage);
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
