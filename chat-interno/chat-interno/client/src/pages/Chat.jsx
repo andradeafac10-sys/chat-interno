@@ -19,7 +19,7 @@ import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
-import TreinamentoPendenteBanner from "../components/TreinamentoPendenteBanner";
+import AvisosPendentesBanner from "../components/AvisosPendentesBanner";
 import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
@@ -137,10 +137,6 @@ export default function Chat() {
 
 
   const hiddenGroupIdsRef = useRef(new Set()); // grupos silenciados por mim — nunca deve notificar/tocar som
-  // Grupos em que sou membro DE VERDADE (o servidor manda ao conectar). null =
-  // ainda não chegou. Só serve pra decidir som/notificação — o ADM continua
-  // enxergando e podendo abrir todo grupo pra monitorar, como antes.
-  const gruposQueParticipoRef = useRef(null);
 
   const loadHiddenGroupsCount = useCallback(async () => {
     try {
@@ -255,17 +251,7 @@ export default function Chat() {
         message.type === "text" &&
         !!message.content &&
         new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
-      // Fonte confiável de "sou membro de verdade desse grupo": a lista que o
-      // servidor manda no socket (grupos:participo). A checagem antiga olhava
-      // só a conversa carregada na tela — quando o grupo não estava na lista
-      // (caso do ADM, que entra em todo grupo pra monitorar), ela passava batido
-      // e tocava som de grupo que não é dele.
-      const ehGrupo = grupoId !== null;
-      const souMembroDeVerdade = !ehGrupo || gruposQueParticipoRef.current === null
-        ? true // operador (só entra em grupo que participa) ou lista ainda não chegou
-        : gruposQueParticipoRef.current.has(grupoId);
-
-      const souParticipante = (souMencionado || !grupoSilenciado) && souMembroDeVerdade;
+      const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
@@ -389,10 +375,6 @@ export default function Chat() {
       });
     };
 
-    const onGruposQueParticipo = (ids) => {
-      gruposQueParticipoRef.current = new Set(ids);
-    };
-    socket.on("grupos:participo", onGruposQueParticipo);
     socket.on("message:new", onNewMessage);
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
@@ -414,7 +396,6 @@ export default function Chat() {
     socket.on("presence:offline", onPresenceOffline);
 
     return () => {
-      socket.off("grupos:participo", onGruposQueParticipo);
       socket.off("message:new", onNewMessage);
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
@@ -485,7 +466,12 @@ export default function Chat() {
         }}
       />
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
-        <TreinamentoPendenteBanner onVerTreinamentos={() => navigate("/?view=trilha")} />
+        <AvisosPendentesBanner
+          onVerTreinamentos={() => navigate("/?view=trilha")}
+          onVerFeedbacks={() => navigate("/?view=feedbacks")}
+          onVerRotinas={() => navigate("/gestao/minha-rotina")}
+          onVerTarefas={() => navigate("/gestao/tarefas")}
+        />
       )}
       <div className="flex-1 flex overflow-hidden">
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
