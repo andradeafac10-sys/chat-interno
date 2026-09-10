@@ -104,7 +104,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
 
       <ItemChat view="chat" icon={MessageCircle} label="Chat" badge={unreadTotal} />
       <ItemChat view="notificacoes" icon={Bell} label="Notificação" />
-      <ItemChat view="feedbacks" icon={MessageSquareText} label="Feedbacks" badge={pendingFeedback} />
+      <ItemChat view="feedbacks" icon={MessageSquareText} label="Feedback/Alinhamento" badge={pendingFeedback} />
       <ItemChat view="trilha" icon={GraduationCap} label="Trilha do Conhecimento" badge={pendingTrilha} />
 
       {isAdm && (
@@ -141,7 +141,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
               <Repeat size={12} /> Rotinas
             </NavLink>
             <NavLink to="/gestao/feedbacks" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
-              <MessageSquareText size={12} /> Feedbacks
+              <MessageSquareText size={12} /> Feedback/Alinhamento
             </NavLink>
             <NavLink to="/gestao/trilha" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <GraduationCap size={12} /> Trilha do Conhecimento
