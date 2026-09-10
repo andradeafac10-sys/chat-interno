@@ -40,7 +40,7 @@ export default function FeedbacksPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200 bg-white shrink-0">
         <MessageSquareText size={18} className="text-[#2563EB]" />
-        <div className="text-slate-800 text-sm font-semibold">Feedbacks</div>
+        <div className="text-slate-800 text-sm font-semibold">Feedback/Alinhamento</div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6" style={{ background: "var(--pagina-fundo)" }}>
@@ -50,7 +50,7 @@ export default function FeedbacksPage() {
           {feedbacks?.length === 0 && (
             <div className="text-center py-16">
               <MessageSquareText size={28} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum feedback.</p>
+              <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum feedback ou alinhamento.</p>
             </div>
           )}
 
