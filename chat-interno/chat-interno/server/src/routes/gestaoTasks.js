@@ -83,6 +83,27 @@ async function hydrateTask(taskId) {
 // -------------------------------------------------------------
 // GET /api/gestao/tasks/meta/assignees — lista de ADMs pra atribuir tarefas
 // -------------------------------------------------------------
+// GET /api/gestao/tasks/minhas/atrasadas-count -> tarefas atribuídas a mim que
+// já passaram do prazo e continuam sem concluir (pro aviso vermelho no topo)
+router.get('/minhas/atrasadas-count', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT COUNT(DISTINCT t.id)::int AS count
+       FROM tasks t
+       JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE ta.user_id = $1
+         AND t.status NOT IN ('done', 'canceled')
+         AND t.due_date IS NOT NULL
+         AND t.due_date < now()`,
+      [req.user.id]
+    );
+    res.json({ count: rows[0].count });
+  } catch (err) {
+    console.error('Erro ao contar tarefas atrasadas:', err);
+    res.status(500).json({ error: 'Erro ao contar tarefas atrasadas' });
+  }
+});
+
 router.get('/meta/assignees', async (req, res) => {
   try {
     const result = await pool.query(
