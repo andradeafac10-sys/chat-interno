@@ -89,6 +89,8 @@ app.use("/api/gestao/tasks", gestaoTasksRoutes);
 const { verificarLembretesTarefas } = gestaoTasksRoutes;
 const { router: gestaoRecurrencesRoutes, gerarTodasAsOcorrencias, verificarLembretesRotinas } = require("./routes/gestaoRecurrences");
 app.use("/api/gestao/recurrences", gestaoRecurrencesRoutes);
+const { router: reunioesRoutes, verificarLembretesReunioes } = require("./routes/reunioes");
+app.use("/api/reunioes", reunioesRoutes);
 
 setupSockets(io);
 
@@ -110,6 +112,7 @@ setInterval(() => {
 setInterval(() => {
   verificarLembretesTarefas(io).catch((err) => console.error("[lembretes] erro ao conferir tarefas:", err));
   verificarLembretesRotinas(io).catch((err) => console.error("[lembretes] erro ao conferir rotinas:", err));
+  verificarLembretesReunioes(io).catch((err) => console.error("[lembretes] erro ao conferir reuniões:", err));
 }, 60 * 1000);
 
 const PORT = process.env.PORT || 4000;
