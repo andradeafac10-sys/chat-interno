@@ -26,6 +26,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   const [pendingRoutines, setPendingRoutines] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
   const [pendingTrilha, setPendingTrilha] = useState(0);
+  const [reunioesHoje, setReunioesHoje] = useState(0);
 
   const carregarContadores = () => {
     api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedback(data.count)).catch(() => {});
@@ -33,6 +34,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
     if (isAdm) {
       api.get("/gestao/recurrences/minhas/pendentes-count").then(({ data }) => setPendingRoutines(data.count)).catch(() => {});
       api.get("/gestao/tasks/minhas/pendentes-count").then(({ data }) => setPendingTasks(data.count)).catch(() => {});
+      api.get("/reunioes/hoje").then(({ data }) => setReunioesHoje(data.count)).catch(() => {});
     }
   };
 
@@ -146,8 +148,13 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
             <NavLink to="/gestao/trilha" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
               <GraduationCap size={12} /> Trilha do Conhecimento
             </NavLink>
-            <NavLink to="/gestao/reuniao" className="flex items-center gap-1.5 py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
-              <Video size={12} /> Reuniões
+            <NavLink to="/gestao/reuniao" className="flex items-center justify-between py-1.5 text-[11.5px]" style={gestaoLinkStyle}>
+              <span className="flex items-center gap-1.5"><Video size={12} /> Reuniões</span>
+              {reunioesHoje > 0 && (
+                <span className="text-white font-bold rounded-full px-1.5 min-w-[15px] text-center" style={{ background: "#EF4444", fontSize: 9.5 }}>
+                  {reunioesHoje}
+                </span>
+              )}
             </NavLink>
           </div>
         </>
