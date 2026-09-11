@@ -71,9 +71,19 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   };
 
   const apagarReuniao = async () => {
-    if (!confirm('Apagar essa reunião? Essa ação não tem volta.')) return;
+    // Se faz parte de uma série, pergunta se é só essa ou todas as futuras
+    let apagarSerie = false;
+    if (reuniao?.serie_id) {
+      const escolha = confirm(
+        'Essa reunião se repete.\n\nOK = apagar TODAS as próximas da série (as que já aconteceram ficam, com suas atas).\nCancelar = apagar só essa data.'
+      );
+      apagarSerie = escolha;
+      if (!escolha && !confirm('Apagar só essa data então?')) return;
+    } else if (!confirm('Apagar essa reunião? Essa ação não tem volta.')) {
+      return;
+    }
     try {
-      await api.delete(`/reunioes/${reuniaoId}`);
+      await api.delete(`/reunioes/${reuniaoId}${apagarSerie ? '?serie=1' : ''}`);
       onChanged?.();
       onClose();
     } catch (err) {
@@ -114,7 +124,10 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
               {inicio.toLocaleDateString('pt-BR')} · {inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               {reuniao.local ? ` · ${reuniao.local}` : ''}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Criada por {reuniao.criado_por_nome}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              Criada por {reuniao.criado_por_nome}
+              {reuniao.serie_id ? ' · reunião que se repete' : ''}
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {souDono && <button onClick={apagarReuniao} className="text-slate-400 hover:text-red-500"><Trash2 size={15} /></button>}
