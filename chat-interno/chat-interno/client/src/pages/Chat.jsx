@@ -464,6 +464,9 @@ export default function Chat() {
     <div className="w-screen h-screen flex overflow-hidden" style={{ background: "#111B21" }}>
       <LeftNav unreadTotal={unreadTotal} onOpenAccount={() => setShowAccount(true)} />
       <div className="flex-1 flex flex-col overflow-hidden">
+      {/* A busca é só do Chat — nas outras telas (Feedbacks, Trilha, Usuários,
+          Monitoria, Notificações) ela não faz sentido e some. */}
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Topbar
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
@@ -473,6 +476,7 @@ export default function Chat() {
           setPendingJumpMessageId(messageId);
         }}
       />
+      )}
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
         <AvisosPendentesBanner
           onVerTreinamentos={() => navigate("/?view=trilha")}
