@@ -11,6 +11,27 @@ router.use(requireAuth, requireAdmin);
 const LEMBRETES_PADRAO = [0, 30, 15, 5]; // 0 = no começo do dia
 
 // GET /api/reunioes?de=&ate= -> reuniões do período (pro calendário)
+// GET /api/reunioes/hoje -> as reuniões de HOJE em que eu participo e que
+// ainda não acabaram. Serve pro contador no menu e pra tarja no topo do chat.
+router.get("/hoje", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.id, r.titulo, r.tipo, r.inicio, r.fim, r.local
+       FROM reunioes r
+       JOIN reuniao_participantes rp ON rp.reuniao_id = r.id
+       WHERE rp.user_id = $1
+         AND r.inicio::date = CURRENT_DATE
+         AND r.fim > now()
+       ORDER BY r.inicio`,
+      [req.user.id]
+    );
+    res.json({ reunioes: rows, count: rows.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao carregar as reuniões de hoje." });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const { de, ate } = req.query;
