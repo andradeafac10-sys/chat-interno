@@ -17,7 +17,7 @@ import { useTheme } from "../context/ThemeContext";
 // na URL (?view=) pros itens do Chat, que não são rotas separadas.
 export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, colors } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdm = user.role === "admin";
@@ -75,8 +75,8 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
       onClick={() => irPara(view)}
       className="w-full flex items-center justify-between gap-2.5 px-4 py-2.5 text-[12.5px] transition-colors"
       style={{
-        color: itemChatAtivo(view) ? "#fff" : "#B7C2D3",
-        background: itemChatAtivo(view) ? "#12233D" : "transparent",
+        color: itemChatAtivo(view) ? colors.textPrimary : colors.textSecondary,
+        background: itemChatAtivo(view) ? colors.sidebarActive : "transparent",
         borderLeft: itemChatAtivo(view) ? "3px solid #2563EB" : "3px solid transparent",
         fontWeight: itemChatAtivo(view) ? 600 : 400,
       }}
@@ -91,12 +91,12 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   );
 
   const gestaoLinkStyle = ({ isActive }) => ({
-    color: isActive ? "#fff" : "#8FA1BD",
+    color: isActive ? colors.textPrimary : colors.textSecondary,
     fontWeight: isActive ? 600 : 400,
   });
 
   return (
-    <div className="w-[210px] h-full shrink-0 flex flex-col overflow-y-auto" style={{ background: "#081328" }}>
+    <div className="w-[210px] h-full shrink-0 flex flex-col overflow-y-auto" style={{ background: colors.sidebarBg }}>
       <div className="px-4 pt-3.5 pb-3 flex items-center gap-2">
         <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: "#2563EB" }}>
           <MessageCircle size={13} className="text-white" />
@@ -111,12 +111,12 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
 
       {isAdm && (
         <>
-          <div className="h-px mx-4 my-2.5" style={{ background: "#1E3555" }} />
+          <div className="h-px mx-4 my-2.5" style={{ background: colors.border }} />
 
           <ItemChat view="users" icon={UserCog} label="Usuários" />
           <ItemChat view="monitoring" icon={Eye} label="Monitoria" />
 
-          <div className="px-4 py-2.5 text-[12.5px] flex items-center gap-2.5" style={{ color: "#B7C2D3" }}>
+          <div className="px-4 py-2.5 text-[12.5px] flex items-center gap-2.5" style={{ color: colors.textSecondary }}>
             <LayoutDashboard size={15} /> Gestão
           </div>
           <div className="flex flex-col ml-[27px] pl-5" style={{ borderLeft: "1px solid #1E3555" }}>
@@ -162,23 +162,23 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
 
       <div className="flex-1" />
 
-      <div className="border-t px-4 pt-3 pb-1" style={{ borderColor: "#1E3555" }}>
+      <div className="border-t px-4 pt-3 pb-1" style={{ borderColor: colors.border }}>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-6.5 h-6.5 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden shrink-0" style={{ background: user.color, width: 26, height: 26 }}>
             {user.avatar_url ? <img src={fileUrl(user.avatar_url)} alt={user.name} className="w-full h-full object-cover" /> : user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           <div className="min-w-0">
             <div className="text-white text-[11.5px] font-semibold truncate">{user.name}</div>
-            <div className="text-[10px] flex items-center gap-1" style={{ color: "#8FA1BD" }}>
+            <div className="text-[10px] flex items-center gap-1" style={{ color: colors.textSecondary }}>
               {isAdm && <ShieldCheck size={10} />} {isAdm ? "Administrador" : "Operador"}
             </div>
           </div>
         </div>
       </div>
-      <button onClick={onOpenAccount} className="flex items-center gap-2.5 px-4 py-2 text-[12.5px]" style={{ color: "#B7C2D3" }}>
+      <button onClick={onOpenAccount} className="flex items-center gap-2.5 px-4 py-2 text-[12.5px]" style={{ color: colors.textSecondary }}>
         <Settings size={14} /> Configurações
       </button>
-      <button onClick={toggleTheme} className="flex items-center gap-2.5 px-4 py-2 text-[12.5px]" style={{ color: "#B7C2D3" }}>
+      <button onClick={toggleTheme} className="flex items-center gap-2.5 px-4 py-2 text-[12.5px]" style={{ color: colors.textSecondary }}>
         {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />} {theme === "dark" ? "Tema claro" : "Tema escuro"}
       </button>
       <button onClick={logout} className="flex items-center gap-2.5 px-4 py-2 mb-1 text-[12.5px]" style={{ color: "#F87171" }}>
