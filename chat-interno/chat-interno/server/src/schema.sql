@@ -414,3 +414,48 @@ CREATE TABLE IF NOT EXISTS feedback_agendamentos (
 INSERT INTO group_members (group_id, user_id)
 SELECT g.id, g.created_by FROM groups g
 ON CONFLICT DO NOTHING;
+
+-- Reuniões (só ADM enxerga e usa). Cada reunião tem participantes, lembretes
+-- automáticos e uma ata que só quem criou pode escrever.
+CREATE TABLE IF NOT EXISTS reunioes (
+  id SERIAL PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  tipo TEXT NOT NULL DEFAULT 'interna' CHECK (tipo IN ('interna', 'externa')),
+  inicio TIMESTAMPTZ NOT NULL,
+  fim TIMESTAMPTZ NOT NULL,
+  local TEXT,                      -- endereço ou link da chamada
+  descricao TEXT,
+  ata TEXT,                        -- preenchida depois da reunião
+  ata_atualizada_em TIMESTAMPTZ,
+  criado_por INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reunioes_inicio ON reunioes(inicio);
+
+CREATE TABLE IF NOT EXISTS reuniao_participantes (
+  reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  presente BOOLEAN,                -- null = ainda não marcado na ata
+  PRIMARY KEY (reuniao_id, user_id)
+);
+
+-- Quais lembretes essa reunião usa (dia/30/15/5) e quais já foram disparados,
+-- pra não avisar a mesma coisa duas vezes.
+CREATE TABLE IF NOT EXISTS reuniao_lembretes (
+  reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
+  minutos_antes INTEGER NOT NULL,  -- 0 = no começo do dia
+  enviado_em TIMESTAMPTZ,
+  PRIMARY KEY (reuniao_id, minutos_antes)
+);
+
+-- Encaminhamentos da ata: o que ficou combinado, com responsável e prazo.
+-- Cada um vira uma rotina na "Minha Rotina" de quem ficou responsável.
+CREATE TABLE IF NOT EXISTS reuniao_encaminhamentos (
+  id SERIAL PRIMARY KEY,
+  reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
+  descricao TEXT NOT NULL,
+  responsavel_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  prazo DATE NOT NULL,
+  recurrence_id INTEGER REFERENCES task_recurrences(id) ON DELETE SET NULL,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
