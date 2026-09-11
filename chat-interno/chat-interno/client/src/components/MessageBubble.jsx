@@ -226,6 +226,24 @@ function MessageLine({
   const bubbleBg = mine ? colors.ownBubbleBg : colors.incomingBubbleBg;
   const bubbleText = mine ? colors.ownBubbleText : colors.incomingBubbleText;
 
+  // Mensagem só com emoji (até 3) aparece grande e sem bolha, tipo WhatsApp.
+  // A regex cobre os blocos de emoji do Unicode, incluindo os que vêm com
+  // variação/tom de pele e os compostos com ZWJ (ex: família, profissões).
+  const soEmojis = (() => {
+    if (m.type !== "text" || !m.content || m.deleted) return false;
+    const texto = m.content.trim();
+    if (!texto) return false;
+    const semEmoji = texto.replace(
+      /(\p{Extended_Pictographic}|\p{Emoji_Presentation})(\uFE0F|\uFE0E)?(\p{Emoji_Modifier})?(\u200D(\p{Extended_Pictographic}|\p{Emoji_Presentation})(\uFE0F)?)*/gu,
+      ""
+    ).replace(/\s/g, "");
+    if (semEmoji.length > 0) return false; // tem texto junto: fica normal
+    const quantos = [...texto.replace(/\s/g, "").matchAll(
+      /(\p{Extended_Pictographic}|\p{Emoji_Presentation})(\uFE0F|\uFE0E)?(\p{Emoji_Modifier})?(\u200D(\p{Extended_Pictographic}|\p{Emoji_Presentation})(\uFE0F)?)*/gu
+    )].length;
+    return quantos > 0 && quantos <= 3;
+  })();
+
   return (
     <div
       id={`msg-${m.id}`}
@@ -237,9 +255,9 @@ function MessageLine({
           pessoa dá duplo clique numa palavra só pra selecionar e copiar. */}
       <div
         onContextMenu={abrirMenu}
-        className="rounded-2xl px-3 py-2 max-w-full cursor-default"
+        className={soEmojis ? "max-w-full cursor-default py-0.5" : "rounded-2xl px-3 py-2 max-w-full cursor-default"}
         style={{
-          background: bubbleBg,
+          background: soEmojis ? "transparent" : bubbleBg,
           boxShadow: highlighted ? `0 0 0 2px ${colors.accent}` : "none",
           borderLeft: precisaResposta ? "3px solid #EF4444" : "3px solid transparent",
         }}
@@ -263,8 +281,11 @@ function MessageLine({
         )}
 
         {m.type === "text" && (
-          <div className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: bubbleText }}>
-            {formatarTexto(m.content)}
+          <div
+            className={soEmojis ? "leading-tight break-words" : "text-[13.5px] leading-relaxed whitespace-pre-wrap break-words"}
+            style={soEmojis ? { fontSize: 44, lineHeight: 1.15 } : { color: bubbleText }}
+          >
+            {soEmojis ? m.content.trim() : formatarTexto(m.content)}
             {m.edited && <span className="text-[10px] italic ml-1.5 align-middle" style={{ color: colors.textSecondary }}>(editado)</span>}
             {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#2563EB]" />}
           </div>
