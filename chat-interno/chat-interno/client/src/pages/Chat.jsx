@@ -377,6 +377,13 @@ export default function Chat() {
 
     socket.on("message:new", onNewMessage);
     socket.on("conversation:read", onConversationRead);
+    // Lembrete de reunião (no dia / 30 / 15 / 5 minutos antes) — usa o mesmo
+    // som e aviso do sistema das outras notificações de gestão.
+    const onReuniaoLembrete = ({ titulo, corpo }) => {
+      playNotificationSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+    socket.on("reuniao:lembrete", onReuniaoLembrete);
     socket.on("gestao:notify", onGestaoNotify);
     socket.on("feedback:novo", onFeedbackNovo);
     socket.on("trilha:novo", onTrilhaNovo);
@@ -398,6 +405,7 @@ export default function Chat() {
     return () => {
       socket.off("message:new", onNewMessage);
       socket.off("conversation:read", onConversationRead);
+      socket.off("reuniao:lembrete", onReuniaoLembrete);
       socket.off("gestao:notify", onGestaoNotify);
       socket.off("feedback:novo", onFeedbackNovo);
       socket.off("trilha:novo", onTrilhaNovo);
