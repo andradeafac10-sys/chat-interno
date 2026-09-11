@@ -21,27 +21,73 @@ body {
   --pagina-borda-suave: #F1F5F9;
 }
 body.tema-escuro {
-  --pagina-fundo: #061020;
-  --pagina-cartao: #12233D;
-  --pagina-texto-1: #E8EEF7;
-  --pagina-texto-2: #8CA3C4;
-  --pagina-borda: #1E3555;
-  --pagina-borda-suave: #17294A;
+  --pagina-fundo: #0A0A0B;        /* fundo geral, preto de verdade */
+  --pagina-cartao: #141416;       /* cards e modais */
+  --pagina-texto-1: #F2F2F3;      /* títulos e texto principal */
+  --pagina-texto-2: #8A8A8E;      /* texto secundário */
+  --pagina-borda: #232326;        /* bordas discretas */
+  --pagina-borda-suave: #1C1C1F;  /* fundo de destaque leve (hover, chips) */
 }
 
 /* Sobrescreve as classes do Tailwind usadas direto nessas telas (bg-white,
    text-slate-*, border-slate-*) — assim não precisa trocar toda classe de
    cada arquivo, uma por uma, pra funcionar no escuro. */
 body.tema-escuro .bg-white { background-color: var(--pagina-cartao) !important; }
+body.tema-escuro [class*="text-slate-9"],
 body.tema-escuro [class*="text-slate-8"],
 body.tema-escuro [class*="text-slate-7"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [class*="text-slate-6"],
 body.tema-escuro [class*="text-slate-5"],
-body.tema-escuro [class*="text-slate-4"] { color: var(--pagina-texto-2) !important; }
+body.tema-escuro [class*="text-slate-4"],
+body.tema-escuro [class*="text-slate-3"] { color: var(--pagina-texto-2) !important; }
 body.tema-escuro [class*="border-slate"] { border-color: var(--pagina-borda) !important; }
 body.tema-escuro [class*="bg-slate-50"],
-body.tema-escuro [class*="bg-slate-100"] { background-color: var(--pagina-borda-suave) !important; }
-body.tema-escuro [class*="hover:bg-slate-50"]:hover { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="bg-slate-100"],
+body.tema-escuro [class*="bg-slate-200"] { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="hover:bg-slate-50"]:hover,
+body.tema-escuro [class*="hover:bg-slate-100"]:hover { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="divide-slate"] > * + * { border-color: var(--pagina-borda) !important; }
+
+/* Campos de formulário: no escuro precisam de fundo escuro e texto claro,
+   senão ficam brancos gritando no meio da tela. Cobre também os selects e
+   áreas de texto que usam cor fixa nos arquivos. */
+body.tema-escuro input:not([type="checkbox"]):not([type="radio"]),
+body.tema-escuro textarea,
+body.tema-escuro select {
+  background-color: var(--pagina-borda-suave) !important;
+  border-color: var(--pagina-borda) !important;
+  color: var(--pagina-texto-1) !important;
+}
+body.tema-escuro input::placeholder,
+body.tema-escuro textarea::placeholder { color: var(--pagina-texto-2) !important; }
+/* O calendário/relógio nativo dos campos de data vem preto e some no escuro */
+body.tema-escuro input[type="date"]::-webkit-calendar-picker-indicator,
+body.tema-escuro input[type="time"]::-webkit-calendar-picker-indicator,
+body.tema-escuro input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.6);
+}
+
+/* Os círculos atrás dos ícones dos cards eram tons bem claros (quase brancos),
+   pensados pra fundo claro — no escuro viravam bolhas brancas. Aqui eles
+   passam a ser um véu escuro translúcido, deixando só a cor do ícone aparecer. */
+body.tema-escuro [style*="background: #EEF4FF"],
+body.tema-escuro [style*="background: #ECFDF3"],
+body.tema-escuro [style*="background: #FFF4ED"],
+body.tema-escuro [style*="background: #FEF2F2"],
+body.tema-escuro [style*="background: #F5F3FF"],
+body.tema-escuro [style*="background: #F0F9FF"],
+body.tema-escuro [style*="background: #EFF4FF"],
+body.tema-escuro [style*="background: #F0FDF4"],
+body.tema-escuro [style*="background: #E6F1FB"],
+body.tema-escuro [style*="background: #FAEEDA"],
+body.tema-escuro [style*="background: #E1F5EE"],
+body.tema-escuro [style*="background: #FEE2E2"],
+body.tema-escuro [style*="background: #DCFCE7"],
+body.tema-escuro [style*="background: #FEF3C7"],
+body.tema-escuro [style*="background: #FFEDD5"],
+body.tema-escuro [style*="background: #F1F5F9"] {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+}
 
 /* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
    do navegador — mais discreta e combinando com o resto da interface. */
