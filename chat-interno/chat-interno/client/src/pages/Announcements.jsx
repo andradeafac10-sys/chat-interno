@@ -103,7 +103,7 @@ export default function Announcements({ onBack }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#EFEAE2" }}>
+    <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700">
           <ArrowLeft size={20} />
