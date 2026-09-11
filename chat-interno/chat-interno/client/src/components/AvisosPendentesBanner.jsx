@@ -7,10 +7,11 @@ import { useAuth } from "../context/AuthContext";
 // treinamento pendente, feedback/alinhamento pendente, rotina atrasada e
 // tarefa atrasada. Cada um some sozinho quando zera, e volta a aparecer
 // quando surge algo novo. Rotina e tarefa só existem pra ADM.
-export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedbacks, onVerRotinas, onVerTarefas }) {
+export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedbacks, onVerRotinas, onVerTarefas, onVerReunioes }) {
   const { user } = useAuth();
   const isAdm = user?.role === "admin";
   const [contagens, setContagens] = useState({ treinamentos: 0, feedbacks: 0, rotinas: 0, tarefas: 0 });
+  const [reunioesHoje, setReunioesHoje] = useState([]);
 
   const carregar = () => {
     api.get("/trilha/pendentes-count")
@@ -22,6 +23,8 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
         .then(({ data }) => setContagens((c) => ({ ...c, rotinas: data.count }))).catch(() => {});
       api.get("/gestao/tasks/minhas/atrasadas-count")
         .then(({ data }) => setContagens((c) => ({ ...c, tarefas: data.count }))).catch(() => {});
+      api.get("/reunioes/hoje")
+        .then(({ data }) => setReunioesHoje(data.reunioes)).catch(() => {});
     }
   };
 
@@ -41,7 +44,25 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
 
   const plural = (n, singular, pluralPalavra) => `${n} ${n > 1 ? pluralPalavra : singular}`;
 
+  // Texto do tipo "começa em 15 minutos" / "acontecendo agora" pra reunião de hoje
+  const quandoComeca = (inicio) => {
+    const minutos = Math.round((new Date(inicio) - new Date()) / 60000);
+    if (minutos <= 0) return "acontecendo agora";
+    if (minutos < 60) return `começa em ${minutos} minuto${minutos > 1 ? "s" : ""}`;
+    const hora = new Date(inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return `hoje às ${hora}`;
+  };
+
   const avisos = [
+    reunioesHoje.length > 0 && {
+      chave: "reunioes",
+      titulo: reunioesHoje.length > 1 ? "REUNIÕES HOJE" : "REUNIÃO HOJE",
+      texto: reunioesHoje.length === 1
+        ? `${reunioesHoje[0].titulo} — ${quandoComeca(reunioesHoje[0].inicio)}.`
+        : `Você tem ${reunioesHoje.length} reuniões hoje. A próxima: ${reunioesHoje[0].titulo} — ${quandoComeca(reunioesHoje[0].inicio)}.`,
+      botao: "VER REUNIÕES",
+      acao: onVerReunioes,
+    },
     contagens.treinamentos > 0 && {
       chave: "treinamentos",
       titulo: "TREINAMENTO PENDENTE",
