@@ -479,6 +479,7 @@ export default function Chat() {
           onVerFeedbacks={() => navigate("/?view=feedbacks")}
           onVerRotinas={() => navigate("/gestao/minha-rotina")}
           onVerTarefas={() => navigate("/gestao/tarefas")}
+          onVerReunioes={() => navigate("/gestao/reuniao")}
         />
       )}
       <div className="flex-1 flex overflow-hidden">
