@@ -8,6 +8,7 @@ import MessageBubble from "./MessageBubble";
 import GroupSettingsModal from "./GroupSettingsModal";
 import ImageViewer from "./ImageViewer";
 import ForwardMessageModal from "./ForwardMessageModal";
+import EmojiPicker from "./EmojiPicker";
 import MessageInfoModal from "./MessageInfoModal";
 
 // Deixa em destaque o trecho que bate com o que foi buscado
@@ -54,8 +55,6 @@ function posicaoDoCaractere(textarea, posicao) {
   document.body.removeChild(div);
   return { x, y };
 }
-
-const EMOJIS_RAPIDOS = ["😀", "😂", "👍", "🎉", "❤️", "🙏", "⚠️", "✅", "📌", "🔥", "😢", "😮"];
 
 const replyPreviewText = (type, content, deleted) => {
   if (deleted) return "Mensagem apagada";
@@ -1087,18 +1086,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               >
                 <Smile size={19} />
               </button>
-              {showEmojis && (
-                <div
-                  className="absolute bottom-full right-0 mb-2 flex flex-wrap gap-1 w-[200px] p-2 rounded-lg shadow-lg border z-30"
-                  style={{ background: colors.panelBg, borderColor: colors.border }}
-                >
-                  {EMOJIS_RAPIDOS.map((e) => (
-                    <button key={e} onClick={() => inserirEmoji(e)} className="text-[19px] hover:scale-125 transition-transform">
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {showEmojis && <EmojiPicker onEscolher={inserirEmoji} />}
             </div>
 
             {draft.trim() || pendingUpload ? (
