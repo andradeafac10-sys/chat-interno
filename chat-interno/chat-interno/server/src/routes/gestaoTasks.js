@@ -83,6 +83,26 @@ async function hydrateTask(taskId) {
 // -------------------------------------------------------------
 // GET /api/gestao/tasks/meta/assignees — lista de ADMs pra atribuir tarefas
 // -------------------------------------------------------------
+// GET /api/gestao/tasks/minhas/pendentes-count -> TODAS as tarefas minhas que
+// ainda não foram concluídas, tanto as a vencer quanto as já vencidas. É esse
+// número que aparece no contador vermelho ao lado de "Tarefas" no menu.
+router.get('/minhas/pendentes-count', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT COUNT(DISTINCT t.id)::int AS count
+       FROM tasks t
+       JOIN task_assignees ta ON ta.task_id = t.id
+       WHERE ta.user_id = $1
+         AND t.status NOT IN ('done', 'canceled')`,
+      [req.user.id]
+    );
+    res.json({ count: rows[0].count });
+  } catch (err) {
+    console.error('Erro ao contar tarefas pendentes:', err);
+    res.status(500).json({ error: 'Erro ao contar tarefas pendentes' });
+  }
+});
+
 // GET /api/gestao/tasks/minhas/atrasadas-count -> tarefas atribuídas a mim que
 // já passaram do prazo e continuam sem concluir (pro aviso vermelho no topo)
 router.get('/minhas/atrasadas-count', async (req, res) => {
