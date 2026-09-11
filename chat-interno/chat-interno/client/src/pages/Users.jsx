@@ -32,7 +32,7 @@ export default function Users({ onBack }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "#EFEAE2" }}>
+    <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700">
           <ArrowLeft size={20} />
@@ -68,7 +68,7 @@ export default function Users({ onBack }) {
               <div className="text-slate-400 text-sm p-4 text-center">Ninguém encontrado com esse nome.</div>
             )}
             {usersFiltrados.map((u) => (
-              <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b border-[#EFEAE2] last:border-0">
+              <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style={{ background: u.color }}>
                   {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                 </div>
@@ -155,8 +155,8 @@ function EditUserModal({ user, currentUserId, onClose, onSaved }) {
             <p className="text-xs text-slate-400 mb-4">Você não pode trocar o próprio tipo de usuário.</p>
           ) : (
             <div className="flex gap-2 mb-4">
-              <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2563EB] text-[#2563EB] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>Operador</button>
-              <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2563EB] text-[#2563EB] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>ADM</button>
+              <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2563EB] text-[#2563EB] bg-[color:var(--pagina-borda-suave)]" : "border-slate-200 text-slate-500"}`}>Operador</button>
+              <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2563EB] text-[#2563EB] bg-[color:var(--pagina-borda-suave)]" : "border-slate-200 text-slate-500"}`}>ADM</button>
             </div>
           )}
 
@@ -213,8 +213,8 @@ function NewUserModal({ onClose, onCreated }) {
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Cargo</label>
           <div className="flex gap-2 mb-3">
-            <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2563EB] text-[#2563EB] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>Operador</button>
-            <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2563EB] text-[#2563EB] bg-[#EFEAE2]" : "border-slate-200 text-slate-500"}`}>ADM</button>
+            <button type="button" onClick={() => setRole("operator")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "operator" ? "border-[#2563EB] text-[#2563EB] bg-[color:var(--pagina-borda-suave)]" : "border-slate-200 text-slate-500"}`}>Operador</button>
+            <button type="button" onClick={() => setRole("admin")} className={`flex-1 text-sm rounded-lg py-2 border ${role === "admin" ? "border-[#2563EB] text-[#2563EB] bg-[color:var(--pagina-borda-suave)]" : "border-slate-200 text-slate-500"}`}>ADM</button>
           </div>
 
           <label className="text-xs font-medium text-slate-500 mb-1.5 block">Cor</label>
