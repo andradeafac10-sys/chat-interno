@@ -10,6 +10,76 @@ router.use(requireAuth, requireAdmin);
 
 const LEMBRETES_PADRAO = [0, 30, 15, 5]; // 0 = no começo do dia
 
+// Teto de segurança: mesmo em repetição diária sem fim definido, não cria
+// uma quantidade absurda de reuniões de uma vez.
+const MAX_OCORRENCIAS = 200;
+
+/**
+ * Descobre todas as datas de uma reunião que se repete, mantendo sempre o
+ * mesmo horário de início e a mesma duração da primeira.
+ * recorrencia: { tipo: 'diaria'|'semanal'|'quinzenal'|'mensal', diasSemana: [0..6], ate: 'YYYY-MM-DD' }
+ */
+function calcularDatasRecorrencia(inicio, fim, recorrencia) {
+  const inicioBase = new Date(inicio);
+  const fimBase = new Date(fim);
+  const duracaoMs = fimBase - inicioBase;
+
+  if (!recorrencia || !recorrencia.tipo || recorrencia.tipo === "nenhuma" || !recorrencia.ate) {
+    return [{ inicio: inicioBase, fim: fimBase }];
+  }
+
+  const limite = new Date(recorrencia.ate);
+  limite.setHours(23, 59, 59, 999);
+  const datas = [];
+  const empurrar = (d) => {
+    const i = new Date(d);
+    datas.push({ inicio: i, fim: new Date(i.getTime() + duracaoMs) });
+  };
+
+  if (recorrencia.tipo === "semanal" || recorrencia.tipo === "quinzenal") {
+    // Se não escolher dia nenhum, usa o dia da semana da primeira data
+    const dias = (recorrencia.diasSemana || []).length > 0
+      ? recorrencia.diasSemana
+      : [inicioBase.getDay()];
+    const pulaSemanas = recorrencia.tipo === "quinzenal" ? 2 : 1;
+
+    // A data escolhida sempre entra, mesmo que o dia da semana dela não esteja
+    // marcado (a pessoa escolheu aquele dia de propósito ao abrir o formulário)
+    empurrar(inicioBase);
+
+    const cursorSemana = new Date(inicioBase);
+    cursorSemana.setDate(cursorSemana.getDate() - cursorSemana.getDay());
+
+    while (cursorSemana <= limite && datas.length < MAX_OCORRENCIAS) {
+      for (const dia of [...dias].sort((a, b) => a - b)) {
+        const d = new Date(cursorSemana);
+        d.setDate(cursorSemana.getDate() + dia);
+        d.setHours(inicioBase.getHours(), inicioBase.getMinutes(), 0, 0);
+        // > inicioBase (não >=) pra não repetir a data que já entrou acima
+        if (d > inicioBase && d <= limite) empurrar(d);
+      }
+      cursorSemana.setDate(cursorSemana.getDate() + 7 * pulaSemanas);
+    }
+  } else if (recorrencia.tipo === "diaria") {
+    const d = new Date(inicioBase);
+    while (d <= limite && datas.length < MAX_OCORRENCIAS) {
+      empurrar(d);
+      d.setDate(d.getDate() + 1);
+    }
+  } else if (recorrencia.tipo === "mensal") {
+    const diaDoMes = inicioBase.getDate();
+    const d = new Date(inicioBase);
+    while (d <= limite && datas.length < MAX_OCORRENCIAS) {
+      // Se o mês não tiver esse dia (ex: 31 em fevereiro), pula esse mês
+      if (d.getDate() === diaDoMes) empurrar(d);
+      d.setMonth(d.getMonth() + 1);
+      d.setDate(diaDoMes);
+    }
+  }
+
+  return datas.length > 0 ? datas : [{ inicio: inicioBase, fim: fimBase }];
+}
+
 // GET /api/reunioes?de=&ate= -> reuniões do período (pro calendário)
 // GET /api/reunioes/hoje -> as reuniões de HOJE em que eu participo e que
 // ainda não acabaram. Serve pro contador no menu e pra tarja no topo do chat.
@@ -117,7 +187,7 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/reunioes -> agenda uma reunião nova
 router.post("/", async (req, res) => {
-  const { titulo, tipo, inicio, fim, local, descricao, participantes, lembretes } = req.body || {};
+  const { titulo, tipo, inicio, fim, local, descricao, participantes, lembretes, recorrencia } = req.body || {};
   if (!titulo?.trim() || !inicio || !fim) {
     return res.status(400).json({ error: "Preencha título, início e fim." });
   }
@@ -125,43 +195,53 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "O fim precisa ser depois do início." });
   }
 
+  // Quando a reunião se repete, geramos uma reunião DE VERDADE pra cada data.
+  // Cada uma fica com ata, presença e encaminhamentos próprios — só ficam
+  // ligadas entre si pela mesma serie_id, pra dar pra apagar a série inteira.
+  const datas = calcularDatasRecorrencia(inicio, fim, recorrencia);
+  const serieId = datas.length > 1 ? `serie-${Date.now()}-${req.user.id}` : null;
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { rows } = await client.query(
-      `INSERT INTO reunioes (titulo, tipo, inicio, fim, local, descricao, criado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [titulo.trim(), tipo === "externa" ? "externa" : "interna", inicio, fim, local?.trim() || null, descricao?.trim() || null, req.user.id]
-    );
-    const reuniaoId = rows[0].id;
-
-    // Quem criou sempre participa
     const ids = [...new Set([req.user.id, ...(participantes || [])])];
-    for (const userId of ids) {
-      await client.query(
-        `INSERT INTO reuniao_participantes (reuniao_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [reuniaoId, userId]
-      );
-    }
-
     const minutos = Array.isArray(lembretes) && lembretes.length > 0 ? lembretes : LEMBRETES_PADRAO;
-    for (const m of minutos) {
-      await client.query(
-        `INSERT INTO reuniao_lembretes (reuniao_id, minutos_antes) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [reuniaoId, m]
+    let primeiroId = null;
+
+    for (const d of datas) {
+      const { rows } = await client.query(
+        `INSERT INTO reunioes (titulo, tipo, inicio, fim, local, descricao, criado_por, serie_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [titulo.trim(), tipo === "externa" ? "externa" : "interna", d.inicio, d.fim, local?.trim() || null, descricao?.trim() || null, req.user.id, serieId]
       );
+      const reuniaoId = rows[0].id;
+      if (!primeiroId) primeiroId = reuniaoId;
+
+      for (const userId of ids) {
+        await client.query(
+          `INSERT INTO reuniao_participantes (reuniao_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [reuniaoId, userId]
+        );
+      }
+      for (const m of minutos) {
+        await client.query(
+          `INSERT INTO reuniao_lembretes (reuniao_id, minutos_antes) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [reuniaoId, m]
+        );
+      }
     }
     await client.query("COMMIT");
 
     const io = req.app.get("io");
+    const quantas = datas.length > 1 ? ` (${datas.length} datas)` : "";
     ids.filter((id) => id !== req.user.id).forEach((userId) => {
       io.to(`user-${userId}`).emit("gestao:notify", {
         titulo: "Você foi incluído numa reunião",
-        corpo: `${titulo.trim()} — ${new Date(inicio).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
+        corpo: `${titulo.trim()} — ${new Date(inicio).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${quantas}`,
       });
     });
 
-    res.status(201).json({ id: reuniaoId });
+    res.status(201).json({ id: primeiroId, criadas: datas.length });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
@@ -199,13 +279,22 @@ router.patch("/:id", async (req, res) => {
 // DELETE /api/reunioes/:id -> só quem criou
 router.delete("/:id", async (req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT criado_por FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows } = await pool.query(`SELECT criado_por, serie_id FROM reunioes WHERE id = $1`, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
     if (rows[0].criado_por !== req.user.id) {
       return res.status(403).json({ error: "Só quem criou a reunião pode apagar." });
     }
+    // ?serie=1 apaga a série toda (só as que ainda não aconteceram, pra não
+    // perder ata de reunião que já passou)
+    if (req.query.serie === "1" && rows[0].serie_id) {
+      const { rowCount } = await pool.query(
+        `DELETE FROM reunioes WHERE serie_id = $1 AND fim > now()`,
+        [rows[0].serie_id]
+      );
+      return res.json({ ok: true, apagadas: rowCount });
+    }
     await pool.query(`DELETE FROM reunioes WHERE id = $1`, [req.params.id]);
-    res.json({ ok: true });
+    res.json({ ok: true, apagadas: 1 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao apagar a reunião." });
