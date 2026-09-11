@@ -432,6 +432,13 @@ CREATE TABLE IF NOT EXISTS reunioes (
 );
 CREATE INDEX IF NOT EXISTS idx_reunioes_inicio ON reunioes(inicio);
 
+-- Reunião que se repete: cada data vira uma reunião de verdade (com ata,
+-- presença e encaminhamentos próprios), todas ligadas pela mesma série.
+-- Assim "apagar a série toda" continua possível, mas cada ocorrência é
+-- independente — que é como a equipe realmente usa.
+ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS serie_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_reunioes_serie ON reunioes(serie_id);
+
 CREATE TABLE IF NOT EXISTS reuniao_participantes (
   reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
