@@ -4,6 +4,7 @@ import { X, Users, Building2 } from 'lucide-react';
 import { api } from '../../api';
 
 const NAVY = '#2563EB';
+const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const LEMBRETES = [
   { minutos: 0, label: 'No dia' },
   { minutos: 30, label: '30 min' },
@@ -24,6 +25,9 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
   const [local, setLocal] = useState('');
   const [descricao, setDescricao] = useState('');
   const [lembretes, setLembretes] = useState([0, 30, 15, 5]);
+  const [recorrencia, setRecorrencia] = useState('nenhuma'); // nenhuma|diaria|semanal|quinzenal|mensal
+  const [diasSemana, setDiasSemana] = useState([]);
+  const [repetirAte, setRepetirAte] = useState('');
 
   const [users, setUsers] = useState([]);
   const [participantes, setParticipantes] = useState([]);
@@ -49,6 +53,14 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
   const submit = async (e) => {
     e.preventDefault();
     if (horaFim <= horaInicio) { setError('O horário de fim precisa ser depois do início.'); return; }
+    if (recorrencia !== 'nenhuma' && !repetirAte) {
+      setError('Escolha até quando a reunião vai se repetir.');
+      return;
+    }
+    if (recorrencia !== 'nenhuma' && repetirAte < data) {
+      setError('A data final da repetição precisa ser depois da data da reunião.');
+      return;
+    }
     setError('');
     setSaving(true);
     try {
@@ -61,6 +73,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
         descricao,
         participantes,
         lembretes,
+        recorrencia: recorrencia === 'nenhuma' ? null : { tipo: recorrencia, diasSemana, ate: repetirAte },
       });
       onSaved();
     } catch (err) {
@@ -114,6 +127,52 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
                 className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
             </div>
           </div>
+
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Repetir</label>
+          <select
+            value={recorrencia}
+            onChange={(e) => setRecorrencia(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2"
+          >
+            <option value="nenhuma">Não se repete</option>
+            <option value="diaria">Todos os dias</option>
+            <option value="semanal">Toda semana</option>
+            <option value="quinzenal">A cada 15 dias</option>
+            <option value="mensal">Todo mês (mesmo dia)</option>
+          </select>
+
+          {(recorrencia === 'semanal' || recorrencia === 'quinzenal') && (
+            <>
+              <div className="text-[11px] text-slate-400 mb-1.5">Em quais dias (em branco = mesmo dia da semana da data escolhida)</div>
+              <div className="flex gap-1 mb-2">
+                {DIAS_SEMANA_CURTO.map((d, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setDiasSemana((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))}
+                    className="flex-1 text-[11.5px] font-medium rounded-lg py-1.5 border"
+                    style={diasSemana.includes(i)
+                      ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY }
+                      : { borderColor: '#E2E8F0', color: '#94A3B8' }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {recorrencia !== 'nenhuma' && (
+            <>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Repetir até</label>
+              <input type="date" value={repetirAte} onChange={(e) => setRepetirAte(e.target.value)} min={data}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1" />
+              <p className="text-[11px] text-slate-400 mb-3">
+                Cada data vira uma reunião com sua própria ata.
+              </p>
+            </>
+          )}
+          {recorrencia === 'nenhuma' && <div className="mb-1" />}
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Local ou link (opcional)</label>
           <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="meet.google.com/... ou sala de reunião"
