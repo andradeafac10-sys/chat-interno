@@ -383,7 +383,7 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
       `INSERT INTO trilha_modulos (title, description, tipo, video_url, video_name, order_index, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [
-        title.trim(), description?.trim() || null, tipoFinal,
+        title.trim().toUpperCase(), description?.trim().toUpperCase() || null, tipoFinal,
         req.file ? `/uploads/${req.file.filename}` : null,
         req.file ? req.file.originalname : null,
         maxRows[0].proximo, req.user.id,
@@ -399,13 +399,13 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
       const p = perguntas[i];
       const { rows: pRows } = await client.query(
         `INSERT INTO trilha_perguntas (modulo_id, question, order_index) VALUES ($1, $2, $3) RETURNING id`,
-        [moduloId, p.question.trim(), i]
+        [moduloId, p.question.trim().toUpperCase(), i]
       );
       const perguntaId = pRows[0].id;
       for (let j = 0; j < p.opcoes.length; j++) {
         await client.query(
           `INSERT INTO trilha_opcoes (pergunta_id, text, is_correct, order_index) VALUES ($1, $2, $3, $4)`,
-          [perguntaId, p.opcoes[j].text, !!p.opcoes[j].isCorrect, j]
+          [perguntaId, p.opcoes[j].text.trim().toUpperCase(), !!p.opcoes[j].isCorrect, j]
         );
       }
     }
@@ -435,6 +435,84 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
 });
 
 // DELETE /api/trilha/modulos/:id
+// PATCH /api/trilha/modulos/:id -> edita um treinamento já criado. Vídeo é
+// opcional (só troca se vier um arquivo novo); público (userIds) é opcional
+// também — se vier, substitui a lista inteira de destinatários.
+router.patch("/modulos/:id", requireAuth, requireAdmin, uploadVideoComErroAmigavel, async (req, res) => {
+  const { title, description, tipo } = req.body || {};
+  const moduloId = req.params.id;
+
+  const client = await pool.connect();
+  try {
+    const { rows: atualRows } = await client.query(`SELECT * FROM trilha_modulos WHERE id = $1`, [moduloId]);
+    if (!atualRows[0]) {
+      if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
+      return res.status(404).json({ error: "Treinamento não encontrado." });
+    }
+    const atual = atualRows[0];
+    const tipoFinal = tipo === "avaliacao" ? "avaliacao" : tipo === "video" ? "video" : atual.tipo;
+
+    let userIds = null;
+    try {
+      if (req.body.userIds !== undefined) userIds = JSON.parse(req.body.userIds);
+    } catch {
+      if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
+      return res.status(400).json({ error: "Lista de destinatários inválida." });
+    }
+
+    await client.query("BEGIN");
+    const videoAntigo = atual.video_url;
+    await client.query(
+      `UPDATE trilha_modulos SET
+         title = $2, description = $3, tipo = $4,
+         video_url = COALESCE($5, video_url), video_name = COALESCE($6, video_name)
+       WHERE id = $1`,
+      [
+        moduloId,
+        title?.trim() ? title.trim().toUpperCase() : atual.title,
+        description !== undefined ? (description?.trim().toUpperCase() || null) : atual.description,
+        tipoFinal,
+        req.file ? `/uploads/${req.file.filename}` : null,
+        req.file ? req.file.originalname : null,
+      ]
+    );
+
+    // Trocou o público: substitui a lista inteira de destinatários. Não mexe
+    // no progresso de quem já estava e continua — só quem sai da lista deixa
+    // de ver o treinamento novo daqui pra frente.
+    if (userIds !== null) {
+      await client.query(`DELETE FROM trilha_modulo_destinatarios WHERE modulo_id = $1`, [moduloId]);
+      for (const userId of userIds) {
+        await client.query(`INSERT INTO trilha_modulo_destinatarios (modulo_id, user_id) VALUES ($1, $2)`, [moduloId, userId]);
+      }
+    }
+    await client.query("COMMIT");
+
+    // Trocou o vídeo: apaga o arquivo antigo do disco (senão acumula lixo)
+    if (req.file && videoAntigo) {
+      const nomeAntigo = videoAntigo.replace("/uploads/", "");
+      fs.unlink(path.join(uploadDir, nomeAntigo), () => {});
+    }
+
+    // Se editou o público, avisa quem ficou na lista que o treinamento mudou
+    if (userIds !== null) {
+      const io = req.app.get("io");
+      userIds.forEach((userId) => {
+        io.to(`user-${userId}`).emit("trilha:novo", { titulo: "Treinamento atualizado", corpo: title?.trim() || atual.title });
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
+    console.error(err);
+    res.status(500).json({ error: "Erro ao editar o treinamento." });
+  } finally {
+    client.release();
+  }
+});
+
 router.delete("/modulos/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query(`DELETE FROM trilha_modulos WHERE id = $1`, [req.params.id]);
@@ -464,13 +542,13 @@ router.post("/modulos/:id/perguntas", requireAuth, requireAdmin, async (req, res
     );
     const { rows } = await client.query(
       `INSERT INTO trilha_perguntas (modulo_id, question, order_index) VALUES ($1, $2, $3) RETURNING id`,
-      [req.params.id, question.trim(), maxRows[0].proximo]
+      [req.params.id, question.trim().toUpperCase(), maxRows[0].proximo]
     );
     const perguntaId = rows[0].id;
     for (let i = 0; i < opcoes.length; i++) {
       await client.query(
         `INSERT INTO trilha_opcoes (pergunta_id, text, is_correct, order_index) VALUES ($1, $2, $3, $4)`,
-        [perguntaId, opcoes[i].text, !!opcoes[i].isCorrect, i]
+        [perguntaId, opcoes[i].text.trim().toUpperCase(), !!opcoes[i].isCorrect, i]
       );
     }
     await client.query("COMMIT");
@@ -485,6 +563,36 @@ router.post("/modulos/:id/perguntas", requireAuth, requireAdmin, async (req, res
 });
 
 // DELETE /api/trilha/perguntas/:id
+// PATCH /api/trilha/perguntas/:id -> edita o texto e as 4 alternativas de uma
+// pergunta já cadastrada (apaga e recria as alternativas, mais simples que
+// tentar casar cada uma com a que já existia)
+router.patch("/perguntas/:id", requireAuth, requireAdmin, async (req, res) => {
+  const { question, opcoes } = req.body || {};
+  if (!question?.trim() || !Array.isArray(opcoes) || opcoes.length !== 4 || !opcoes.some((o) => o.isCorrect) || opcoes.some((o) => !o.text?.trim())) {
+    return res.status(400).json({ error: "Escreva a pergunta, as 4 alternativas e marque a correta." });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`UPDATE trilha_perguntas SET question = $2 WHERE id = $1`, [req.params.id, question.trim().toUpperCase()]);
+    await client.query(`DELETE FROM trilha_opcoes WHERE pergunta_id = $1`, [req.params.id]);
+    for (let i = 0; i < opcoes.length; i++) {
+      await client.query(
+        `INSERT INTO trilha_opcoes (pergunta_id, text, is_correct, order_index) VALUES ($1, $2, $3, $4)`,
+        [req.params.id, opcoes[i].text.trim().toUpperCase(), !!opcoes[i].isCorrect, i]
+      );
+    }
+    await client.query("COMMIT");
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Erro ao editar a pergunta." });
+  } finally {
+    client.release();
+  }
+});
+
 router.delete("/perguntas/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     await pool.query(`DELETE FROM trilha_perguntas WHERE id = $1`, [req.params.id]);
@@ -497,6 +605,21 @@ router.delete("/perguntas/:id", requireAuth, requireAdmin, async (req, res) => {
 
 // GET /api/trilha/modulos/:id/perguntas-admin -> pergunta + alternativas COM
 // a marcação de qual é a certa (só pra tela de gerenciar conteúdo)
+// GET /api/trilha/modulos/:id/destinatarios -> quem está marcado pra receber
+// esse treinamento hoje (lista vazia = aberto pra todo mundo)
+router.get("/modulos/:id/destinatarios", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT user_id FROM trilha_modulo_destinatarios WHERE modulo_id = $1`,
+      [req.params.id]
+    );
+    res.json({ userIds: rows.map((r) => r.user_id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao carregar os destinatários." });
+  }
+});
+
 router.get("/modulos/:id/perguntas-admin", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rows: perguntas } = await pool.query(
