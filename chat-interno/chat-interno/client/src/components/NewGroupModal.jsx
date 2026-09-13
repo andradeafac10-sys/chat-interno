@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, ShieldCheck, Search } from "lucide-react";
-import { api } from "../api";
+import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 export default function NewGroupModal({ onClose, onCreated }) {
@@ -82,8 +82,12 @@ export default function NewGroupModal({ onClose, onCreated }) {
           {filteredOperators.map((op) => (
             <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
               <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2563EB]" />
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold" style={{ background: op.color }}>
-                {op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: op.color }}>
+                {op.avatar_url ? (
+                  <img src={fileUrl(op.avatar_url)} alt={op.name} className="w-full h-full object-cover" />
+                ) : (
+                  op.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+                )}
               </div>
               <span className="text-sm text-slate-700 flex items-center gap-1">
                 {op.name}
@@ -109,4 +113,3 @@ export default function NewGroupModal({ onClose, onCreated }) {
       </div>
     </div>
   );
-}
