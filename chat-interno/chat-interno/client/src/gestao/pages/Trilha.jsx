@@ -11,7 +11,7 @@ export default function Trilha() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={GraduationCap} title="Treinamentos" subtitle="Vídeos e avaliações para a equipe" />
+      <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Treinamentos com vídeo e/ou avaliação" />
 
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
@@ -22,7 +22,7 @@ export default function Trilha() {
             key={op.key}
             onClick={() => setAba(op.key)}
             className="text-[12px] font-semibold rounded-full px-3.5 py-1.5 mb-3"
-            style={{ background: aba === op.key ? NAVY : 'var(--pagina-borda-suave)', color: aba === op.key ? 'var(--pagina-cartao)' : '#64748B' }}
+            style={{ background: aba === op.key ? NAVY : 'var(--pagina-borda-suave)', color: aba === op.key ? 'var(--pagina-cartao)' : 'var(--pagina-texto-2)' }}
           >
             {op.label}
           </button>
@@ -229,7 +229,7 @@ function NovoModuloModal({ onClose, onSaved }) {
               type="button"
               onClick={() => setTipo('video')}
               className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
-              style={tipo === 'video' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: '#E2E8F0', color: '#64748B' }}
+              style={tipo === 'video' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
             >
               <PlayCircle size={14} /> Vídeo
             </button>
@@ -237,7 +237,7 @@ function NovoModuloModal({ onClose, onSaved }) {
               type="button"
               onClick={() => setTipo('avaliacao')}
               className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
-              style={tipo === 'avaliacao' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: '#E2E8F0', color: '#64748B' }}
+              style={tipo === 'avaliacao' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
             >
               <FileQuestion size={14} /> Avaliação/Prova
             </button>
@@ -496,7 +496,7 @@ function AbaAcompanhamento() {
                   <td className="text-center px-3 py-2.5 text-slate-500">
                     {dado.concluidoEm ? new Date(dado.concluidoEm).toLocaleString('pt-BR') : '—'}
                   </td>
-                  <td className="text-center px-3 py-2.5 font-semibold" style={{ color: dado.nota == null ? '#94A3B8' : dado.nota === 100 ? '#16A34A' : dado.nota >= 50 ? '#EA4E1B' : '#DC2626' }}>
+                  <td className="text-center px-3 py-2.5 font-semibold" style={{ color: dado.nota == null ? 'var(--pagina-texto-2)' : dado.nota === 100 ? '#16A34A' : dado.nota >= 50 ? '#EA4E1B' : '#DC2626' }}>
                     {dado.nota != null ? `${dado.nota}%` : '—'}
                   </td>
                   <td className="text-center px-3 py-2.5 text-emerald-600">{dado.acertos}</td>
