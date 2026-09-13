@@ -21,12 +21,18 @@ body {
   --pagina-borda-suave: #F1F5F9;
 }
 body.tema-escuro {
-  --pagina-fundo: #0A0A0B;        /* fundo geral, preto de verdade */
-  --pagina-cartao: #141416;       /* cards e modais */
-  --pagina-texto-1: #F2F2F3;      /* títulos e texto principal */
-  --pagina-texto-2: #8A8A8E;      /* texto secundário */
-  --pagina-borda: #232326;        /* bordas discretas */
-  --pagina-borda-suave: #1C1C1F;  /* fundo de destaque leve (hover, chips) */
+  /* Tons calibrados a partir do resultado que ficou bom na prática:
+     preto com um leve toque de azul, cards um pouco acima do fundo e
+     texto secundário claro o bastante pra ler sem esforço. */
+  --pagina-fundo: #0D1117;        /* fundo geral */
+  --pagina-cartao: #161B22;       /* cards e modais */
+  --pagina-texto-1: #E6EDF3;      /* títulos e texto principal */
+  --pagina-texto-2: #9BA7B4;      /* texto secundário */
+  --pagina-borda: #21262D;        /* bordas discretas */
+  --pagina-borda-suave: #1C2128;  /* fundo de destaque leve (hover, chips) */
+  /* Avisa o navegador que a página é escura: barras de rolagem, menus de
+     select e outros controles nativos se ajustam sozinhos. */
+  color-scheme: dark;
 }
 
 /* Sobrescreve as classes do Tailwind usadas direto nessas telas (bg-white,
@@ -79,9 +85,9 @@ body.tema-escuro [style*="background: #EFF4FF"],
 body.tema-escuro [style*="background: #E6F1FB"],
 body.tema-escuro [style*="background: #F0F9FF"],
 body.tema-escuro [style*="background:#EFF4FF"] {
-  background-color: rgba(59, 130, 246, 0.18) !important;
-  color: #93C5FD !important;
-  border-color: rgba(59, 130, 246, 0.45) !important;
+  background-color: rgba(88, 166, 255, 0.16) !important;
+  color: #58A6FF !important;
+  border-color: rgba(88, 166, 255, 0.40) !important;
 }
 
 /* Verde (concluído, assinado, presente) */
@@ -145,7 +151,7 @@ body.tema-escuro [style*="background: #FFEDD5"] * {
 /* Texto em azul/verde/vermelho escuro solto na página (sem fundo colorido)
    também precisa clarear pra ter contraste no preto. */
 body.tema-escuro [style*="color: #0C447C"],
-body.tema-escuro [style*="color: #2563EB"] { color: #93C5FD !important; }
+body.tema-escuro [style*="color: #2563EB"] { color: #58A6FF !important; }
 body.tema-escuro [style*="color: #085041"],
 body.tema-escuro [style*="color: #16A34A"] { color: #86EFAC !important; }
 body.tema-escuro [style*="color: #633806"],
@@ -165,7 +171,7 @@ body.tema-escuro [class*="bg-green-50"] { background-color: rgba(34, 197, 94, 0.
 body.tema-escuro [class*="bg-amber-50"],
 body.tema-escuro [class*="bg-orange-50"] { background-color: rgba(249, 115, 22, 0.15) !important; }
 body.tema-escuro [class*="bg-blue-50"],
-body.tema-escuro [class*="bg-indigo-50"] { background-color: rgba(59, 130, 246, 0.15) !important; }
+body.tema-escuro [class*="bg-indigo-50"] { background-color: rgba(88, 166, 255, 0.14) !important; }
 
 body.tema-escuro [class*="text-red-6"],
 body.tema-escuro [class*="text-red-7"],
@@ -179,7 +185,7 @@ body.tema-escuro [class*="text-amber-7"],
 body.tema-escuro [class*="text-orange-6"] { color: #FDBA74 !important; }
 body.tema-escuro [class*="text-blue-6"],
 body.tema-escuro [class*="text-blue-7"],
-body.tema-escuro [class*="text-indigo-6"] { color: #93C5FD !important; }
+body.tema-escuro [class*="text-indigo-6"] { color: #58A6FF !important; }
 
 /* Mesmas cores escritas em minúsculo nos arquivos (CSS diferencia maiúscula
    de minúscula em seletores de atributo, então precisam estar aqui também). */
@@ -242,6 +248,20 @@ body.tema-escuro [style*="background: #FFFFFF"] {
 *::-webkit-scrollbar-thumb:hover {
   background-color: #1e4fa0;
 }
+
+/* No escuro a barra de rolagem fica mais discreta, como nos outros apps */
+body.tema-escuro * { scrollbar-color: #30363D transparent; }
+body.tema-escuro *::-webkit-scrollbar-thumb { background-color: #30363D; }
+body.tema-escuro *::-webkit-scrollbar-thumb:hover { background-color: #3F4650; }
+
+/* Modais e painéis que usam fundo branco fixo via classe do Tailwind
+   (bg-white) já estão cobertos acima; aqui garantimos que o overlay atrás
+   deles fique mais escuro no tema escuro, pra dar o mesmo destaque. */
+body.tema-escuro [class*="bg-black/40"] { background-color: rgba(0, 0, 0, 0.65) !important; }
+
+/* Divisores e linhas finas que usam cinza claro direto na classe */
+body.tema-escuro [class*="divide-slate-50"] > * + *,
+body.tema-escuro [class*="divide-slate-100"] > * + * { border-color: var(--pagina-borda) !important; }
 
 /* Fundo do comunicado geral piscando em vermelho pra chamar atenção —
    mais rápido que antes (0.9s -> 0.45s) porque a ideia é chamar atenção
