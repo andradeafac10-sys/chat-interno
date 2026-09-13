@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, ShieldCheck, Plus, X, KeyRound, UserX, UserCheck, Pencil, Search } from "lucide-react";
 import { api } from "../api";
+import { fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 const COLORS = ["#2563EB", "#0EA5A5", "#D97706", "#7C3AED", "#DB2777", "#059669"];
@@ -69,8 +70,12 @@ export default function Users({ onBack }) {
             )}
             {usersFiltrados.map((u) => (
               <div key={u.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style={{ background: u.color }}>
-                  {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden" style={{ background: u.color }}>
+                  {u.avatar_url ? (
+                    <img src={fileUrl(u.avatar_url)} alt={u.name} className="w-full h-full object-cover" />
+                  ) : (
+                    u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
