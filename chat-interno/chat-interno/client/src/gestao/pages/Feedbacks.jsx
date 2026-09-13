@@ -61,7 +61,7 @@ export default function Feedbacks() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={MessageSquareText} title="Feedback/Alinhamento" subtitle="Registre e acompanhe feedbacks e alinhamentos dados à equipe" />
+      <PageHeader icon={MessageSquareText} title="ALINHAMENTOS" subtitle="Registre e acompanhe alinhamentos dados à equipe" />
 
       <div className="px-6 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: 'var(--pagina-borda)' }}>
         <div className="relative flex-1 max-w-sm">
@@ -78,7 +78,7 @@ export default function Feedbacks() {
           className="ml-auto flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg"
           style={{ background: NAVY }}
         >
-          <Plus size={15} /> Novo feedback/alinhamento
+          <Plus size={15} /> Novo alinhamento
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export default function Feedbacks() {
         ) : filtrados.length === 0 ? (
           <div className="text-center py-16">
             <MessageSquareText size={32} className="mx-auto text-slate-300 mb-2" />
-            <p className="text-sm text-slate-400">Nenhum feedback/alinhamento encontrado.</p>
+            <p className="text-sm text-slate-400">Nenhum alinhamento encontrado.</p>
           </div>
         ) : (
           <div className="max-w-2xl mx-auto flex flex-col gap-3">
@@ -281,7 +281,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div className="bg-white rounded-xl w-[360px] p-5 text-center">
           <h3 className="text-slate-800 font-semibold text-base mb-2">Registrado com sucesso!</h3>
-          <p className="text-[13.5px] text-slate-600 mb-5">Cadastrar novo feedback/alinhamento?</p>
+          <p className="text-[13.5px] text-slate-600 mb-5">Cadastrar novo alinhamento?</p>
           <div className="flex gap-2">
             <button onClick={onSaved} className="flex-1 rounded-lg py-2.5 text-sm font-medium border border-slate-200 text-slate-600">Não</button>
             <button onClick={() => setEtapa('agendar')} className="flex-1 rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: NAVY }}>Sim</button>
@@ -308,7 +308,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-[440px] max-h-[85vh] overflow-y-auto p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Novo feedback/alinhamento</h3>
+          <h3 className="text-slate-800 font-semibold text-base">Novo alinhamento</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
@@ -515,7 +515,7 @@ function RankingFeedbacks() {
         {ranking === null ? (
           <p className="text-sm text-slate-400">Carregando...</p>
         ) : ranking.length === 0 ? (
-          <p className="text-sm text-slate-400">Nenhum feedback/alinhamento nesse período.</p>
+          <p className="text-sm text-slate-400">Nenhum alinhamento nesse período.</p>
         ) : (
           <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
             {ranking.map((r, i) => (
