@@ -89,6 +89,19 @@ body.tema-escuro [style*="background: #F1F5F9"] {
   background-color: rgba(255, 255, 255, 0.07) !important;
 }
 
+/* Fundo branco escrito por extenso em estilo inline (ex: background: "white")
+   escapa da regra acima, que só pega códigos tipo #FFF. Sem isso, campos e
+   alternativas de prova ficavam brancos com texto branco — ilegíveis. */
+body.tema-escuro [style*="background: white"],
+body.tema-escuro [style*="background:white"],
+body.tema-escuro [style*="background: #fff"],
+body.tema-escuro [style*="background: #FFF"],
+body.tema-escuro [style*="background: #ffffff"],
+body.tema-escuro [style*="background: #FFFFFF"] {
+  background-color: var(--pagina-cartao) !important;
+  color: var(--pagina-texto-1) !important;
+}
+
 /* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
    do navegador — mais discreta e combinando com o resto da interface. */
 * {
