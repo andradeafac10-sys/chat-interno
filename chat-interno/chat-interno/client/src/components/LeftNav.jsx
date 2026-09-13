@@ -219,3 +219,4 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
       </button>
     </div>
   );
+}
