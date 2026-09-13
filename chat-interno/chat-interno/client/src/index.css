@@ -33,7 +33,12 @@ body.tema-escuro {
   /* Avisa o navegador que a página é escura: barras de rolagem, menus de
      select e outros controles nativos se ajustam sozinhos. */
   color-scheme: dark;
+  /* Cor de texto padrão do tema escuro. Muito texto no sistema não define
+     cor nenhuma no código (ex: nomes numa lista) — sem isso, esses herdam o
+     preto padrão do navegador e somem no fundo escuro. */
+  color: var(--pagina-texto-1);
 }
+
 
 /* Sobrescreve as classes do Tailwind usadas direto nessas telas (bg-white,
    text-slate-*, border-slate-*) — assim não precisa trocar toda classe de
