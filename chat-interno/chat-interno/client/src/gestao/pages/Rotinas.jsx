@@ -184,7 +184,7 @@ const styles = {
     marginTop: 20, marginBottom: 8, flexWrap: 'wrap', gap: 12,
   },
   filtroInput: {
-    border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 12px',
+    border: '1px solid var(--pagina-borda)', borderRadius: 8, padding: '9px 12px',
     fontSize: 13, minWidth: 260, flex: '1 1 260px', maxWidth: 360,
   },
   newBtn: {
