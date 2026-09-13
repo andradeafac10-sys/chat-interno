@@ -1,7 +1,8 @@
 // client/src/gestao/components/ReuniaoDetalheModal.jsx
 import { useEffect, useState } from 'react';
-import { X, Trash2, User, Plus } from 'lucide-react';
+import { X, Trash2, User, Plus, Pencil } from 'lucide-react';
 import { api } from '../../api';
+import ReuniaoFormModal from './ReuniaoFormModal';
 
 const NAVY = '#2563EB';
 
@@ -10,6 +11,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const [ata, setAta] = useState('');
   const [presencas, setPresencas] = useState({});
   const [salvando, setSalvando] = useState(false);
+  const [editando, setEditando] = useState(false);
   const [erro, setErro] = useState('');
   const [users, setUsers] = useState([]);
 
@@ -103,6 +105,18 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   }
   if (!reuniao) return null;
 
+  // Abriu o formulário de edição: mostra ele no lugar do detalhe, e ao salvar
+  // recarrega os dados aqui pra já aparecer atualizado.
+  if (editando) {
+    return (
+      <ReuniaoFormModal
+        reuniaoParaEditar={reuniao}
+        onClose={() => setEditando(false)}
+        onSaved={() => { setEditando(false); load(); onChanged?.(); }}
+      />
+    );
+  }
+
   const inicio = new Date(reuniao.inicio);
   const fim = new Date(reuniao.fim);
   const jaPassou = fim < new Date();
@@ -130,7 +144,12 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {souDono && <button onClick={apagarReuniao} className="text-slate-400 hover:text-red-500"><Trash2 size={15} /></button>}
+            {souDono && (
+              <button onClick={() => setEditando(true)} className="text-slate-400 hover:text-[#2563EB]" title="Editar reunião">
+                <Pencil size={15} />
+              </button>
+            )}
+            {souDono && <button onClick={apagarReuniao} className="text-slate-400 hover:text-red-500" title="Apagar reunião"><Trash2 size={15} /></button>}
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
           </div>
         </div>
