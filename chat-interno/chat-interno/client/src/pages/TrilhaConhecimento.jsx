@@ -26,7 +26,7 @@ export default function TrilhaConhecimento({ onBack }) {
     <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-200 bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700"><ArrowLeft size={20} /></button>
-        <div className="text-slate-800 text-sm font-semibold">Treinamentos</div>
+        <div className="text-slate-800 text-sm font-semibold">Trilha do Conhecimento</div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
@@ -375,8 +375,9 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
             key={o.id}
             className="flex items-center gap-2 text-[13px] text-slate-700 border rounded-lg px-3 py-2 cursor-pointer"
             style={{
-              borderColor: opcaoSelecionada === o.id ? "#2563EB" : "#E2E8F0",
-              background: opcaoSelecionada === o.id ? "#EFF4FF" : "white",
+              borderColor: opcaoSelecionada === o.id ? "#2563EB" : "var(--pagina-borda)",
+              background: opcaoSelecionada === o.id ? "rgba(37,99,235,0.15)" : "var(--pagina-borda-suave)",
+              color: "var(--pagina-texto-1)",
               opacity: feedback ? 0.7 : 1,
               pointerEvents: feedback ? "none" : "auto",
             }}
