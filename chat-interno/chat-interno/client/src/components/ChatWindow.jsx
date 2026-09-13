@@ -871,7 +871,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             return (
               <React.Fragment key={bloco[0].id}>
                 {mostrarSeparador && (
-                  <div className="flex justify-center my-2 sticky top-0 z-10">
+                  <div className="flex justify-center my-2">
                     <span
                       className="text-[12px] font-medium rounded-full px-3 py-1 shadow-sm"
                       style={{ background: colors.panelBg, color: colors.textSecondary }}
