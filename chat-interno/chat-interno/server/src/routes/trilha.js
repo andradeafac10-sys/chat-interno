@@ -383,7 +383,7 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
       `INSERT INTO trilha_modulos (title, description, tipo, video_url, video_name, order_index, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [
-        title.trim().toUpperCase(), description?.trim().toUpperCase() || null, tipoFinal,
+        title.trim().toUpperCase(), (description?.trim()?.toUpperCase()) || null, tipoFinal,
         req.file ? `/uploads/${req.file.filename}` : null,
         req.file ? req.file.originalname : null,
         maxRows[0].proximo, req.user.id,
@@ -470,7 +470,7 @@ router.patch("/modulos/:id", requireAuth, requireAdmin, uploadVideoComErroAmigav
       [
         moduloId,
         title?.trim() ? title.trim().toUpperCase() : atual.title,
-        description !== undefined ? (description?.trim().toUpperCase() || null) : atual.description,
+        description !== undefined ? ((description?.trim()?.toUpperCase()) || null) : atual.description,
         tipoFinal,
         req.file ? `/uploads/${req.file.filename}` : null,
         req.file ? req.file.originalname : null,
