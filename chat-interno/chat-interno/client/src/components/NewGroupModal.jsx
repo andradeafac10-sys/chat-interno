@@ -113,3 +113,4 @@ export default function NewGroupModal({ onClose, onCreated }) {
       </div>
     </div>
   );
+}
