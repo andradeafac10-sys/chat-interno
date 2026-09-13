@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Lock, CheckCircle2, PlayCircle, FileQuestion, Play, Pause, Volume2, VolumeX, StickyNote, X } from "lucide-react";
+import { ArrowLeft, Lock, CheckCircle2, PlayCircle, FileQuestion, Play, Pause, Volume2, VolumeX, StickyNote, X, Maximize, Minimize } from "lucide-react";
 import { api, fileUrl } from "../api";
 
 export default function TrilhaConhecimento({ onBack }) {
@@ -196,7 +196,9 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
   const [mudo, setMudo] = useState(false);
   const [tempoAtual, setTempoAtual] = useState(0);
   const [duracao, setDuracao] = useState(0);
+  const [emTelaCheia, setEmTelaCheia] = useState(false);
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Trava total: não dá pra arrastar a barra nem pra frente nem pra trás — a
   // única forma de garantir isso é não ter barra clicável nenhuma, só os
@@ -221,8 +223,28 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
     return `${m}:${String(sec).padStart(2, "0")}`;
   };
 
+  // Tela cheia do CONTAINER (vídeo + barra de controles), não só do <video>
+  // sozinho — assim os botões de play/pausa/volume continuam visíveis e
+  // funcionando quando a pessoa amplia.
+  const alternarTelaCheia = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  useEffect(() => {
+    const onChange = () => setEmTelaCheia(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
   return (
-    <div className="bg-black rounded-xl overflow-hidden mb-2">
+    <div
+      ref={containerRef}
+      className={emTelaCheia ? "bg-black overflow-hidden flex flex-col h-screen w-screen" : "bg-black rounded-xl overflow-hidden mb-2"}
+    >
       <video
         ref={videoRef}
         src={fileUrl(videoUrl)}
@@ -233,7 +255,7 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
         onSeeking={onSeeking}
         onEnded={() => { setTocando(false); onTerminou(); }}
         onLoadedMetadata={(e) => setDuracao(e.target.duration)}
-        className="w-full max-h-[60vh] cursor-pointer"
+        className={emTelaCheia ? "flex-1 min-h-0 w-full cursor-pointer object-contain" : "w-full max-h-[60vh] cursor-pointer"}
       />
       <div className="flex items-center gap-3 px-3 py-2" style={{ background: "#111827" }}>
         <button onClick={alternarPlay} className="text-white shrink-0">
@@ -245,6 +267,9 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
         <span className="text-[11px] text-white/70 shrink-0 font-mono">{fmt(tempoAtual)} / {fmt(duracao)}</span>
         <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setMudo(v.muted); } }} className="text-white shrink-0">
           {mudo ? <VolumeX size={16} /> : <Volume2 size={16} />}
+        </button>
+        <button onClick={alternarTelaCheia} className="text-white shrink-0" title={emTelaCheia ? "Sair da tela cheia" : "Tela cheia"}>
+          {emTelaCheia ? <Minimize size={16} /> : <Maximize size={16} />}
         </button>
       </div>
     </div>
