@@ -1,272 +1,235 @@
-// client/src/gestao/components/RecurrenceFormModal.jsx
+// client/src/gestao/components/ReuniaoFormModal.jsx
 import { useEffect, useState } from 'react';
-import { gestaoApi } from '../gestaoApi';
+import { X, Users, Building2 } from 'lucide-react';
+import { api } from '../../api';
 
-const TIPOS = [
-  { value: 'daily', label: 'Diariamente' },
-  { value: 'weekdays', label: 'Segunda a sexta' },
-  { value: 'specific_days', label: 'Dias específicos da semana' },
-  { value: 'monthly', label: 'Mensalmente' },
+const NAVY = '#2563EB';
+const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const LEMBRETES = [
+  { minutos: 0, label: 'No dia' },
+  { minutos: 30, label: '30 min' },
+  { minutos: 15, label: '15 min' },
+  { minutos: 5, label: '5 min' },
 ];
 
-const DIAS_SEMANA = [
-  { value: 0, label: 'Dom' }, { value: 1, label: 'Seg' }, { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' }, { value: 4, label: 'Qui' }, { value: 5, label: 'Sex' }, { value: 6, label: 'Sáb' },
-];
+function paraInputDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
-export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
-  const isEditing = !!recurrence;
-  const [title, setTitle] = useState(recurrence?.title || '');
-  const [description, setDescription] = useState(recurrence?.description || '');
-  const [priority, setPriority] = useState(recurrence?.priority || 'medium');
-  const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'weekdays');
-  const [daysOfWeek, setDaysOfWeek] = useState(new Set(recurrence?.days_of_week || []));
-  const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
-  const [startTime, setStartTime] = useState(recurrence?.start_time?.slice(0, 5) || '09:00');
-  const [startDate, setStartDate] = useState(recurrence?.start_date || new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(recurrence?.end_date || '');
-  const [assignees, setAssignees] = useState(new Set((recurrence?.assignees || []).map((a) => a.id)));
+export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
+  const [titulo, setTitulo] = useState('');
+  const [tipo, setTipo] = useState('interna');
+  const [data, setData] = useState(paraInputDate(dataInicial || new Date()));
+  const [horaInicio, setHoraInicio] = useState('09:00');
+  const [horaFim, setHoraFim] = useState('10:00');
+  const [local, setLocal] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [lembretes, setLembretes] = useState([0, 30, 15, 5]);
+  const [recorrencia, setRecorrencia] = useState('nenhuma'); // nenhuma|diaria|semanal|quinzenal|mensal
+  const [diasSemana, setDiasSemana] = useState([]);
+  const [repetirAte, setRepetirAte] = useState('');
+
   const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [participantes, setParticipantes] = useState([]);
+  const [filtroPessoa, setFiltroPessoa] = useState('');
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    gestaoApi
-      .assignableUsers()
-      .then((data) => setUsers(data.users || []))
-      .catch(() => setError('Não consegui carregar a lista de responsáveis.'))
-      .finally(() => setLoadingUsers(false));
+    // Só ADM participa de reunião — operador nunca aparece aqui.
+    api.get('/users/manage').then(({ data }) => setUsers(data.users.filter((u) => u.role === 'admin')));
   }, []);
 
-  function toggleAssignee(id) {
-    setAssignees((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-  function toggleDia(dia) {
-    setDaysOfWeek((prev) => {
-      const next = new Set(prev);
-      next.has(dia) ? next.delete(dia) : next.add(dia);
-      return next;
-    });
-  }
+  const escolhidos = users.filter((u) => participantes.includes(u.id));
+  const filtrados = users.filter(
+    (u) => !participantes.includes(u.id) && u.name.toLowerCase().includes(filtroPessoa.toLowerCase())
+  );
 
-  async function handleSubmit(e) {
+  const toggleLembrete = (m) => {
+    setLembretes((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+  };
+
+  const submit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return setError('Escreve o que precisa ser feito.');
-    if (recurrenceType === 'specific_days' && daysOfWeek.size === 0) {
-      return setError('Escolhe pelo menos um dia da semana.');
+    if (horaFim <= horaInicio) { setError('O horário de fim precisa ser depois do início.'); return; }
+    if (recorrencia !== 'nenhuma' && !repetirAte) {
+      setError('Escolha até quando a reunião vai se repetir.');
+      return;
     }
-    if (assignees.size === 0) return setError('Escolhe pelo menos um responsável.');
-
-    setSaving(true);
+    if (recorrencia !== 'nenhuma' && repetirAte < data) {
+      setError('A data final da repetição precisa ser depois da data da reunião.');
+      return;
+    }
     setError('');
-
-    const payload = {
-      title: title.trim(),
-      description: description.trim() || null,
-      priority,
-      recurrence_type: recurrenceType,
-      days_of_week: recurrenceType === 'specific_days' ? Array.from(daysOfWeek) : [],
-      day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
-      start_time: startTime ? `${startTime}:00` : null,
-      start_date: startDate,
-      end_date: endDate || null,
-      assignee_ids: Array.from(assignees),
-    };
-
+    setSaving(true);
     try {
-      if (isEditing) await gestaoApi.updateRecurrence(recurrence.id, payload);
-      else await gestaoApi.createRecurrence(payload);
+      await api.post('/reunioes', {
+        titulo,
+        tipo,
+        inicio: new Date(`${data}T${horaInicio}`).toISOString(),
+        fim: new Date(`${data}T${horaFim}`).toISOString(),
+        local,
+        descricao,
+        participantes,
+        lembretes,
+        recorrencia: recorrencia === 'nenhuma' ? null : { tipo: recorrencia, diasSemana, ate: repetirAte },
+      });
       onSaved();
     } catch (err) {
-      setError(err.message || 'Não consegui salvar a rotina.');
+      setError(err.response?.data?.error || 'Não deu pra agendar a reunião.');
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>{isEditing ? 'Editar rotina' : 'Nova rotina'}</h2>
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4">
+      <div className="bg-white rounded-xl w-[440px] max-w-full p-5 my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Nova reunião</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.body}>
-          <label style={styles.label}>O que precisa ser feito</label>
-          <input
-            style={styles.input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Conferir pagamentos"
-            autoFocus
-          />
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} required
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
 
-          <label style={styles.label}>Descrição (opcional)</label>
-          <textarea
-            style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detalhes de como fazer, o que conferir etc."
-          />
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Tipo</label>
+          <div className="flex gap-2 mb-3">
+            <button type="button" onClick={() => setTipo('interna')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'interna' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}>
+              <Users size={14} /> Interna
+            </button>
+            <button type="button" onClick={() => setTipo('externa')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'externa' ? { background: '#FAEEDA', borderColor: '#BA7517', color: '#854F0B' } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}>
+              <Building2 size={14} /> Externa
+            </button>
+          </div>
 
-          <label style={styles.label}>Prioridade</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {[
-              { value: 'high', label: 'Alta', cor: '#dc2626' },
-              { value: 'medium', label: 'Média', cor: '#f59e0b' },
-              { value: 'low', label: 'Baixa', cor: '#16a34a' },
-            ].map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPriority(p.value)}
-                style={{
-                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  border: priority === p.value ? `2px solid ${p.cor}` : '1px solid #d1d5db',
-                  background: priority === p.value ? `${p.cor}15` : 'var(--pagina-cartao)',
-                  color: priority === p.value ? p.cor : 'var(--pagina-texto-1)',
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.cor }} />
-                {p.label}
+          <div className="flex gap-2 mb-3">
+            <div className="flex-[1.3]">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Data</label>
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Início</label>
+              <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Fim</label>
+              <input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
+            </div>
+          </div>
+
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Repetir</label>
+          <select
+            value={recorrencia}
+            onChange={(e) => setRecorrencia(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2"
+          >
+            <option value="nenhuma">Não se repete</option>
+            <option value="diaria">Todos os dias</option>
+            <option value="semanal">Toda semana</option>
+            <option value="quinzenal">A cada 15 dias</option>
+            <option value="mensal">Todo mês (mesmo dia)</option>
+          </select>
+
+          {(recorrencia === 'semanal' || recorrencia === 'quinzenal') && (
+            <>
+              <div className="text-[11px] text-slate-400 mb-1.5">Em quais dias (em branco = mesmo dia da semana da data escolhida)</div>
+              <div className="flex gap-1 mb-2">
+                {DIAS_SEMANA_CURTO.map((d, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setDiasSemana((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))}
+                    className="flex-1 text-[11.5px] font-medium rounded-lg py-1.5 border"
+                    style={diasSemana.includes(i)
+                      ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY }
+                      : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {recorrencia !== 'nenhuma' && (
+            <>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Repetir até</label>
+              <input type="date" value={repetirAte} onChange={(e) => setRepetirAte(e.target.value)} min={data}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1" />
+              <p className="text-[11px] text-slate-400 mb-3">
+                Cada data vira uma reunião com sua própria ata.
+              </p>
+            </>
+          )}
+          {recorrencia === 'nenhuma' && <div className="mb-1" />}
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Local ou link (opcional)</label>
+          <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="meet.google.com/... ou sala de reunião"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Pauta (opcional)</label>
+          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Participantes</label>
+          {escolhidos.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {escolhidos.map((u) => (
+                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EFF4FF', color: NAVY }}>
+                  {u.name}
+                  <button type="button" onClick={() => setParticipantes((p) => p.filter((x) => x !== u.id))}><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input value={filtroPessoa} onChange={(e) => setFiltroPessoa(e.target.value)} placeholder="Buscar pessoa..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+          {filtroPessoa && (
+            <div className="max-h-28 overflow-y-auto border border-slate-100 rounded-lg mb-3 divide-y divide-slate-50">
+              {filtrados.slice(0, 20).map((u) => (
+                <button key={u.id} type="button"
+                  onClick={() => { setParticipantes((p) => [...p, u.id]); setFiltroPessoa(''); }}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50">
+                  {u.name}
+                </button>
+              ))}
+              {filtrados.length === 0 && <div className="px-3 py-1.5 text-[12px] text-slate-400">Ninguém encontrado.</div>}
+            </div>
+          )}
+          {!filtroPessoa && <div className="mb-3" />}
+
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Avisar</label>
+          <div className="flex gap-1.5 flex-wrap mb-4">
+            {LEMBRETES.map((l) => (
+              <button key={l.minutos} type="button" onClick={() => toggleLembrete(l.minutos)}
+                className="text-[11.5px] font-medium rounded-full px-3 py-1 border"
+                style={lembretes.includes(l.minutos)
+                  ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY }
+                  : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}>
+                {l.label}
               </button>
             ))}
           </div>
 
-          <label style={styles.label}>Repetição</label>
-          <select style={styles.input} value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value)}>
-            {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
-          {recurrenceType === 'specific_days' && (
-            <div style={styles.diasRow}>
-              {DIAS_SEMANA.map((d) => (
-                <button
-                  key={d.value}
-                  type="button"
-                  style={daysOfWeek.has(d.value) ? styles.diaBtnAtivo : styles.diaBtn}
-                  onClick={() => toggleDia(d.value)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {recurrenceType === 'monthly' && (
-            <>
-              <label style={styles.label}>Dia do mês</label>
-              <input
-                type="number" min={1} max={31} style={styles.input}
-                value={dayOfMonth} onChange={(e) => setDayOfMonth(e.target.value)}
-              />
-            </>
-          )}
-
-          <label style={styles.label}>Horário (opcional, só pra organizar)</label>
-          <input type="time" style={styles.input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-
-          <div style={styles.row}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Data de início</label>
-              <input type="date" style={styles.input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Data de término (opcional)</label>
-              <input type="date" style={styles.input} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-          </div>
-
-          <label style={styles.label}>Quem vai cumprir essa rotina</label>
-          {loadingUsers ? (
-            <p style={styles.hint}>Carregando...</p>
-          ) : (
-            <div style={styles.assigneeList}>
-              {users.map((u) => (
-                <label key={u.id} style={styles.assigneeItem}>
-                  <input type="checkbox" checked={assignees.has(u.id)} onChange={() => toggleAssignee(u.id)} />
-                  {u.name}
-                </label>
-              ))}
-              {users.length === 0 && <p style={styles.hint}>Nenhum ADM ativo encontrado.</p>}
-            </div>
-          )}
-
-          <p style={styles.avisoTexto}>
-            Se marcar mais de uma pessoa, cada uma tem a própria lista pra marcar como feita —
-            não é uma rotina compartilhada, é uma cópia pra cada responsável.
-          </p>
-
-          {error && <p style={styles.error}>{error}</p>}
-
-          <div style={styles.footer}>
-            <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancelar</button>
-            <button type="submit" style={styles.saveBtn} disabled={saving}>
-              {saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Criar rotina'}
-            </button>
-          </div>
+          <button type="submit" disabled={saving}
+            className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+            {saving ? 'Agendando...' : 'Agendar reunião'}
+          </button>
         </form>
       </div>
     </div>
   );
 }
-
-const NAVY = '#2563EB';
-
-const styles = {
-  overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-    overflowY: 'auto', padding: '4vh 16px', zIndex: 1000,
-  },
-  modal: {
-    background: 'var(--pagina-cartao)', borderRadius: 12, width: '90%', maxWidth: 480,
-    boxShadow: '0 10px 40px rgba(0,0,0,0.3)', margin: 'auto',
-  },
-  header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
-    borderRadius: '12px 12px 0 0',
-  },
-  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 18 },
-  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
-  body: { padding: 20, display: 'flex', flexDirection: 'column', gap: 4 },
-  label: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginTop: 12, marginBottom: 4 },
-  input: {
-    width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #d1d5db',
-    fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: 'var(--pagina-cartao)',
-  },
-  row: { display: 'flex', gap: 12 },
-  diasRow: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
-  diaBtn: {
-    padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-texto-1)',
-  },
-  diaBtnAtivo: {
-    padding: '7px 10px', borderRadius: 8, border: `1px solid ${NAVY}`, background: NAVY,
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-cartao)', fontWeight: 600,
-  },
-  assigneeList: {
-    display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto',
-    border: '1px solid #E4E8EE', borderRadius: 8, padding: 10,
-  },
-  assigneeItem: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 },
-  hint: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: 0 },
-  avisoTexto: { fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 12, fontStyle: 'italic' },
-  error: { color: '#ef4444', fontSize: 13, marginTop: 8 },
-  footer: { display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
-  cancelBtn: {
-    padding: '9px 16px', borderRadius: 8, border: '1px solid #d1d5db', background: 'var(--pagina-cartao)',
-    cursor: 'pointer', fontSize: 14,
-  },
-  saveBtn: {
-    padding: '9px 16px', borderRadius: 8, border: 'none', background: NAVY, color: 'var(--pagina-cartao)',
-    cursor: 'pointer', fontSize: 14, fontWeight: 600,
-  },
-};
