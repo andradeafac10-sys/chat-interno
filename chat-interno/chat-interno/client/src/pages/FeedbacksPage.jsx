@@ -63,7 +63,7 @@ export default function FeedbacksPage() {
                   <div
                     key={f.id}
                     className="bg-white rounded-lg border overflow-hidden"
-                    style={pendente ? { background: "#FEF2F2", borderColor: "#FCA5A5" } : { borderColor: "#E2E8F0" }}
+                    style={pendente ? { background: "#FEF2F2", borderColor: "#FCA5A5" } : { borderColor: "var(--pagina-borda)" }}
                   >
                     <button
                       onClick={() => setAbertoId(aberto ? null : f.id)}
@@ -79,7 +79,7 @@ export default function FeedbacksPage() {
                     </button>
 
                     {aberto && (
-                      <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: pendente ? "#FCA5A5" : "#E2E8F0" }}>
+                      <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: pendente ? "#FCA5A5" : "var(--pagina-borda)" }}>
                         <div className="text-[13px] text-slate-600 whitespace-pre-wrap mt-3">{f.content}</div>
                         {f.attachment_url && (
                           <a
