@@ -67,27 +67,146 @@ body.tema-escuro input[type="datetime-local"]::-webkit-calendar-picker-indicator
   filter: invert(1) opacity(0.6);
 }
 
-/* Os círculos atrás dos ícones dos cards eram tons bem claros (quase brancos),
-   pensados pra fundo claro — no escuro viravam bolhas brancas. Aqui eles
-   passam a ser um véu escuro translúcido, deixando só a cor do ícone aparecer. */
+/* Chips, badges e círculos de ícone usavam fundos bem claros (azul-clarinho,
+   verde-clarinho...) com texto escuro por cima — feitos pra tela clara. No
+   escuro o fundo precisa escurecer E o texto precisa clarear junto, senão
+   fica texto escuro sobre fundo escuro (invisível).
+   Cada família de cor vira um véu translúcido da própria cor + texto claro. */
+
+/* Azul (informativo, chips de pessoa, tipo "interna") */
 body.tema-escuro [style*="background: #EEF4FF"],
-body.tema-escuro [style*="background: #ECFDF3"],
-body.tema-escuro [style*="background: #FFF4ED"],
-body.tema-escuro [style*="background: #FEF2F2"],
-body.tema-escuro [style*="background: #F5F3FF"],
-body.tema-escuro [style*="background: #F0F9FF"],
 body.tema-escuro [style*="background: #EFF4FF"],
-body.tema-escuro [style*="background: #F0FDF4"],
 body.tema-escuro [style*="background: #E6F1FB"],
-body.tema-escuro [style*="background: #FAEEDA"],
-body.tema-escuro [style*="background: #E1F5EE"],
-body.tema-escuro [style*="background: #FEE2E2"],
-body.tema-escuro [style*="background: #DCFCE7"],
-body.tema-escuro [style*="background: #FEF3C7"],
-body.tema-escuro [style*="background: #FFEDD5"],
-body.tema-escuro [style*="background: #F1F5F9"] {
-  background-color: rgba(255, 255, 255, 0.07) !important;
+body.tema-escuro [style*="background: #F0F9FF"],
+body.tema-escuro [style*="background:#EFF4FF"] {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  color: #93C5FD !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
 }
+
+/* Verde (concluído, assinado, presente) */
+body.tema-escuro [style*="background: #ECFDF3"],
+body.tema-escuro [style*="background: #F0FDF4"],
+body.tema-escuro [style*="background: #DCFCE7"],
+body.tema-escuro [style*="background: #E1F5EE"] {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  color: #86EFAC !important;
+  border-color: rgba(34, 197, 94, 0.45) !important;
+}
+
+/* Vermelho (pendente, atrasado, alerta) */
+body.tema-escuro [style*="background: #FEF2F2"],
+body.tema-escuro [style*="background: #FEE2E2"] {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #FCA5A5 !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+/* Laranja/amarelo (atenção, tipo "externa") */
+body.tema-escuro [style*="background: #FFF4ED"],
+body.tema-escuro [style*="background: #FAEEDA"],
+body.tema-escuro [style*="background: #FEF3C7"],
+body.tema-escuro [style*="background: #FFEDD5"] {
+  background-color: rgba(249, 115, 22, 0.18) !important;
+  color: #FDBA74 !important;
+  border-color: rgba(249, 115, 22, 0.45) !important;
+}
+
+/* Roxo */
+body.tema-escuro [style*="background: #F5F3FF"] {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+  color: #D8B4FE !important;
+}
+
+/* Cinza neutro (fundo de destaque leve) */
+body.tema-escuro [style*="background: #F1F5F9"],
+body.tema-escuro [style*="background: #F8FAFC"] {
+  background-color: var(--pagina-borda-suave) !important;
+  color: var(--pagina-texto-1) !important;
+}
+
+/* O texto dentro desses chips herda a cor certa, mesmo quando o filho tem
+   cor própria definida no código (ex: <span style="color: #0C447C">) */
+body.tema-escuro [style*="background: #EEF4FF"] *,
+body.tema-escuro [style*="background: #EFF4FF"] *,
+body.tema-escuro [style*="background: #E6F1FB"] *,
+body.tema-escuro [style*="background: #ECFDF3"] *,
+body.tema-escuro [style*="background: #F0FDF4"] *,
+body.tema-escuro [style*="background: #DCFCE7"] *,
+body.tema-escuro [style*="background: #E1F5EE"] *,
+body.tema-escuro [style*="background: #FEF2F2"] *,
+body.tema-escuro [style*="background: #FEE2E2"] *,
+body.tema-escuro [style*="background: #FAEEDA"] *,
+body.tema-escuro [style*="background: #FEF3C7"] *,
+body.tema-escuro [style*="background: #FFEDD5"] * {
+  color: inherit !important;
+}
+
+/* Texto em azul/verde/vermelho escuro solto na página (sem fundo colorido)
+   também precisa clarear pra ter contraste no preto. */
+body.tema-escuro [style*="color: #0C447C"],
+body.tema-escuro [style*="color: #2563EB"] { color: #93C5FD !important; }
+body.tema-escuro [style*="color: #085041"],
+body.tema-escuro [style*="color: #16A34A"] { color: #86EFAC !important; }
+body.tema-escuro [style*="color: #633806"],
+body.tema-escuro [style*="color: #854F0B"],
+body.tema-escuro [style*="color: #B45309"],
+body.tema-escuro [style*="color: #C2410C"],
+body.tema-escuro [style*="color: #EA4E1B"] { color: #FDBA74 !important; }
+body.tema-escuro [style*="color: #DC2626"],
+body.tema-escuro [style*="color: #791F1F"] { color: #FCA5A5 !important; }
+
+/* Classes do Tailwind com cor forte: no preto elas ficam escuras demais.
+   Aqui clareiam pra manter o significado (vermelho = alerta, verde = ok)
+   mas com contraste legível. */
+body.tema-escuro [class*="bg-red-50"] { background-color: rgba(239, 68, 68, 0.15) !important; }
+body.tema-escuro [class*="bg-emerald-50"],
+body.tema-escuro [class*="bg-green-50"] { background-color: rgba(34, 197, 94, 0.15) !important; }
+body.tema-escuro [class*="bg-amber-50"],
+body.tema-escuro [class*="bg-orange-50"] { background-color: rgba(249, 115, 22, 0.15) !important; }
+body.tema-escuro [class*="bg-blue-50"],
+body.tema-escuro [class*="bg-indigo-50"] { background-color: rgba(59, 130, 246, 0.15) !important; }
+
+body.tema-escuro [class*="text-red-6"],
+body.tema-escuro [class*="text-red-7"],
+body.tema-escuro [class*="text-red-8"] { color: #FCA5A5 !important; }
+body.tema-escuro [class*="text-emerald-6"],
+body.tema-escuro [class*="text-emerald-7"],
+body.tema-escuro [class*="text-green-6"],
+body.tema-escuro [class*="text-green-7"] { color: #86EFAC !important; }
+body.tema-escuro [class*="text-amber-6"],
+body.tema-escuro [class*="text-amber-7"],
+body.tema-escuro [class*="text-orange-6"] { color: #FDBA74 !important; }
+body.tema-escuro [class*="text-blue-6"],
+body.tema-escuro [class*="text-blue-7"],
+body.tema-escuro [class*="text-indigo-6"] { color: #93C5FD !important; }
+
+/* Mesmas cores escritas em minúsculo nos arquivos (CSS diferencia maiúscula
+   de minúscula em seletores de atributo, então precisam estar aqui também). */
+body.tema-escuro [style*="color: #111827"],
+body.tema-escuro [style*="color: #374151"],
+body.tema-escuro [style*="color: #1c4270"],
+body.tema-escuro [style*="color: #1C4270"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #6b7280"],
+body.tema-escuro [style*="color: #9ca3af"],
+body.tema-escuro [style*="color: #cbd5e1"],
+body.tema-escuro [style*="color: #d1d5db"] { color: var(--pagina-texto-2) !important; }
+body.tema-escuro [style*="color: #ef4444"],
+body.tema-escuro [style*="color: #dc2626"],
+body.tema-escuro [style*="color: #E5484D"] { color: #FCA5A5 !important; }
+body.tema-escuro [style*="color: #16a34a"] { color: #86EFAC !important; }
+body.tema-escuro [style*="color: #f59e0b"] { color: #FDBA74 !important; }
+
+/* Botões azuis sólidos (fundo #2563EB) mantêm o texto branco — a regra de
+   "color" acima não pode clarear o texto deles pra azul claro. */
+body.tema-escuro [style*="background: #2563EB"],
+body.tema-escuro [style*="background:#2563EB"],
+body.tema-escuro [style*="background: #DC2626"],
+body.tema-escuro [style*="background: #EA4E1B"],
+body.tema-escuro [style*="background: #EF4444"] { color: #FFFFFF !important; }
+body.tema-escuro [style*="background: #2563EB"] *,
+body.tema-escuro [style*="background: #DC2626"] *,
+body.tema-escuro [style*="background: #EF4444"] * { color: #FFFFFF !important; }
 
 /* Fundo branco escrito por extenso em estilo inline (ex: background: "white")
    escapa da regra acima, que só pega códigos tipo #FFF. Sem isso, campos e
