@@ -1,6 +1,6 @@
 // client/src/gestao/pages/Trilha.jsx
 import { useEffect, useState } from 'react';
-import { GraduationCap, Plus, X, Trash2, CheckCircle2, XCircle, Circle, PlayCircle, FileQuestion } from 'lucide-react';
+import { GraduationCap, Plus, X, Trash2, Pencil, CheckCircle2, XCircle, Circle, PlayCircle, FileQuestion } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
@@ -40,6 +40,7 @@ function AbaConteudo() {
   const [modulos, setModulos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [moduloParaEditar, setModuloParaEditar] = useState(null);
   const [moduloAberto, setModuloAberto] = useState(null);
 
   const load = () => {
@@ -86,9 +87,14 @@ function AbaConteudo() {
                   {m.description && <div className="text-[12.5px] text-slate-500 mt-0.5">{m.description}</div>}
                   <div className="text-[11.5px] text-slate-400 mt-1">{m.total_perguntas} pergunta(s) na prova</div>
                 </div>
-                <button onClick={() => apagarModulo(m.id)} className="text-slate-400 hover:text-red-500 shrink-0">
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => setModuloParaEditar(m)} className="text-slate-400 hover:text-[#2563EB]" title="Editar treinamento">
+                    <Pencil size={15} />
+                  </button>
+                  <button onClick={() => apagarModulo(m.id)} className="text-slate-400 hover:text-red-500" title="Apagar treinamento">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
               {m.tipo === 'video' && m.video_url && (
                 <video src={fileUrl(m.video_url)} controls className="w-full rounded-lg mt-3 max-h-52 bg-black" />
@@ -106,6 +112,13 @@ function AbaConteudo() {
       )}
 
       {showForm && <NovoModuloModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />}
+      {moduloParaEditar && (
+        <NovoModuloModal
+          moduloParaEditar={moduloParaEditar}
+          onClose={() => setModuloParaEditar(null)}
+          onSaved={() => { setModuloParaEditar(null); load(); }}
+        />
+      )}
     </div>
   );
 }
@@ -149,10 +162,11 @@ function novaPerguntaVazia() {
   return { question: '', opcoes: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }] };
 }
 
-function NovoModuloModal({ onClose, onSaved }) {
-  const [tipo, setTipo] = useState('video'); // 'video' | 'avaliacao'
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
+  const editando = !!moduloParaEditar;
+  const [tipo, setTipo] = useState(moduloParaEditar?.tipo || 'video'); // 'video' | 'avaliacao'
+  const [title, setTitle] = useState(moduloParaEditar?.title || '');
+  const [description, setDescription] = useState(moduloParaEditar?.description || '');
   const [video, setVideo] = useState(null);
   const [saving, setSaving] = useState(false);
   const [progresso, setProgresso] = useState(0);
@@ -167,7 +181,10 @@ function NovoModuloModal({ onClose, onSaved }) {
 
   useEffect(() => {
     api.get('/users/manage').then(({ data }) => setUsers(data.users));
-  }, []);
+    if (editando) {
+      api.get(`/trilha/modulos/${moduloParaEditar.id}/destinatarios`).then(({ data }) => setUserIds(data.userIds));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pessoasEscolhidas = users.filter((u) => userIds.includes(u.id));
   const pessoasFiltradas = users.filter(
@@ -185,11 +202,13 @@ function NovoModuloModal({ onClose, onSaved }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (tipo === 'video' && !video) { setError('Escolha o arquivo de vídeo (ou mude o tipo pra Avaliação).'); return; }
-    for (const p of perguntas) {
-      if (!p.question.trim() || p.opcoes.some((o) => !o.text.trim())) {
-        setError('Preencha o texto de todas as perguntas e das 4 alternativas.');
-        return;
+    if (!editando && tipo === 'video' && !video) { setError('Escolha o arquivo de vídeo (ou mude o tipo pra Avaliação).'); return; }
+    if (!editando) {
+      for (const p of perguntas) {
+        if (!p.question.trim() || p.opcoes.some((o) => !o.text.trim())) {
+          setError('Preencha o texto de todas as perguntas e das 4 alternativas.');
+          return;
+        }
       }
     }
     setError('');
@@ -201,15 +220,23 @@ function NovoModuloModal({ onClose, onSaved }) {
       form.append('tipo', tipo);
       if (video) form.append('video', video);
       form.append('userIds', JSON.stringify(userIds));
-      form.append('perguntas', JSON.stringify(perguntas));
-      await api.post('/trilha/modulos', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 0, // vídeo grande demora — sem isso, herdava o limite de 15s do resto do sistema
-        onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / (evt.total || 1))),
-      });
+      if (editando) {
+        await api.patch(`/trilha/modulos/${moduloParaEditar.id}`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 0,
+          onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / (evt.total || 1))),
+        });
+      } else {
+        form.append('perguntas', JSON.stringify(perguntas));
+        await api.post('/trilha/modulos', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 0, // vídeo grande demora — sem isso, herdava o limite de 15s do resto do sistema
+          onUploadProgress: (evt) => setProgresso(Math.round((evt.loaded * 100) / (evt.total || 1))),
+        });
+      }
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.error || 'Não deu pra criar o treinamento. Vídeos muito grandes podem falhar — tente um arquivo menor.');
+      setError(err.response?.data?.error || `Não deu pra ${editando ? 'salvar as alterações' : 'criar o treinamento'}. Vídeos muito grandes podem falhar — tente um arquivo menor.`);
     } finally {
       setSaving(false);
     }
@@ -219,7 +246,7 @@ function NovoModuloModal({ onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-[480px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">NOVO TREINAMENTO</h3>
+          <h3 className="text-slate-800 font-semibold text-base">{editando ? 'EDITAR TREINAMENTO' : 'NOVO TREINAMENTO'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
@@ -251,8 +278,10 @@ function NovoModuloModal({ onClose, onSaved }) {
 
           {tipo === 'video' && (
             <>
-              <label className="text-xs font-medium text-slate-500 mb-1 block">Vídeo</label>
-              <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] || null)} className="w-full text-[13px] mb-1" required={tipo === 'video'} />
+              <label className="text-xs font-medium text-slate-500 mb-1 block">
+                Vídeo {editando && '(deixe em branco pra manter o atual)'}
+              </label>
+              <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] || null)} className="w-full text-[13px] mb-1" required={tipo === 'video' && !editando} />
               <p className="text-[11px] text-slate-400 mb-4">Vídeos grandes podem demorar pra subir — não feche essa janela enquanto envia.</p>
             </>
           )}
@@ -296,6 +325,8 @@ function NovoModuloModal({ onClose, onSaved }) {
           )}
           {!filtroPessoa && <div className="mb-4" />}
 
+          {!editando && (
+          <>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-slate-500 block">Perguntas da prova ({perguntas.length}/6, opcional, 4 alternativas cada)</label>
             <button
@@ -319,6 +350,13 @@ function NovoModuloModal({ onClose, onSaved }) {
               <PerguntaBuilder key={pi} pergunta={p} indice={pi} onChange={(nova) => atualizarPergunta(pi, nova)} onRemover={() => removerPergunta(pi)} />
             ))}
           </div>
+          </>
+          )}
+          {editando && (
+            <p className="text-[11.5px] text-slate-400 mb-3">
+              As perguntas se editam em "Gerenciar perguntas da prova", na tela anterior.
+            </p>
+          )}
 
           {saving && (
             <div className="w-full h-1.5 bg-slate-100 rounded-full my-3 overflow-hidden">
@@ -328,7 +366,7 @@ function NovoModuloModal({ onClose, onSaved }) {
           {error && <div className="text-red-500 text-xs mb-3 mt-2">{error}</div>}
 
           <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mt-2" style={{ background: NAVY }}>
-            {saving ? `Enviando... ${progresso}%` : 'Criar treinamento'}
+            {saving ? `Enviando... ${progresso}%` : (editando ? 'Salvar alterações' : 'Criar treinamento')}
           </button>
         </form>
       </div>
@@ -340,6 +378,7 @@ function PerguntasModulo({ modulo, onVoltar }) {
   const [perguntas, setPerguntas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [perguntaParaEditar, setPerguntaParaEditar] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -381,7 +420,10 @@ function PerguntasModulo({ modulo, onVoltar }) {
             <div key={p.id} className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="text-[13.5px] font-medium text-slate-800">{i + 1}. {p.question}</div>
-                <button onClick={() => apagar(p.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => setPerguntaParaEditar(p)} className="text-slate-400 hover:text-[#2563EB]" title="Editar pergunta"><Pencil size={14} /></button>
+                  <button onClick={() => apagar(p.id)} className="text-slate-400 hover:text-red-500" title="Apagar pergunta"><Trash2 size={14} /></button>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 {p.opcoes.map((o, oi) => (
@@ -398,12 +440,25 @@ function PerguntasModulo({ modulo, onVoltar }) {
       )}
 
       {showForm && <NovaPerguntaModal moduloId={modulo.id} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />}
+      {perguntaParaEditar && (
+        <NovaPerguntaModal
+          moduloId={modulo.id}
+          perguntaParaEditar={perguntaParaEditar}
+          onClose={() => setPerguntaParaEditar(null)}
+          onSaved={() => { setPerguntaParaEditar(null); load(); }}
+        />
+      )}
     </div>
   );
 }
 
-function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
-  const [pergunta, setPergunta] = useState(novaPerguntaVazia());
+function NovaPerguntaModal({ moduloId, perguntaParaEditar, onClose, onSaved }) {
+  const editando = !!perguntaParaEditar;
+  const [pergunta, setPergunta] = useState(
+    editando
+      ? { question: perguntaParaEditar.question, opcoes: perguntaParaEditar.opcoes.map((o) => ({ text: o.text, isCorrect: o.is_correct })) }
+      : novaPerguntaVazia()
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -416,7 +471,11 @@ function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
     setError('');
     setSaving(true);
     try {
-      await api.post(`/trilha/modulos/${moduloId}/perguntas`, pergunta);
+      if (editando) {
+        await api.patch(`/trilha/perguntas/${perguntaParaEditar.id}`, pergunta);
+      } else {
+        await api.post(`/trilha/modulos/${moduloId}/perguntas`, pergunta);
+      }
       onSaved();
     } catch (err) {
       setError(err.response?.data?.error || 'Não deu pra salvar a pergunta.');
@@ -429,14 +488,14 @@ function NovaPerguntaModal({ moduloId, onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-[420px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Nova pergunta</h3>
+          <h3 className="text-slate-800 font-semibold text-base">{editando ? 'Editar pergunta' : 'Nova pergunta'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
           <PerguntaBuilder pergunta={pergunta} indice={0} onChange={setPergunta} onRemover={onClose} />
           {error && <div className="text-red-500 text-xs mb-3 mt-3">{error}</div>}
           <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mt-3" style={{ background: NAVY }}>
-            {saving ? 'Salvando...' : 'Salvar pergunta'}
+            {saving ? 'Salvando...' : (editando ? 'Salvar alterações' : 'Salvar pergunta')}
           </button>
         </form>
       </div>
