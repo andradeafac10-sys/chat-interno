@@ -779,10 +779,10 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowPinnedPanel(false)} />
           <div
-            className="absolute top-16 right-4 w-[380px] max-h-[70vh] rounded-xl shadow-2xl border z-40 flex flex-col overflow-hidden"
+            className="absolute top-16 right-4 w-[380px] max-h-[70vh] rounded-xl shadow-2xl border z-40 flex flex-col"
             style={{ background: colors.panelBg, borderColor: colors.headerBorder }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: colors.headerBorder }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 rounded-t-xl" style={{ borderColor: colors.headerBorder, background: colors.panelBg }}>
               <span className="text-[14px] font-semibold flex items-center gap-1.5" style={{ color: colors.textPrimary }}>
                 <Pin size={15} className="text-[#2563EB]" /> Mensagens fixadas
               </span>
@@ -791,7 +791,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-3 py-3 flex flex-col gap-2.5">
+            <div className="overflow-y-auto min-h-0 flex-1 px-3 py-3 flex flex-col gap-2.5">
               {pinnedList.length === 0 && (
                 <div className="text-sm py-6 text-center" style={{ color: colors.textSecondary }}>
                   Nenhuma mensagem fixada ainda.
@@ -800,7 +800,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               {pinnedList.map((p) => (
                 <div
                   key={p.id}
-                  className="rounded-lg border overflow-hidden"
+                  className="rounded-lg border overflow-hidden shrink-0"
                   style={{ background: colors.inputFieldBg, borderColor: colors.border }}
                 >
                   <div className="flex items-start gap-2.5 p-3">
@@ -848,7 +848,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               ))}
             </div>
 
-            <div className="px-4 py-2 text-[11px] border-t text-center" style={{ borderColor: colors.headerBorder, color: colors.textSecondary }}>
+            <div className="px-4 py-2 text-[11px] border-t text-center shrink-0" style={{ borderColor: colors.headerBorder, color: colors.textSecondary }}>
               {pinnedList.length}/10 fixadas
             </div>
           </div>
