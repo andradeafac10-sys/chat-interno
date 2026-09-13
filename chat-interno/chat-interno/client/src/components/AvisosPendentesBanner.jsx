@@ -73,7 +73,7 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
     contagens.feedbacks > 0 && {
       chave: "feedbacks",
       titulo: "FEEDBACK/ALINHAMENTO PENDENTE",
-      texto: `Você possui ${plural(contagens.feedbacks, "feedback/alinhamento aguardando", "feedbacks/alinhamentos aguardando")} sua ciência.`,
+      texto: `Você possui ${plural(contagens.feedbacks, "alinhamento aguardando", "alinhamentos aguardando")} sua ciência.`,
       botao: "VER FEEDBACKS",
       acao: onVerFeedbacks,
     },
