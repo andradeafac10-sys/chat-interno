@@ -253,26 +253,69 @@ router.post("/", async (req, res) => {
 
 // PATCH /api/reunioes/:id -> edita dados da reunião (só quem criou)
 router.patch("/:id", async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { rows: donoRows } = await pool.query(`SELECT criado_por FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows: donoRows } = await client.query(`SELECT criado_por FROM reunioes WHERE id = $1`, [req.params.id]);
     if (!donoRows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
     if (donoRows[0].criado_por !== req.user.id) {
       return res.status(403).json({ error: "Só quem criou a reunião pode editar." });
     }
 
-    const { titulo, tipo, inicio, fim, local, descricao } = req.body || {};
-    await pool.query(
+    const { titulo, tipo, inicio, fim, local, descricao, participantes } = req.body || {};
+    if (inicio && fim && new Date(fim) <= new Date(inicio)) {
+      return res.status(400).json({ error: "O fim precisa ser depois do início." });
+    }
+
+    await client.query("BEGIN");
+    await client.query(
       `UPDATE reunioes SET
          titulo = COALESCE($2, titulo), tipo = COALESCE($3, tipo),
          inicio = COALESCE($4, inicio), fim = COALESCE($5, fim),
-         local = COALESCE($6, local), descricao = COALESCE($7, descricao)
+         local = $6, descricao = $7
        WHERE id = $1`,
       [req.params.id, titulo?.trim() || null, tipo || null, inicio || null, fim || null, local?.trim() || null, descricao?.trim() || null]
     );
+
+    // Se veio lista de participantes, sincroniza: adiciona quem entrou e tira
+    // quem saiu (sem mexer na presença de quem continua).
+    if (Array.isArray(participantes)) {
+      const ids = [...new Set([donoRows[0].criado_por, ...participantes])];
+      await client.query(
+        `DELETE FROM reuniao_participantes WHERE reuniao_id = $1 AND user_id <> ALL($2::int[])`,
+        [req.params.id, ids]
+      );
+      for (const userId of ids) {
+        await client.query(
+          `INSERT INTO reuniao_participantes (reuniao_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [req.params.id, userId]
+        );
+      }
+    }
+
+    // Mudou o horário? os lembretes já enviados precisam valer de novo,
+    // senão a pessoa não é avisada da nova hora.
+    if (inicio) {
+      await client.query(`UPDATE reuniao_lembretes SET enviado_em = NULL WHERE reuniao_id = $1`, [req.params.id]);
+    }
+    await client.query("COMMIT");
+
+    const { rows: atual } = await client.query(`SELECT titulo, inicio FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows: pessoas } = await client.query(`SELECT user_id FROM reuniao_participantes WHERE reuniao_id = $1`, [req.params.id]);
+    const io = req.app.get("io");
+    pessoas.filter((p) => p.user_id !== req.user.id).forEach((p) => {
+      io.to(`user-${p.user_id}`).emit("gestao:notify", {
+        titulo: "Reunião atualizada",
+        corpo: `${atual[0].titulo} — ${new Date(atual[0].inicio).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
+      });
+    });
+
     res.json({ ok: true });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ error: "Erro ao editar a reunião." });
+  } finally {
+    client.release();
   }
 });
 
