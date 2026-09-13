@@ -26,7 +26,7 @@ export default function TrilhaConhecimento({ onBack }) {
     <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-slate-200 bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700"><ArrowLeft size={20} /></button>
-        <div className="text-slate-800 text-sm font-semibold">Trilha do Conhecimento</div>
+        <div className="text-slate-800 text-sm font-semibold">Treinamentos</div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
