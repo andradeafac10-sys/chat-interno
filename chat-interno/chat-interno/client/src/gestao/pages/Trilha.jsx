@@ -11,7 +11,7 @@ export default function Trilha() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Treinamentos com vídeo e/ou avaliação" />
+      <PageHeader icon={GraduationCap} title="Treinamentos" subtitle="Vídeos e avaliações para a equipe" />
 
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
