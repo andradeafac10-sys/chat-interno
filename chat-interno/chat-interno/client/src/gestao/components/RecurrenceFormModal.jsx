@@ -16,21 +16,36 @@ function paraInputDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
-  const [titulo, setTitulo] = useState('');
-  const [tipo, setTipo] = useState('interna');
-  const [data, setData] = useState(paraInputDate(dataInicial || new Date()));
-  const [horaInicio, setHoraInicio] = useState('09:00');
-  const [horaFim, setHoraFim] = useState('10:00');
-  const [local, setLocal] = useState('');
-  const [descricao, setDescricao] = useState('');
+function paraInputHora(d) {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// Quando recebe "reuniaoParaEditar", o mesmo formulário serve pra editar em
+// vez de criar — os campos já vêm preenchidos e o salvar usa PATCH.
+export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClose, onSaved }) {
+  const editando = !!reuniaoParaEditar;
+  const [titulo, setTitulo] = useState(reuniaoParaEditar?.titulo || '');
+  const [tipo, setTipo] = useState(reuniaoParaEditar?.tipo || 'interna');
+  const [data, setData] = useState(
+    paraInputDate(reuniaoParaEditar ? new Date(reuniaoParaEditar.inicio) : (dataInicial || new Date()))
+  );
+  const [horaInicio, setHoraInicio] = useState(
+    reuniaoParaEditar ? paraInputHora(new Date(reuniaoParaEditar.inicio)) : '09:00'
+  );
+  const [horaFim, setHoraFim] = useState(
+    reuniaoParaEditar ? paraInputHora(new Date(reuniaoParaEditar.fim)) : '10:00'
+  );
+  const [local, setLocal] = useState(reuniaoParaEditar?.local || '');
+  const [descricao, setDescricao] = useState(reuniaoParaEditar?.descricao || '');
   const [lembretes, setLembretes] = useState([0, 30, 15, 5]);
   const [recorrencia, setRecorrencia] = useState('nenhuma'); // nenhuma|diaria|semanal|quinzenal|mensal
   const [diasSemana, setDiasSemana] = useState([]);
   const [repetirAte, setRepetirAte] = useState('');
 
   const [users, setUsers] = useState([]);
-  const [participantes, setParticipantes] = useState([]);
+  const [participantes, setParticipantes] = useState(
+    (reuniaoParaEditar?.participantes || []).map((p) => p.userId)
+  );
   const [filtroPessoa, setFiltroPessoa] = useState('');
 
   const [saving, setSaving] = useState(false);
@@ -64,7 +79,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
     setError('');
     setSaving(true);
     try {
-      await api.post('/reunioes', {
+      const dados = {
         titulo,
         tipo,
         inicio: new Date(`${data}T${horaInicio}`).toISOString(),
@@ -72,12 +87,21 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
         local,
         descricao,
         participantes,
-        lembretes,
-        recorrencia: recorrencia === 'nenhuma' ? null : { tipo: recorrencia, diasSemana, ate: repetirAte },
-      });
+      };
+      if (editando) {
+        // Ao editar não mexemos na recorrência: a série já existe como datas
+        // separadas, então mudar aqui só afeta essa reunião mesmo.
+        await api.patch(`/reunioes/${reuniaoParaEditar.id}`, dados);
+      } else {
+        await api.post('/reunioes', {
+          ...dados,
+          lembretes,
+          recorrencia: recorrencia === 'nenhuma' ? null : { tipo: recorrencia, diasSemana, ate: repetirAte },
+        });
+      }
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.error || 'Não deu pra agendar a reunião.');
+      setError(err.response?.data?.error || `Não deu pra ${editando ? 'salvar as alterações' : 'agendar a reunião'}.`);
     } finally {
       setSaving(false);
     }
@@ -87,7 +111,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
     <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4">
       <div className="bg-white rounded-xl w-[440px] max-w-full p-5 my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Nova reunião</h3>
+          <h3 className="text-slate-800 font-semibold text-base">{editando ? 'Editar reunião' : 'Nova reunião'}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
@@ -128,6 +152,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
             </div>
           </div>
 
+          {!editando && (<>
           <label className="text-xs font-medium text-slate-500 mb-1.5 block">Repetir</label>
           <select
             value={recorrencia}
@@ -173,6 +198,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
             </>
           )}
           {recorrencia === 'nenhuma' && <div className="mb-1" />}
+          </>)}
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Local ou link (opcional)</label>
           <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="meet.google.com/... ou sala de reunião"
@@ -209,6 +235,7 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
           )}
           {!filtroPessoa && <div className="mb-3" />}
 
+          {!editando && (<>
           <label className="text-xs font-medium text-slate-500 mb-1.5 block">Avisar</label>
           <div className="flex gap-1.5 flex-wrap mb-4">
             {LEMBRETES.map((l) => (
@@ -221,12 +248,13 @@ export default function ReuniaoFormModal({ dataInicial, onClose, onSaved }) {
               </button>
             ))}
           </div>
+          </>)}
 
           {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
           <button type="submit" disabled={saving}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
-            {saving ? 'Agendando...' : 'Agendar reunião'}
+            {saving ? 'Salvando...' : (editando ? 'Salvar alterações' : 'Agendar reunião')}
           </button>
         </form>
       </div>
