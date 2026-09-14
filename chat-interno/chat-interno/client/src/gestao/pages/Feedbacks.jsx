@@ -1,13 +1,13 @@
 // client/src/gestao/pages/Feedbacks.jsx
 import { useEffect, useState } from 'react';
-import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight, ChevronLeft, Trash2, Calendar } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
 const NAVY = '#2563EB';
 
 export default function Feedbacks() {
-  const [aba, setAba] = useState('lista'); // 'lista' | 'ranking'
+  const [aba, setAba] = useState('lista'); // 'lista' | 'ranking' | 'calendario'
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
@@ -97,10 +97,19 @@ export default function Feedbacks() {
         >
           Ranking
         </button>
+        <button
+          onClick={() => setAba('calendario')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3 flex items-center gap-1.5"
+          style={{ background: aba === 'calendario' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'calendario' ? 'var(--pagina-cartao)' : '#64748B' }}
+        >
+          <Calendar size={12} /> Calendário
+        </button>
       </div>
 
       {aba === 'ranking' ? (
         <RankingFeedbacks />
+      ) : aba === 'calendario' ? (
+        <CalendarioAlinhamentos feedbacks={feedbacks} />
       ) : (
       <>
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
@@ -477,6 +486,132 @@ function AgendarProximoModal({ feedbackAnteriorId, colaboradores, onClose, onSav
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function mesmoDia(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function gerarGradeDoMes(ano, mes) {
+  const primeiro = new Date(ano, mes, 1);
+  const inicio = new Date(primeiro);
+  inicio.setDate(inicio.getDate() - inicio.getDay());
+  const dias = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    dias.push(d);
+    if (i >= 34 && d.getMonth() !== mes && d.getDay() === 6) break;
+  }
+  return dias;
+}
+
+// Calendário de alinhamentos: usa a lista que a tela já carregou (sem chamar
+// o servidor de novo), agrupando por dia de criação. Clica num dia pra ver
+// quais alinhamentos aconteceram ali.
+function CalendarioAlinhamentos({ feedbacks }) {
+  const hoje = new Date();
+  const [mesAtual, setMesAtual] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const [diaAberto, setDiaAberto] = useState(null);
+
+  const dias = gerarGradeDoMes(mesAtual.getFullYear(), mesAtual.getMonth());
+  const doDia = (dia) => feedbacks.filter((f) => mesmoDia(new Date(f.created_at), dia));
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 1))} className="text-slate-500 hover:text-slate-700">
+          <ChevronLeft size={18} />
+        </button>
+        <span className="text-[13.5px] font-semibold text-slate-800 min-w-[140px] text-center">
+          {MESES[mesAtual.getMonth()]} {mesAtual.getFullYear()}
+        </span>
+        <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1))} className="text-slate-500 hover:text-slate-700">
+          <ChevronRight size={18} />
+        </button>
+        <button
+          onClick={() => setMesAtual(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+          className="text-[12px] font-medium border rounded-lg px-2.5 py-1"
+          style={{ borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
+        >
+          Hoje
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border p-3" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <div className="grid grid-cols-7 gap-1 mb-1.5">
+          {DIAS_SEMANA.map((d) => (
+            <div key={d} className="text-[11px] text-center" style={{ color: 'var(--pagina-texto-2)' }}>{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {dias.map((dia, i) => {
+            const doMes = dia.getMonth() === mesAtual.getMonth();
+            const ehHoje = mesmoDia(dia, hoje);
+            const itens = doDia(dia);
+            return (
+              <button
+                key={i}
+                onClick={() => itens.length > 0 && setDiaAberto(dia)}
+                className="min-h-[70px] rounded-md p-1.5 text-left border transition-colors hover:border-[#2563EB]"
+                style={{
+                  borderColor: ehHoje ? '#2563EB' : 'var(--pagina-borda)',
+                  borderWidth: ehHoje ? 2 : 1,
+                  opacity: doMes ? 1 : 0.4,
+                  background: ehHoje ? '#EFF4FF' : 'transparent',
+                  cursor: itens.length > 0 ? 'pointer' : 'default',
+                }}
+              >
+                <span className="text-[11px] font-medium" style={{ color: ehHoje ? '#2563EB' : 'var(--pagina-texto-2)' }}>
+                  {dia.getDate()}{ehHoje ? ' hoje' : ''}
+                </span>
+                {itens.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <span
+                      className="text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                      style={{ background: '#EFF4FF', color: '#2563EB' }}
+                    >
+                      {itens.length}
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--pagina-texto-2)' }}>
+                      {itens.length === 1 ? 'alinhamento' : 'alinhamentos'}
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {diaAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4" onClick={() => setDiaAberto(null)}>
+          <div className="bg-white rounded-xl w-[440px] max-w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-slate-800 font-semibold text-base">
+                Alinhamentos — {diaAberto.toLocaleDateString('pt-BR')}
+              </h3>
+              <button onClick={() => setDiaAberto(null)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+              {doDia(diaAberto).map((f) => (
+                <div key={f.id} className="border rounded-lg p-3" style={{ borderColor: 'var(--pagina-borda)' }}>
+                  <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
+                  <div className="text-[12px] text-slate-500 mt-0.5">
+                    {new Date(f.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · por {f.created_by_name}
+                  </div>
+                  <div className="text-[12.5px] text-slate-600 mt-1.5 line-clamp-2">{f.content}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
