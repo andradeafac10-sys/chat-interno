@@ -61,7 +61,7 @@ export default function Feedbacks() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={MessageSquareText} title="ALINHAMENTOS" subtitle="Registre e acompanhe alinhamentos dados à equipe" />
+      <PageHeader icon={MessageSquareText} title="Alinhamento" subtitle="Registre e acompanhe alinhamentos dados à equipe" />
 
       <div className="px-6 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: 'var(--pagina-borda)' }}>
         <div className="relative flex-1 max-w-sm">
