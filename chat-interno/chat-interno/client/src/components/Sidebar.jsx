@@ -96,10 +96,10 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               onKeyDown={(e) => e.key === "Enter" && setActiveConvId(c.id)}
               className="group w-full flex items-center gap-3 pl-2.5 pr-2 py-2.5 rounded-lg text-left cursor-pointer transition-colors relative"
               style={{
-                background: active ? colors.sidebarActive : "transparent",
+                background: active ? colors.border : "transparent",
                 borderLeft: active ? `3px solid ${colors.accent}` : "3px solid transparent",
               }}
-              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = colors.sidebarHover; }}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = colors.borderLight ?? colors.border; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative" style={{ background: c.type === "group" ? "#334155" : c.color || colors.accent }}>
@@ -138,7 +138,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   )}
                 </div>
               </div>
-              <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 rounded-md p-0.5" style={{ background: active ? colors.sidebarActive : colors.sidebarHover }}>
+              <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 rounded-md p-0.5" style={{ background: active ? colors.border : colors.borderLight ?? colors.border }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); onTogglePinConversation?.(c.id, !c.pinned); }}
                   title={c.pinned ? "Desafixar conversa" : "Fixar conversa no topo"}
