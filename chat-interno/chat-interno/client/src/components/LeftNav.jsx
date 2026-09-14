@@ -155,7 +155,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
 
       <ItemChat view="chat" icon={MessageCircle} label="Chat" badge={unreadTotal} />
       <ItemChat view="notificacoes" icon={Bell} label="Notificação" />
-      <ItemChat view="feedbacks" icon={MessageSquareText} label="ALINHAMENTOS" badge={pendingFeedback} />
+      <ItemChat view="feedbacks" icon={MessageSquareText} label="Alinhamento" badge={pendingFeedback} />
       <ItemChat view="trilha" icon={GraduationCap} label="Treinamentos" badge={pendingTrilha} />
 
       {isAdm && (
@@ -175,7 +175,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
             <ItemGestao to="/gestao/minha-rotina" icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} />
             <ItemGestao to="/gestao/tarefas" icon={ClipboardList} label="Tarefas" badge={pendingTasks} />
             <ItemGestao to="/gestao/rotinas" icon={Repeat} label="Rotinas" />
-            <ItemGestao to="/gestao/feedbacks" icon={MessageSquareText} label="ALINHAMENTOS" />
+            <ItemGestao to="/gestao/feedbacks" icon={MessageSquareText} label="Alinhamento" />
             <ItemGestao to="/gestao/trilha" icon={GraduationCap} label="Treinamentos" />
             <ItemGestao to="/gestao/reuniao" icon={Video} label="Reuniões" badge={reunioesHoje} />
           </div>
