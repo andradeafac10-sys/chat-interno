@@ -533,4 +533,3 @@ function RankingFeedbacks() {
       </div>
     </div>
   );
-}
