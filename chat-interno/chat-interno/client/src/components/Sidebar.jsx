@@ -35,7 +35,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
     });
 
   return (
-    <div className={`w-full md:w-[320px] flex-col border-r ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.sidebarBg, borderColor: colors.border }}>
+    <div className={`w-full md:w-[320px] flex-col border-r ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.panelBg, borderColor: colors.border }}>
       {/* Filtros — segmented control discreto, sem virar tudo azul */}
       <div className="px-3 pb-2.5 pt-3 flex gap-1 p-0.5 rounded-lg" style={{ background: colors.chatBg }}>
         {[
@@ -111,7 +111,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   c.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
                 )}
                 {c.type === "dm" && onlineUsers?.has(c.otherUserId) && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full" style={{ background: colors.success || "#22C55E", border: `2px solid ${colors.sidebarBg}` }} />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full" style={{ background: colors.success || "#22C55E", border: `2px solid ${colors.panelBg}` }} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
