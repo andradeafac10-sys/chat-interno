@@ -194,7 +194,7 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
   const marcarTodos = () => setUserIds(users.map((u) => u.id));
 
   const adicionarPergunta = () => {
-    if (perguntas.length >= 6) return; // no máximo 6 perguntas por treinamento
+    if (perguntas.length >= 10) return; // no máximo 10 perguntas por treinamento
     setPerguntas((prev) => [...prev, novaPerguntaVazia()]);
   };
   const removerPergunta = (i) => setPerguntas((prev) => prev.filter((_, idx) => idx !== i));
@@ -328,19 +328,19 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
           {!editando && (
           <>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova ({perguntas.length}/6, opcional, 4 alternativas cada)</label>
+            <label className="text-xs font-medium text-slate-500 block">Perguntas da prova ({perguntas.length}/10, opcional, 4 alternativas cada)</label>
             <button
               type="button"
               onClick={adicionarPergunta}
-              disabled={perguntas.length >= 6}
+              disabled={perguntas.length >= 10}
               className="text-[12px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ color: NAVY }}
             >
               + Adicionar pergunta
             </button>
           </div>
-          {perguntas.length >= 6 && (
-            <p className="text-[11px] text-amber-600 mb-2">Máximo de 6 perguntas por treinamento já atingido.</p>
+          {perguntas.length >= 10 && (
+            <p className="text-[11px] text-amber-600 mb-2">Máximo de 10 perguntas por treinamento já atingido.</p>
           )}
           {perguntas.length === 0 && (
             <p className="text-[11.5px] text-slate-400 mb-3">Sem pergunta cadastrada, o treinamento conclui direto.</p>
@@ -400,14 +400,14 @@ function PerguntasModulo({ modulo, onVoltar }) {
 
       <button
         onClick={() => setShowForm(true)}
-        disabled={perguntas.length >= 6}
+        disabled={perguntas.length >= 10}
         className="flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg mb-1 disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ background: NAVY }}
       >
-        <Plus size={15} /> Nova pergunta ({perguntas.length}/6)
+        <Plus size={15} /> Nova pergunta ({perguntas.length}/10)
       </button>
-      {perguntas.length >= 6 && (
-        <p className="text-[11px] text-amber-600 mb-3">Máximo de 6 perguntas por treinamento já atingido.</p>
+      {perguntas.length >= 10 && (
+        <p className="text-[11px] text-amber-600 mb-3">Máximo de 10 perguntas por treinamento já atingido.</p>
       )}
 
       {loading ? (
