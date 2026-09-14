@@ -53,7 +53,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
             {u.avatar_url ? <img src={fileUrl(u.avatar_url)} alt={u.name} className="w-full h-full object-cover" /> : initials}
           </div>
           {!apagado && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E]" style={{ border: `2px solid ${colors.sidebarBg}` }} />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E]" style={{ border: `2px solid ${colors.panelBg}` }} />
           )}
         </div>
         <span className="text-sm truncate flex items-center gap-1" style={{ color: colors.textPrimary }}>
@@ -65,7 +65,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
   };
 
   return (
-    <div className="hidden lg:block w-[200px] shrink-0 border-l overflow-y-auto py-3" style={{ background: colors.sidebarBg, borderColor: colors.border }}>
+    <div className="hidden lg:block w-[200px] shrink-0 border-l overflow-y-auto py-3" style={{ background: colors.panelBg, borderColor: colors.border }}>
       <div className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide" style={{ color: colors.textSecondary }}>
         ONLINE — {online.length}
       </div>
