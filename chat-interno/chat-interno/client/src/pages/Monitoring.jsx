@@ -79,7 +79,7 @@ export default function Monitoring({ onBack }) {
               key={u.id}
               onClick={() => pickUser(u)}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
-              style={{ background: selectedUser?.id === u.id ? colors.sidebarActive : "transparent" }}
+              style={{ background: selectedUser?.id === u.id ? colors.border : "transparent" }}
             >
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: u.color }}>
                 {u.avatar_url ? (
@@ -124,7 +124,7 @@ export default function Monitoring({ onBack }) {
                 key={c.id}
                 onClick={() => pickConv(c)}
                 className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
-                style={{ background: selectedConv?.id === c.id ? colors.sidebarActive : "transparent" }}
+                style={{ background: selectedConv?.id === c.id ? colors.border : "transparent" }}
               >
                 {c.type === "group" ? <Users size={14} className="shrink-0" style={{ color: colors.textSecondary }} /> : <MessageSquare size={14} className="shrink-0" style={{ color: colors.textSecondary }} />}
                 <div className="min-w-0 flex-1">
