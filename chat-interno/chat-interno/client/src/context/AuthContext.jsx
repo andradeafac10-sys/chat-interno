@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("token");
     disconnectSocket();
     setUser(null);
+    if ("clearAppBadge" in navigator) navigator.clearAppBadge().catch(() => {});
   };
 
   const updateUser = (partial) => {
