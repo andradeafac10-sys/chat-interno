@@ -64,10 +64,20 @@ export default function Chat() {
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // Título da aba mostra a quantidade de mensagens não lidas, igual o WhatsApp —
-  // não pisca mais, só atualiza o número.
+  // não pisca mais, só atualiza o número. O mesmo número também vai pro ícone
+  // do app quando instalado no Windows (ou Mac/Chrome OS) — é a mesma bolinha
+  // vermelha com número que o WhatsApp Desktop mostra na barra de tarefas.
   useEffect(() => {
     const total = Object.values(unreadCounts).reduce((soma, n) => soma + n, 0);
     document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
+
+    if ("setAppBadge" in navigator) {
+      if (total > 0) {
+        navigator.setAppBadge(total).catch(() => {});
+      } else {
+        navigator.clearAppBadge().catch(() => {});
+      }
+    }
   }, [unreadCounts]);
 
   // Pede permissão de notificação do sistema uma vez, assim que o chat abre
