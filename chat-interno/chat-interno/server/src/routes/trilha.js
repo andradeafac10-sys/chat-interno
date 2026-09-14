@@ -122,7 +122,7 @@ router.get("/modulos/:id", requireAuth, async (req, res) => {
       [modulo.id]
     );
     // Embaralha também a ORDEM das perguntas (não só as alternativas) — cada
-    // vez que a pessoa abre o treinamento, a sequência das 6 perguntas vem
+    // vez que a pessoa abre o treinamento, a sequência das perguntas vem
     // diferente, além das 4 alternativas de cada uma.
     const perguntas = [...perguntasOrdenadas].sort(() => Math.random() - 0.5);
     const { rows: opcoes } = await pool.query(
@@ -364,9 +364,9 @@ router.post("/modulos", requireAuth, requireAdmin, uploadVideoComErroAmigavel, a
     return res.status(400).json({ error: "Dados de destinatários ou perguntas inválidos." });
   }
   // Cada pergunta precisa ter exatamente 4 alternativas, com uma marcada como certa
-  if (perguntas.length > 6) {
+  if (perguntas.length > 10) {
     if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
-    return res.status(400).json({ error: "No máximo 6 perguntas por treinamento." });
+    return res.status(400).json({ error: "No máximo 10 perguntas por treinamento." });
   }
   for (const p of perguntas) {
     if (!p.question?.trim() || !Array.isArray(p.opcoes) || p.opcoes.length !== 4 || !p.opcoes.some((o) => o.isCorrect) || p.opcoes.some((o) => !o.text?.trim())) {
@@ -530,8 +530,8 @@ router.post("/modulos/:id/perguntas", requireAuth, requireAdmin, async (req, res
     return res.status(400).json({ error: "Escreva a pergunta, as 4 alternativas e marque a correta." });
   }
   const { rows: contagemRows } = await pool.query(`SELECT COUNT(*)::int AS total FROM trilha_perguntas WHERE modulo_id = $1`, [req.params.id]);
-  if (contagemRows[0].total >= 6) {
-    return res.status(400).json({ error: "Esse treinamento já tem 6 perguntas — esse é o máximo permitido." });
+  if (contagemRows[0].total >= 10) {
+    return res.status(400).json({ error: "Esse treinamento já tem 10 perguntas — esse é o máximo permitido." });
   }
   const client = await pool.connect();
   try {
