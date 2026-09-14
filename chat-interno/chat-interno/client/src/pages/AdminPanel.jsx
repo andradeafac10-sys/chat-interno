@@ -34,7 +34,7 @@ export default function AdminPanel({ onBack }) {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <nav className="w-[170px] shrink-0 border-r py-3 px-2 flex flex-col gap-1" style={{ borderColor: colors.border, background: colors.sidebarBg }}>
+        <nav className="w-[170px] shrink-0 border-r py-3 px-2 flex flex-col gap-1" style={{ borderColor: colors.border, background: colors.panelBg }}>
           {ABAS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
