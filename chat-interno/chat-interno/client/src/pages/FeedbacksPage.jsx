@@ -40,7 +40,7 @@ export default function FeedbacksPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200 bg-white shrink-0">
         <MessageSquareText size={18} className="text-[#2563EB]" />
-        <div className="text-slate-800 text-sm font-semibold">ALINHAMENTOS</div>
+        <div className="text-slate-800 text-sm font-semibold">Alinhamento</div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6" style={{ background: "var(--pagina-fundo)" }}>
