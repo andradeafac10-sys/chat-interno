@@ -1,6 +1,6 @@
 // client/src/gestao/components/ReuniaoDetalheModal.jsx
 import { useEffect, useState } from 'react';
-import { X, Trash2, User, Plus, Pencil } from 'lucide-react';
+import { X, Trash2, User, Plus, Pencil, CheckCircle2 } from 'lucide-react';
 import { api } from '../../api';
 import ReuniaoFormModal from './ReuniaoFormModal';
 
@@ -11,6 +11,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const [ata, setAta] = useState('');
   const [presencas, setPresencas] = useState({});
   const [salvando, setSalvando] = useState(false);
+  const [salvo, setSalvo] = useState(false); // mostra "Salvo!" por um instante, sem fechar a tela
   const [editando, setEditando] = useState(false);
   const [erro, setErro] = useState('');
   const [users, setUsers] = useState([]);
@@ -37,16 +38,31 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
     api.get('/users/manage').then(({ data }) => setUsers(data.users.filter((u) => u.role === 'admin')));
   }, [reuniaoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Salva e continua na tela — antes fechava na hora, e dava a impressão de
+  // que não dava pra ver (ou editar de novo) o que acabou de escrever.
   const salvarAta = async () => {
     setSalvando(true);
+    setSalvo(false);
     try {
       await api.put(`/reunioes/${reuniaoId}/ata`, { ata, presencas });
       onChanged?.();
-      onClose();
+      load();
+      setSalvo(true);
+      setTimeout(() => setSalvo(false), 2500);
     } catch (err) {
       alert(err.response?.data?.error || 'Não deu pra salvar a ata.');
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const alternarConcluida = async () => {
+    try {
+      await api.patch(`/reunioes/${reuniaoId}/concluir`, { concluida: !reuniao.concluida });
+      onChanged?.();
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra atualizar.');
     }
   };
 
@@ -77,7 +93,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
     let apagarSerie = false;
     if (reuniao?.serie_id) {
       const escolha = confirm(
-        'Essa reunião se repete.\n\nOK = apagar TODAS as próximas da série (as que já aconteceram ficam, com suas atas).\nCancelar = apagar só essa data.'
+        'Essa reunião se repete.\n\nOK = apagar TODAS as próximas da série (as que já aconteceram ficam, com a ata preservada).\nCancelar = apagar só essa data.'
       );
       apagarSerie = escolha;
       if (!escolha && !confirm('Apagar só essa data então?')) return;
@@ -121,18 +137,25 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const fim = new Date(reuniao.fim);
   const jaPassou = fim < new Date();
   const souDono = reuniao.souDono;
+  // Ata e encaminhamentos: qualquer participante pode mexer, não só quem criou.
+  const souParticipante = reuniao.souParticipante ?? souDono;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4">
       <div className="bg-white rounded-xl w-[480px] max-w-full p-5 my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b" style={{ borderColor: 'var(--pagina-borda)' }}>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[15.5px] font-semibold text-slate-800 truncate">{reuniao.titulo}</span>
               <span className="text-[10px] rounded-full px-2 py-0.5 shrink-0"
                 style={reuniao.tipo === 'externa' ? { background: '#FAEEDA', color: '#633806' } : { background: '#E6F1FB', color: '#0C447C' }}>
                 {reuniao.tipo === 'externa' ? 'Externa' : 'Interna'}
               </span>
+              {reuniao.concluida && (
+                <span className="text-[10px] rounded-full px-2 py-0.5 shrink-0" style={{ background: '#E1F5EE', color: '#085041' }}>
+                  Concluída
+                </span>
+              )}
             </div>
             <div className="text-[12px] text-slate-500 mt-0.5">
               {inicio.toLocaleDateString('pt-BR')} · {inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -140,10 +163,15 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
               Criada por {reuniao.criado_por_nome}
-              {reuniao.serie_id ? ' · reunião que se repete' : ''}
+              {reuniao.serie_id ? ' · reunião que se repete (ata única pra série toda)' : ''}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {souParticipante && (
+              <button onClick={alternarConcluida} className="hover:opacity-70" style={{ color: reuniao.concluida ? '#16A34A' : '#94A3B8' }} title={reuniao.concluida ? 'Desmarcar como concluída' : 'Marcar como concluída'}>
+                <CheckCircle2 size={17} />
+              </button>
+            )}
             {souDono && (
               <button onClick={() => setEditando(true)} className="text-slate-400 hover:text-[#2563EB]" title="Editar reunião">
                 <Pencil size={15} />
@@ -162,7 +190,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
         )}
 
         <div className="text-[11px] font-medium text-slate-500 mb-1.5">
-          Participantes {jaPassou && souDono ? '— marque quem esteve presente' : ''}
+          Participantes {jaPassou && souParticipante ? '— marque quem esteve presente' : ''}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-4">
           {reuniao.participantes.map((p) => {
@@ -171,7 +199,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
               <button
                 key={p.userId}
                 type="button"
-                disabled={!souDono || !jaPassou}
+                disabled={!souParticipante || !jaPassou}
                 onClick={() => setPresencas((prev) => ({ ...prev, [p.userId]: !prev[p.userId] }))}
                 className="text-[11.5px] font-medium rounded-full px-2.5 py-1 border disabled:cursor-default"
                 style={presente === true
@@ -186,12 +214,14 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
           })}
         </div>
 
-        <div className="text-[13px] font-semibold text-slate-800 mb-1.5">Ata da reunião</div>
-        {souDono ? (
+        <div className="text-[13px] font-semibold text-slate-800 mb-1.5">
+          Ata da reunião {reuniao.serie_id ? '(compartilhada por toda a série)' : ''}
+        </div>
+        {souParticipante ? (
           <textarea
             value={ata}
             onChange={(e) => setAta(e.target.value)}
-            rows={6}
+            rows={7}
             placeholder="O que foi conversado, o que ficou decidido..."
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-1"
           />
@@ -200,12 +230,15 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
             {ata || <span className="text-slate-400">A ata ainda não foi escrita.</span>}
           </div>
         )}
-        {reuniao.ata_atualizada_em && (
-          <div className="text-[10.5px] text-slate-400 mb-3">
-            Atualizada em {new Date(reuniao.ata_atualizada_em).toLocaleString('pt-BR')}
-          </div>
-        )}
-        {!souDono && <div className="text-[10.5px] text-slate-400 mb-3">Só quem criou a reunião pode escrever a ata.</div>}
+        <div className="flex items-center justify-between mb-3">
+          {reuniao.ata_atualizada_em ? (
+            <div className="text-[10.5px] text-slate-400">
+              Atualizada em {new Date(reuniao.ata_atualizada_em).toLocaleString('pt-BR')}
+            </div>
+          ) : <div />}
+          {salvo && <div className="text-[11px] font-medium" style={{ color: '#16A34A' }}>Salvo!</div>}
+        </div>
+        {!souParticipante && <div className="text-[10.5px] text-slate-400 mb-3">Só participantes dessa reunião podem escrever a ata.</div>}
 
         <div className="text-[13px] font-semibold text-slate-800 mb-1.5 mt-3">Encaminhamentos</div>
         <div className="flex flex-col gap-1.5 mb-2">
@@ -220,14 +253,14 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
                   <User size={11} /> {e.responsavel_nome} · prazo {new Date(e.prazo).toLocaleDateString('pt-BR')} · vira rotina
                 </div>
               </div>
-              {souDono && (
+              {souParticipante && (
                 <button onClick={() => removerEncaminhamento(e.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={13} /></button>
               )}
             </div>
           ))}
         </div>
 
-        {souDono && (
+        {souParticipante && (
           <div className="border border-dashed rounded-lg p-2.5 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
             <input value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="O que ficou combinado..."
               className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] mb-1.5 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
@@ -247,7 +280,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
           </div>
         )}
 
-        {souDono && (
+        {souParticipante && (
           <button onClick={salvarAta} disabled={salvando}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
             {salvando ? 'Salvando...' : 'Salvar ata'}
