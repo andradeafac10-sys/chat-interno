@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Video, MessageSquareText, GraduationCap, Clock, AlertTriangle } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
-// Avisos vermelhos no topo da tela do chat, todos no mesmo modelo:
-// treinamento pendente, feedback/alinhamento pendente, rotina atrasada e
-// tarefa atrasada. Cada um some sozinho quando zera, e volta a aparecer
-// quando surge algo novo. Rotina e tarefa só existem pra ADM.
+// Faixa fina e única no topo do chat, com um "pill" clicável pra cada aviso
+// pendente (reunião hoje, treinamento, alinhamento, rotina e tarefa
+// atrasada). Cada um some sozinho quando zera. Rotina e tarefa só pra ADM.
 export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedbacks, onVerRotinas, onVerTarefas, onVerReunioes }) {
   const { user } = useAuth();
   const isAdm = user?.role === "admin";
@@ -42,53 +41,45 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
     };
   }, [isAdm]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const plural = (n, singular, pluralPalavra) => `${n} ${n > 1 ? pluralPalavra : singular}`;
-
-  // Texto do tipo "começa em 15 minutos" / "acontecendo agora" pra reunião de hoje
+  // Texto curto tipo "agora" / "em 15 min" / "às 14:00" pra caber no pill
   const quandoComeca = (inicio) => {
     const minutos = Math.round((new Date(inicio) - new Date()) / 60000);
-    if (minutos <= 0) return "acontecendo agora";
-    if (minutos < 60) return `começa em ${minutos} minuto${minutos > 1 ? "s" : ""}`;
-    const hora = new Date(inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    return `hoje às ${hora}`;
+    if (minutos <= 0) return "agora";
+    if (minutos < 60) return `em ${minutos} min`;
+    return `às ${new Date(inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
   };
 
   const avisos = [
     reunioesHoje.length > 0 && {
       chave: "reunioes",
-      titulo: reunioesHoje.length > 1 ? "REUNIÕES HOJE" : "REUNIÃO HOJE",
+      icone: Video,
       texto: reunioesHoje.length === 1
-        ? `${reunioesHoje[0].titulo} — ${quandoComeca(reunioesHoje[0].inicio)}.`
-        : `Você tem ${reunioesHoje.length} reuniões hoje. A próxima: ${reunioesHoje[0].titulo} — ${quandoComeca(reunioesHoje[0].inicio)}.`,
-      botao: "VER REUNIÕES",
+        ? `Reunião ${quandoComeca(reunioesHoje[0].inicio)}`
+        : `${reunioesHoje.length} reuniões hoje`,
       acao: onVerReunioes,
     },
     contagens.treinamentos > 0 && {
       chave: "treinamentos",
-      titulo: "TREINAMENTO PENDENTE",
-      texto: `Você possui ${plural(contagens.treinamentos, "treinamento pendente", "treinamentos pendentes")}.`,
-      botao: "VER TREINAMENTOS",
+      icone: GraduationCap,
+      texto: `${contagens.treinamentos} treinamento${contagens.treinamentos > 1 ? "s" : ""} pendente${contagens.treinamentos > 1 ? "s" : ""}`,
       acao: onVerTreinamentos,
     },
     contagens.feedbacks > 0 && {
       chave: "feedbacks",
-      titulo: "FEEDBACK/ALINHAMENTO PENDENTE",
-      texto: `Você possui ${plural(contagens.feedbacks, "alinhamento aguardando", "alinhamentos aguardando")} sua ciência.`,
-      botao: "VER FEEDBACKS",
+      icone: MessageSquareText,
+      texto: `${contagens.feedbacks} alinhamento${contagens.feedbacks > 1 ? "s" : ""}`,
       acao: onVerFeedbacks,
     },
     contagens.rotinas > 0 && {
       chave: "rotinas",
-      titulo: "ROTINA ATRASADA",
-      texto: `Você possui ${plural(contagens.rotinas, "rotina atrasada", "rotinas atrasadas")}.`,
-      botao: "VER ROTINAS",
+      icone: Clock,
+      texto: `${contagens.rotinas} rotina${contagens.rotinas > 1 ? "s" : ""} atrasada${contagens.rotinas > 1 ? "s" : ""}`,
       acao: onVerRotinas,
     },
     contagens.tarefas > 0 && {
       chave: "tarefas",
-      titulo: "TAREFA ATRASADA",
-      texto: `Você possui ${plural(contagens.tarefas, "tarefa atrasada", "tarefas atrasadas")}.`,
-      botao: "VER TAREFAS",
+      icone: AlertTriangle,
+      texto: `${contagens.tarefas} tarefa${contagens.tarefas > 1 ? "s" : ""} atrasada${contagens.tarefas > 1 ? "s" : ""}`,
       acao: onVerTarefas,
     },
   ].filter(Boolean);
@@ -96,27 +87,25 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
   if (avisos.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 mx-3 mt-3">
-      {avisos.map((aviso) => (
-        <div
-          key={aviso.chave}
-          className="rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{ background: "#FEF2F2", border: "1px solid #FCA5A5" }}
-        >
-          <Bell size={18} className="text-red-500 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-[12.5px] font-bold text-red-600">{aviso.titulo}</div>
-            <div className="text-[12px] text-red-500">{aviso.texto}</div>
-          </div>
+    <div
+      className="flex items-center gap-2 flex-wrap mx-3 mt-3 px-3 py-2 rounded-xl"
+      style={{ background: "#FEF2F2", border: "1px solid #FCA5A5" }}
+    >
+      <Bell size={15} className="text-red-500 shrink-0" />
+      {avisos.map((aviso) => {
+        const Icone = aviso.icone;
+        return (
           <button
+            key={aviso.chave}
             onClick={aviso.acao}
-            className="text-white text-[12px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
-            style={{ background: "#DC2626" }}
+            className="flex items-center gap-1.5 text-[12px] font-semibold rounded-full pl-2.5 pr-3 py-1.5 shrink-0 transition-colors"
+            style={{ background: "#FFFFFF", border: "1px solid #FCA5A5", color: "#B91C1C" }}
           >
-            {aviso.botao}
+            <Icone size={13} />
+            {aviso.texto}
           </button>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
