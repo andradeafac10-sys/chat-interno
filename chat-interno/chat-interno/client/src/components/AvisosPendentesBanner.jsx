@@ -88,18 +88,18 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
 
   return (
     <div
-      className="flex items-center gap-2 flex-wrap mx-3 mt-3 px-3 py-2 rounded-xl"
-      style={{ background: "#FEE2E2", border: "1px solid #EF4444" }}
+      className="flex items-center gap-2 flex-wrap px-4 py-2.5 w-full"
+      style={{ background: "#DC2626" }}
     >
-      <Bell size={15} className="shrink-0" style={{ color: "#DC2626" }} />
+      <Bell size={16} className="shrink-0" style={{ color: "#FEE2E2" }} />
       {avisos.map((aviso) => {
         const Icone = aviso.icone;
         return (
           <button
             key={aviso.chave}
             onClick={aviso.acao}
-            className="flex items-center gap-1.5 text-[12px] font-semibold rounded-full pl-2.5 pr-3 py-1.5 shrink-0 transition-all hover:brightness-110"
-            style={{ background: "#DC2626", border: "1px solid #DC2626", color: "#FFFFFF" }}
+            className="flex items-center gap-1.5 text-[12px] font-semibold rounded-full pl-2.5 pr-3 py-1.5 shrink-0 transition-all hover:brightness-125"
+            style={{ background: "rgba(0,0,0,0.15)", color: "#FEE2E2" }}
           >
             <Icone size={13} />
             {aviso.texto}
