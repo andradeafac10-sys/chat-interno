@@ -9,6 +9,7 @@ import GestaoApp from "./gestao/GestaoApp";
 import VisaoGeral from "./gestao/pages/VisaoGeral";
 import MinhaRotina from "./gestao/pages/MinhaRotina";
 import Tarefas from "./gestao/pages/Tarefas";
+import PainelEquipe from "./gestao/pages/PainelEquipe";
 import Rotinas from "./gestao/pages/Rotinas";
 import GestaoFeedbacks from "./gestao/pages/Feedbacks";
 import GestaoTrilha from "./gestao/pages/Trilha";
@@ -47,6 +48,7 @@ export default function App() {
               <Route index element={<VisaoGeral />} />
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
+              <Route path="tarefas-equipe" element={<PainelEquipe />} />
               <Route path="rotinas" element={<Rotinas />} />
               <Route path="feedbacks" element={<GestaoFeedbacks />} />
               <Route path="trilha" element={<GestaoTrilha />} />
