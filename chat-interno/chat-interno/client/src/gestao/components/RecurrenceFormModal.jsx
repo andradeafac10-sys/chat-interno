@@ -20,7 +20,8 @@ function paraInputHora(d) {
 }
 
 // Quando recebe "reuniaoParaEditar", o formulário serve pra editar em vez de
-// criar — os campos já vêm preenchidos e salvar usa PATCH em vez de POST.
+// criar — os campos (inclusive participantes já marcados) já vêm
+// preenchidos, e salvar usa PATCH em vez de POST.
 export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClose, onSaved }) {
   const editando = !!reuniaoParaEditar;
 
@@ -43,6 +44,8 @@ export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClo
   const [repetirAte, setRepetirAte] = useState('');
 
   const [users, setUsers] = useState([]);
+  // Participantes já marcados vêm de reuniaoParaEditar.participantes — sem
+  // isso, editar sempre mostrava a lista vazia mesmo já tendo gente marcada.
   const [participantes, setParticipantes] = useState(
     (reuniaoParaEditar?.participantes || []).map((p) => p.userId)
   );
