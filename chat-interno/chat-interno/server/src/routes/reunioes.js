@@ -92,6 +92,7 @@ router.get("/hoje", async (req, res) => {
        WHERE rp.user_id = $1
          AND r.inicio::date = CURRENT_DATE
          AND r.fim > now()
+         AND r.concluida = false
        ORDER BY r.inicio`,
       [req.user.id]
     );
@@ -159,13 +160,21 @@ router.get("/:id", async (req, res) => {
     );
     const { rows: encaminhamentos } = await pool.query(
       `SELECT e.*, u.name AS responsavel_nome
-       FROM reuniao_encaminhamentos e JOIN users u ON u.id = e.responsavel_id
-       WHERE e.reuniao_id = $1 ORDER BY e.prazo, e.id`,
+       FROM reuniao_encaminhamentos e
+       JOIN users u ON u.id = e.responsavel_id
+       WHERE e.reuniao_id IN (
+         SELECT id FROM reunioes WHERE id = $1 OR serie_id = (SELECT serie_id FROM reunioes WHERE id = $1)
+       )
+       ORDER BY e.prazo, e.id`,
       [reuniao.id]
     );
     const { rows: lembretes } = await pool.query(
       `SELECT minutos_antes, enviado_em FROM reuniao_lembretes WHERE reuniao_id = $1 ORDER BY minutos_antes DESC`,
       [reuniao.id]
+    );
+    const { rows: participacaoRows } = await pool.query(
+      `SELECT 1 FROM reuniao_participantes WHERE reuniao_id = $1 AND user_id = $2`,
+      [reuniao.id, req.user.id]
     );
 
     res.json({
@@ -177,6 +186,7 @@ router.get("/:id", async (req, res) => {
         encaminhamentos,
         lembretes,
         souDono: reuniao.criado_por === req.user.id,
+        souParticipante: participacaoRows.length > 0,
       },
     });
   } catch (err) {
@@ -345,18 +355,57 @@ router.delete("/:id", async (req, res) => {
 });
 
 // PUT /api/reunioes/:id/ata -> salva a ata e a presença (só quem criou)
+// PATCH /api/reunioes/:id/concluir -> marca (ou desmarca) que essa reunião já
+// foi resolvida — some do aviso vermelho mesmo antes do horário passar.
+// Qualquer participante pode marcar, não só quem criou.
+router.patch("/:id/concluir", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT EXISTS(
+         SELECT 1 FROM reuniao_participantes rp WHERE rp.reuniao_id = $1 AND rp.user_id = $2
+       ) AS sou_participante`,
+      [req.params.id, req.user.id]
+    );
+    if (!rows[0].sou_participante) {
+      return res.status(403).json({ error: "Só participantes dessa reunião podem marcar como concluída." });
+    }
+    await pool.query(`UPDATE reunioes SET concluida = $2 WHERE id = $1`, [req.params.id, !!req.body?.concluida]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao atualizar a reunião." });
+  }
+});
+
 router.put("/:id/ata", async (req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT criado_por FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows } = await pool.query(
+      `SELECT r.criado_por, r.serie_id, EXISTS(
+         SELECT 1 FROM reuniao_participantes rp WHERE rp.reuniao_id = r.id AND rp.user_id = $2
+       ) AS sou_participante
+       FROM reunioes r WHERE r.id = $1`,
+      [req.params.id, req.user.id]
+    );
     if (!rows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
-    if (rows[0].criado_por !== req.user.id) {
-      return res.status(403).json({ error: "Só quem criou a reunião pode escrever a ata." });
+    // Qualquer participante pode escrever/completar a ata — não só quem criou.
+    if (!rows[0].sou_participante) {
+      return res.status(403).json({ error: "Só participantes dessa reunião podem escrever a ata." });
     }
 
-    await pool.query(
-      `UPDATE reunioes SET ata = $2, ata_atualizada_em = now() WHERE id = $1`,
-      [req.params.id, req.body?.ata || ""]
-    );
+    // Reunião que se repete: a ata é única pra série toda. Atualiza em todas
+    // as datas da série de uma vez, pra sempre ler/editar a mesma coisa não
+    // importa por qual ocorrência a pessoa entrou.
+    if (rows[0].serie_id) {
+      await pool.query(
+        `UPDATE reunioes SET ata = $2, ata_atualizada_em = now() WHERE serie_id = $1`,
+        [rows[0].serie_id, req.body?.ata || ""]
+      );
+    } else {
+      await pool.query(
+        `UPDATE reunioes SET ata = $2, ata_atualizada_em = now() WHERE id = $1`,
+        [req.params.id, req.body?.ata || ""]
+      );
+    }
 
     // Presença de cada participante, se veio junto
     const presencas = req.body?.presencas || {};
@@ -383,10 +432,16 @@ router.post("/:id/encaminhamentos", async (req, res) => {
   }
   const client = await pool.connect();
   try {
-    const { rows: donoRows } = await client.query(`SELECT criado_por, titulo FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows: donoRows } = await client.query(
+      `SELECT r.criado_por, r.titulo, EXISTS(
+         SELECT 1 FROM reuniao_participantes rp WHERE rp.reuniao_id = r.id AND rp.user_id = $2
+       ) AS sou_participante
+       FROM reunioes r WHERE r.id = $1`,
+      [req.params.id, req.user.id]
+    );
     if (!donoRows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
-    if (donoRows[0].criado_por !== req.user.id) {
-      return res.status(403).json({ error: "Só quem criou a reunião pode adicionar encaminhamentos." });
+    if (!donoRows[0].sou_participante) {
+      return res.status(403).json({ error: "Só participantes dessa reunião podem adicionar encaminhamentos." });
     }
 
     await client.query("BEGIN");
@@ -428,13 +483,16 @@ router.post("/:id/encaminhamentos", async (req, res) => {
 router.delete("/encaminhamentos/:id", async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT e.recurrence_id, r.criado_por FROM reuniao_encaminhamentos e
+      `SELECT e.recurrence_id, r.id AS reuniao_id, EXISTS(
+         SELECT 1 FROM reuniao_participantes rp WHERE rp.reuniao_id = r.id AND rp.user_id = $2
+       ) AS sou_participante
+       FROM reuniao_encaminhamentos e
        JOIN reunioes r ON r.id = e.reuniao_id WHERE e.id = $1`,
-      [req.params.id]
+      [req.params.id, req.user.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Encaminhamento não encontrado." });
-    if (rows[0].criado_por !== req.user.id) {
-      return res.status(403).json({ error: "Só quem criou a reunião pode remover." });
+    if (!rows[0].sou_participante) {
+      return res.status(403).json({ error: "Só participantes dessa reunião podem remover." });
     }
     // Apagar a rotina remove junto o encaminhamento (ON DELETE SET NULL) e as ocorrências
     if (rows[0].recurrence_id) {
