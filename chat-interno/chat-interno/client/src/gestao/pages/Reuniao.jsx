@@ -35,7 +35,8 @@ export default function Reuniao() {
   const [mesAtual, setMesAtual] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const [reunioes, setReunioes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [diaForm, setDiaForm] = useState(null);     // data escolhida pra nova reunião
+  const [diaForm, setDiaForm] = useState(null);     // usado só quando o botão "Nova reunião" é clicado
+  const [diaAberto, setDiaAberto] = useState(null);  // dia clicado no calendário — mostra a lista do dia
   const [reuniaoAberta, setReuniaoAberta] = useState(null); // id
 
   const load = () => {
@@ -110,13 +111,14 @@ export default function Reuniao() {
               return (
                 <button
                   key={i}
-                  onClick={() => setDiaForm(dia)}
+                  onClick={() => doDia.length > 0 && setDiaAberto(dia)}
                   className="min-h-[78px] rounded-md p-1.5 text-left border transition-colors hover:border-[#2563EB]"
                   style={{
                     borderColor: ehHoje ? NAVY : 'var(--pagina-borda)',
                     borderWidth: ehHoje ? 2 : 1,
                     opacity: doMes ? 1 : 0.4,
                     background: ehHoje ? '#EFF4FF' : 'transparent',
+                    cursor: doDia.length > 0 ? 'pointer' : 'default',
                   }}
                 >
                   <span className="text-[11px] font-medium" style={{ color: ehHoje ? NAVY : 'var(--pagina-texto-2)' }}>
@@ -136,7 +138,13 @@ export default function Reuniao() {
                       </span>
                     ))}
                     {doDia.length > 3 && (
-                      <span className="text-[10px]" style={{ color: 'var(--pagina-texto-2)' }}>+{doDia.length - 3} mais</span>
+                      <span
+                        onClick={(e) => { e.stopPropagation(); setDiaAberto(dia); }}
+                        className="text-[10px] font-medium hover:underline"
+                        style={{ color: NAVY }}
+                      >
+                        +{doDia.length - 3} mais
+                      </span>
                     )}
                   </div>
                 </button>
@@ -146,6 +154,45 @@ export default function Reuniao() {
           {loading && <p className="text-[12px] mt-3" style={{ color: 'var(--pagina-texto-2)' }}>Carregando reuniões...</p>}
         </div>
       </div>
+
+      {diaAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4" onClick={() => setDiaAberto(null)}>
+          <div className="bg-white rounded-xl w-[440px] max-w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-slate-800 font-semibold text-base">
+                Reuniões — {diaAberto.toLocaleDateString('pt-BR')}
+              </h3>
+              <button onClick={() => setDiaAberto(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+            </div>
+            <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+              {reunioesDoDia(diaAberto)
+                .sort((a, b) => new Date(a.inicio) - new Date(b.inicio))
+                .map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => { setDiaAberto(null); setReuniaoAberta(r.id); }}
+                    className="text-left border rounded-lg p-3 hover:border-[#2563EB] transition-colors"
+                    style={{ borderColor: 'var(--pagina-borda)' }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold text-slate-800">{r.titulo}</span>
+                      <span
+                        className="text-[9.5px] rounded-full px-1.5 py-0.5 shrink-0"
+                        style={r.tipo === 'externa' ? { background: '#FAEEDA', color: '#633806' } : { background: '#E6F1FB', color: '#0C447C' }}
+                      >
+                        {r.tipo === 'externa' ? 'Externa' : 'Interna'}
+                      </span>
+                    </div>
+                    <div className="text-[12px] text-slate-500 mt-0.5">
+                      {new Date(r.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {new Date(r.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      {r.local ? ` · ${r.local}` : ''}
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {diaForm && (
         <ReuniaoFormModal
