@@ -1,255 +1,267 @@
-// client/src/gestao/components/RecurrenceFormModal.jsx
+// client/src/gestao/components/ReuniaoFormModal.jsx
 import { useEffect, useState } from 'react';
-import { gestaoApi } from '../gestaoApi';
+import { X, Users, Building2 } from 'lucide-react';
+import { api } from '../../api';
 
-const PRIORITY_LABELS = { low: 'Baixa', medium: 'Média', high: 'Alta' };
-const RECURRENCE_LABELS = {
-  daily: 'Todos os dias',
-  weekdays: 'Dias úteis (seg a sex)',
-  specific_days: 'Dias específicos da semana',
-  monthly: 'Todo mês (mesmo dia)',
-};
-const DIAS_SEMANA = [
-  { valor: 0, label: 'D' }, { valor: 1, label: 'S' }, { valor: 2, label: 'T' },
-  { valor: 3, label: 'Q' }, { valor: 4, label: 'Q' }, { valor: 5, label: 'S' }, { valor: 6, label: 'S' },
+const NAVY = '#2563EB';
+const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const LEMBRETES = [
+  { minutos: 0, label: 'No dia' },
+  { minutos: 30, label: '30 min' },
+  { minutos: 15, label: '15 min' },
+  { minutos: 5, label: '5 min' },
 ];
 
-export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
-  const editando = !!recurrence;
+function paraInputDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function paraInputHora(d) {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
-  const [title, setTitle] = useState(recurrence?.title || '');
-  const [description, setDescription] = useState(recurrence?.description || '');
-  const [priority, setPriority] = useState(recurrence?.priority || 'medium');
-  const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'daily');
-  const [daysOfWeek, setDaysOfWeek] = useState(recurrence?.days_of_week || []);
-  const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
-  const [startTime, setStartTime] = useState(recurrence?.start_time?.slice(0, 5) || '');
-  const [startDate, setStartDate] = useState(recurrence?.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(recurrence?.end_date?.slice(0, 10) || '');
-  const [assignees, setAssignees] = useState([]);
-  const [assigneeIds, setAssigneeIds] = useState((recurrence?.assignees || []).map((a) => a.id));
+// Quando recebe "reuniaoParaEditar", o formulário serve pra editar em vez de
+// criar — os campos já vêm preenchidos e salvar usa PATCH em vez de POST.
+export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClose, onSaved }) {
+  const editando = !!reuniaoParaEditar;
+
+  const [titulo, setTitulo] = useState(reuniaoParaEditar?.titulo || '');
+  const [tipo, setTipo] = useState(reuniaoParaEditar?.tipo || 'interna');
+  const [data, setData] = useState(
+    paraInputDate(reuniaoParaEditar ? new Date(reuniaoParaEditar.inicio) : (dataInicial || new Date()))
+  );
+  const [horaInicio, setHoraInicio] = useState(
+    reuniaoParaEditar ? paraInputHora(new Date(reuniaoParaEditar.inicio)) : '09:00'
+  );
+  const [horaFim, setHoraFim] = useState(
+    reuniaoParaEditar ? paraInputHora(new Date(reuniaoParaEditar.fim)) : '10:00'
+  );
+  const [local, setLocal] = useState(reuniaoParaEditar?.local || '');
+  const [descricao, setDescricao] = useState(reuniaoParaEditar?.descricao || '');
+  const [lembretes, setLembretes] = useState([0, 30, 15, 5]);
+  const [recorrencia, setRecorrencia] = useState('nenhuma'); // nenhuma|diaria|semanal|quinzenal|mensal
+  const [diasSemana, setDiasSemana] = useState([]);
+  const [repetirAte, setRepetirAte] = useState('');
+
+  const [users, setUsers] = useState([]);
+  const [participantes, setParticipantes] = useState(
+    (reuniaoParaEditar?.participantes || []).map((p) => p.userId)
+  );
+  const [filtroPessoa, setFiltroPessoa] = useState('');
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    gestaoApi.assignableUsers().then((data) => setAssignees(data.users || [])).catch(() => {});
+    // Só ADM participa de reunião — operador nunca aparece aqui.
+    api.get('/users/manage').then(({ data }) => setUsers(data.users.filter((u) => u.role === 'admin')));
   }, []);
 
-  const toggleAssignee = (id) => {
-    setAssigneeIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-  const toggleDia = (dia) => {
-    setDaysOfWeek((prev) => (prev.includes(dia) ? prev.filter((x) => x !== dia) : [...prev, dia]));
+  const escolhidos = users.filter((u) => participantes.includes(u.id));
+  const filtrados = users.filter(
+    (u) => !participantes.includes(u.id) && u.name.toLowerCase().includes(filtroPessoa.toLowerCase())
+  );
+
+  const toggleLembrete = (m) => {
+    setLembretes((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
   };
 
-  async function submit(e) {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) { setError('Escreva um título pra rotina.'); return; }
-    if (recurrenceType === 'specific_days' && daysOfWeek.length === 0) { setError('Escolha pelo menos um dia da semana.'); return; }
-    if (assigneeIds.length === 0) { setError('Escolha ao menos um responsável.'); return; }
-    setSaving(true);
+    if (horaFim <= horaInicio) { setError('O horário de fim precisa ser depois do início.'); return; }
+    if (!editando && recorrencia !== 'nenhuma' && !repetirAte) {
+      setError('Escolha até quando a reunião vai se repetir.');
+      return;
+    }
+    if (!editando && recorrencia !== 'nenhuma' && repetirAte < data) {
+      setError('A data final da repetição precisa ser depois da data da reunião.');
+      return;
+    }
     setError('');
+    setSaving(true);
     try {
-      const payload = {
-        title: title.trim(),
-        description: description.trim() || null,
-        priority,
-        recurrence_type: recurrenceType,
-        days_of_week: recurrenceType === 'specific_days' ? daysOfWeek : [],
-        day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
-        start_time: startTime || null,
-        start_date: startDate,
-        end_date: endDate || null,
-        assignee_ids: assigneeIds,
+      const dados = {
+        titulo,
+        tipo,
+        inicio: new Date(`${data}T${horaInicio}`).toISOString(),
+        fim: new Date(`${data}T${horaFim}`).toISOString(),
+        local,
+        descricao,
+        participantes,
       };
       if (editando) {
-        await gestaoApi.updateRecurrence(recurrence.id, payload);
+        // Editar não mexe na recorrência — a série já existe como datas
+        // separadas, então isso aqui só afeta essa data mesmo.
+        await api.patch(`/reunioes/${reuniaoParaEditar.id}`, dados);
       } else {
-        await gestaoApi.createRecurrence(payload);
+        await api.post('/reunioes', {
+          ...dados,
+          lembretes,
+          recorrencia: recorrencia === 'nenhuma' ? null : { tipo: recorrencia, diasSemana, ate: repetirAte },
+        });
       }
       onSaved();
-      onClose();
     } catch (err) {
-      setError(err.message || 'Não consegui salvar a rotina.');
+      setError(err.response?.data?.error || `Não deu pra ${editando ? 'salvar as alterações' : 'agendar a reunião'}.`);
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>{editando ? 'Editar rotina' : 'Nova rotina'}</h2>
-          <button type="button" style={styles.closeBtn} onClick={onClose}>✕</button>
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4">
+      <div className="bg-white rounded-xl w-[440px] max-w-full p-5 my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">{editando ? 'Editar reunião' : 'Nova reunião'}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
-        <div style={styles.body}>
-          <label style={styles.label}>Título</label>
-          <input
-            style={styles.input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Ligar os computadores"
-            autoFocus
-          />
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} required
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
 
-          <label style={styles.label}>Descrição / observação (opcional)</label>
-          <textarea
-            style={styles.textarea}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detalhes da rotina..."
-            rows={2}
-          />
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Tipo</label>
+          <div className="flex gap-2 mb-3">
+            <button type="button" onClick={() => setTipo('interna')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'interna' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: '#E2E8F0', color: '#64748B' }}>
+              <Users size={14} /> Interna
+            </button>
+            <button type="button" onClick={() => setTipo('externa')}
+              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
+              style={tipo === 'externa' ? { background: '#FAEEDA', borderColor: '#BA7517', color: '#854F0B' } : { borderColor: '#E2E8F0', color: '#64748B' }}>
+              <Building2 size={14} /> Externa
+            </button>
+          </div>
 
-          <div style={styles.row2}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Prioridade</label>
-              <select style={styles.input} value={priority} onChange={(e) => setPriority(e.target.value)}>
-                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+          <div className="flex gap-2 mb-3">
+            <div className="flex-[1.3]">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Data</label>
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Horário (opcional)</label>
-              <input type="time" style={styles.input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Início</label>
+              <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Fim</label>
+              <input type="time" value={horaFim} onChange={(e) => setHoraFim(e.target.value)} required
+                className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm" />
             </div>
           </div>
 
-          <label style={styles.label}>Repetir</label>
-          <select style={styles.input} value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value)}>
-            {Object.entries(RECURRENCE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
+          {!editando && (
+          <>
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Repetir</label>
+          <select
+            value={recorrencia}
+            onChange={(e) => setRecorrencia(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2"
+          >
+            <option value="nenhuma">Não se repete</option>
+            <option value="diaria">Todos os dias</option>
+            <option value="semanal">Toda semana</option>
+            <option value="quinzenal">A cada 15 dias</option>
+            <option value="mensal">Todo mês (mesmo dia)</option>
           </select>
 
-          {recurrenceType === 'specific_days' && (
-            <div style={styles.diasRow}>
-              {DIAS_SEMANA.map((d) => (
-                <button
-                  key={d.valor}
-                  type="button"
-                  onClick={() => toggleDia(d.valor)}
-                  style={daysOfWeek.includes(d.valor) ? styles.diaBtnAtivo : styles.diaBtn}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {recurrenceType === 'monthly' && (
+          {(recorrencia === 'semanal' || recorrencia === 'quinzenal') && (
             <>
-              <label style={styles.label}>Dia do mês</label>
-              <input
-                type="number" min={1} max={31}
-                style={styles.input}
-                value={dayOfMonth}
-                onChange={(e) => setDayOfMonth(e.target.value)}
-              />
+              <div className="text-[11px] text-slate-400 mb-1.5">Em quais dias (em branco = mesmo dia da semana da data escolhida)</div>
+              <div className="flex gap-1 mb-2">
+                {DIAS_SEMANA_CURTO.map((d, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setDiasSemana((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))}
+                    className="flex-1 text-[11.5px] font-medium rounded-lg py-1.5 border"
+                    style={diasSemana.includes(i)
+                      ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY }
+                      : { borderColor: '#E2E8F0', color: '#94A3B8' }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
             </>
           )}
 
-          <div style={styles.row2}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Começa em</label>
-              <input type="date" style={styles.input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Termina em (opcional)</label>
-              <input type="date" style={styles.input} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-          </div>
+          {recorrencia !== 'nenhuma' && (
+            <>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">Repetir até</label>
+              <input type="date" value={repetirAte} onChange={(e) => setRepetirAte(e.target.value)} min={data}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1" />
+              <p className="text-[11px] text-slate-400 mb-3">
+                Todas as datas compartilham a mesma ata — você vai revendo e completando ela conforme as reuniões acontecem.
+              </p>
+            </>
+          )}
+          {recorrencia === 'nenhuma' && <div className="mb-1" />}
+          </>
+          )}
 
-          <label style={styles.label}>Responsáveis</label>
-          <div style={styles.assigneesBox}>
-            {assignees.length === 0 && <p style={styles.hint}>Carregando...</p>}
-            {assignees.map((u) => (
-              <label key={u.id} style={styles.assigneeRow}>
-                <input
-                  type="checkbox"
-                  checked={assigneeIds.includes(u.id)}
-                  onChange={() => toggleAssignee(u.id)}
-                />
-                {u.name}
-              </label>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Local ou link (opcional)</label>
+          <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="meet.google.com/... ou sala de reunião"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Pauta (opcional)</label>
+          <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Participantes</label>
+          {escolhidos.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {escolhidos.map((u) => (
+                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EFF4FF', color: NAVY }}>
+                  {u.name}
+                  <button type="button" onClick={() => setParticipantes((p) => p.filter((x) => x !== u.id))}><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input value={filtroPessoa} onChange={(e) => setFiltroPessoa(e.target.value)} placeholder="Buscar pessoa..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+          {filtroPessoa && (
+            <div className="max-h-28 overflow-y-auto border border-slate-100 rounded-lg mb-3 divide-y divide-slate-50">
+              {filtrados.slice(0, 20).map((u) => (
+                <button key={u.id} type="button"
+                  onClick={() => { setParticipantes((p) => [...p, u.id]); setFiltroPessoa(''); }}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50">
+                  {u.name}
+                </button>
+              ))}
+              {filtrados.length === 0 && <div className="px-3 py-1.5 text-[12px] text-slate-400">Ninguém encontrado.</div>}
+            </div>
+          )}
+          {!filtroPessoa && <div className="mb-3" />}
+
+          {!editando && (
+          <>
+          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Avisar</label>
+          <div className="flex gap-1.5 flex-wrap mb-4">
+            {LEMBRETES.map((l) => (
+              <button key={l.minutos} type="button" onClick={() => toggleLembrete(l.minutos)}
+                className="text-[11.5px] font-medium rounded-full px-3 py-1 border"
+                style={lembretes.includes(l.minutos)
+                  ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY }
+                  : { borderColor: '#E2E8F0', color: '#94A3B8' }}>
+                {l.label}
+              </button>
             ))}
           </div>
+          </>
+          )}
 
-          {error && <p style={styles.error}>{error}</p>}
-        </div>
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
 
-        <div style={styles.footer}>
-          <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancelar</button>
-          <button type="submit" style={styles.saveBtn} disabled={saving}>
-            {saving ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar rotina'}
+          <button type="submit" disabled={saving}
+            className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+            {saving ? 'Salvando...' : (editando ? 'Salvar alterações' : 'Agendar reunião')}
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
-
-const NAVY = '#2563EB';
-
-const styles = {
-  overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-    overflowY: 'auto', padding: '4vh 16px', zIndex: 1000,
-  },
-  modal: {
-    background: 'var(--pagina-cartao)', borderRadius: 12, width: '92%', maxWidth: 480,
-    boxShadow: '0 10px 40px rgba(0,0,0,0.3)', margin: 'auto',
-  },
-  header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
-    borderRadius: '12px 12px 0 0',
-  },
-  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 17 },
-  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
-  body: { padding: 20, display: 'flex', flexDirection: 'column' },
-  label: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginTop: 12, marginBottom: 6 },
-  input: {
-    padding: '9px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)',
-    fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
-    background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-1)',
-  },
-  textarea: {
-    padding: '9px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)',
-    fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', resize: 'vertical',
-    background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-1)',
-  },
-  row2: { display: 'flex', gap: 12 },
-  diasRow: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
-  diaBtn: {
-    padding: '7px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)', background: 'var(--pagina-cartao)',
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-texto-1)',
-  },
-  diaBtnAtivo: {
-    padding: '7px 10px', borderRadius: 8, border: `1px solid ${NAVY}`, background: NAVY,
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-cartao)', fontWeight: 600,
-  },
-  assigneesBox: {
-    border: '1px solid var(--pagina-borda)', borderRadius: 8, padding: '8px 10px',
-    maxHeight: 140, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6,
-  },
-  assigneeRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer' },
-  hint: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: 0 },
-  error: { fontSize: 13, color: '#ef4444', marginTop: 12 },
-  footer: {
-    display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px',
-    borderTop: '1px solid #E4E8EE',
-  },
-  cancelBtn: {
-    background: 'none', border: '1px solid var(--pagina-borda)', color: 'var(--pagina-texto-1)',
-    padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
-  },
-  saveBtn: {
-    background: NAVY, border: 'none', color: 'var(--pagina-cartao)',
-    padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-  },
-};
