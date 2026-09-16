@@ -439,6 +439,10 @@ CREATE INDEX IF NOT EXISTS idx_reunioes_inicio ON reunioes(inicio);
 ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS serie_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_reunioes_serie ON reunioes(serie_id);
 
+-- Marcar manualmente que a reunião já foi resolvida — some do aviso mesmo
+-- que o horário dela ainda não tenha passado.
+ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS concluida BOOLEAN NOT NULL DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS reuniao_participantes (
   reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
