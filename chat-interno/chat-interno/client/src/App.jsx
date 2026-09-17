@@ -14,6 +14,7 @@ import Rotinas from "./gestao/pages/Rotinas";
 import GestaoFeedbacks from "./gestao/pages/Feedbacks";
 import GestaoTrilha from "./gestao/pages/Trilha";
 import Reuniao from "./gestao/pages/Reuniao";
+import Dashboard from "./gestao/pages/Dashboard";
 
 // Mesmo comportamento de sempre: se está logado mostra o Chat, senão a tela de login.
 // Isso NÃO mudou — só passou a viver dentro da rota "/*" em vez de ser tudo o que existia.
@@ -46,6 +47,7 @@ export default function App() {
               }
             >
               <Route index element={<VisaoGeral />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
               <Route path="tarefas-equipe" element={<PainelEquipe />} />
