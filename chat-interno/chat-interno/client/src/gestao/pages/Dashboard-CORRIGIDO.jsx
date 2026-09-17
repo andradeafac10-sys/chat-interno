@@ -4,7 +4,6 @@ export default function Dashboard() {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [filtroSetor, setFiltroSetor] = useState('todos');
 
-  // Dados mock
   const rotinas = [
     { id: 1, name: 'Backup banco de dados', setor: 'Operacional', supervisor: 'Ana Silva', responsavel: 'Sabrina', status: 'completada', freq: 'daily', proxima: '2026-09-18' },
     { id: 2, name: 'Relatório de acionamentos', setor: 'Comercial', supervisor: 'Carlos Santos', responsavel: 'Gabriel', status: 'em_andamento', freq: 'weekly', proxima: '2026-09-19' },
@@ -13,20 +12,17 @@ export default function Dashboard() {
     { id: 5, name: 'Limpeza de arquivos', setor: 'Operacional', supervisor: 'Ana Silva', responsavel: 'Sabrina', status: 'em_andamento', freq: 'daily', proxima: '2026-09-22' },
   ];
 
-  // Filtrar
   const filtradas = rotinas.filter(r => {
     if (filtroStatus !== 'todos' && r.status !== filtroStatus) return false;
     if (filtroSetor !== 'todos' && r.setor !== filtroSetor) return false;
     return true;
   });
 
-  // Métricas
   const total = filtradas.length;
   const completadas = filtradas.filter(r => r.status === 'completada').length;
   const emAndamento = filtradas.filter(r => r.status === 'em_andamento').length;
   const atrasadas = filtradas.filter(r => r.status === 'atrasada').length;
 
-  // Cores
   const corStatus = {
     completada: '#639922',
     em_andamento: '#185FA5',
@@ -47,13 +43,11 @@ export default function Dashboard() {
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', background: '#F7F9FB', padding: '24px' }}>
-      {/* Header */}
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: '500', color: '#101828', margin: '0 0 8px 0' }}>Controle de rotinas</h1>
         <p style={{ fontSize: '13px', color: '#667085', margin: '0' }}>Acompanhamento das rotinas recorrentes por equipe e responsável</p>
       </div>
 
-      {/* Cards Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
         <div style={{ background: 'white', padding: '16px', borderRadius: '8px', border: '0.5px solid #E4E8EE' }}>
           <p style={{ fontSize: '11px', fontWeight: '600', color: '#667085', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Total</p>
@@ -85,7 +79,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Filtros */}
       <div style={{ background: 'white', padding: '16px', borderRadius: '8px', border: '0.5px solid #E4E8EE', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
         <div>
           <label style={{ fontSize: '12px', fontWeight: '600', color: '#667085', display: 'block', marginBottom: '6px' }}>Setor</label>
@@ -113,7 +106,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tabela */}
       <div style={{ background: 'white', borderRadius: '8px', border: '0.5px solid #E4E8EE', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
