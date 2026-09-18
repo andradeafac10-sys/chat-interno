@@ -1,593 +1,299 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { api } from "../api";
-import { getSocket } from "../socket";
-import { useAuth } from "../context/AuthContext";
-import Sidebar from "../components/Sidebar";
-import Topbar from "../components/Topbar";
-import LeftNav from "../components/LeftNav";
-import ChatWindow from "../components/ChatWindow";
-import NewGroupModal from "../components/NewGroupModal";
-import AccountModal from "../components/AccountModal";
-import FeedbacksPage from "./FeedbacksPage";
-import TrilhaConhecimento from "./TrilhaConhecimento";
-import AdminPanel from "./AdminPanel";
-import UsersPage from "./Users";
-import AnnouncementsPage from "./Announcements";
-import MonitoringPage from "./Monitoring";
-import AnnouncementOverlay from "../components/AnnouncementOverlay";
-import HiddenGroupsModal from "../components/HiddenGroupsModal";
-import OnlinePanel from "../components/OnlinePanel";
-import UpdateBanner from "../components/UpdateBanner";
-import AvisosPendentesBanner from "../components/AvisosPendentesBanner";
-import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
-import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
+import './Chat.css';
+import React, { useEffect, useState } from 'react';
+import { Heart, MessageCircle, Send, Search, Settings, Phone, Video, MoreVertical, Plus, X, EmojiHappy } from 'lucide-react';
+import { api } from './api';
+import EmojiPicker from 'emoji-picker-react';
 
-const ORIGINAL_TITLE = "Chat Nacional";
-
-// Resumo curto do conteúdo, pra mostrar na notificação do sistema
-function previaDaMensagem(m) {
-  if (m.type === "text") return m.content;
-  if (m.type === "image") return m.content ? `📷 ${m.content}` : "📷 Foto";
-  if (m.type === "audio") return "🎤 Áudio";
-  return "📎 Arquivo";
-}
-const DISMISSED_KEY = "chatinterno_dismissed_announcement";
-
-export default function Chat() {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+export default function Chat({ socket, usuario }) {
   const [conversations, setConversations] = useState([]);
-  const [activeConvId, setActiveConvId] = useState(null);
-  const [pendingConversation, setPendingConversation] = useState(null); // conversa aberta pelo painel de online, ainda sem mensagem
-  const [messagesByConv, setMessagesByConv] = useState({});
-  const [showNewGroup, setShowNewGroup] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
-  const [showFeedbacks, setShowFeedbacks] = useState(false);
-  const [showTrilha, setShowTrilha] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
-  const [showAnnouncements, setShowAnnouncements] = useState(false);
-  const [showMonitoring, setShowMonitoring] = useState(false);
-  const [showHiddenGroups, setShowHiddenGroups] = useState(false);
-  const [hiddenGroupsCount, setHiddenGroupsCount] = useState(0);
-  const [announcement, setAnnouncement] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState(() => new Set());
-  const [unreadCounts, setUnreadCounts] = useState(() => ({})); // { conversationId: quantidade }
-
-  const activeConvIdRef = useRef(activeConvId);
-  useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
-
-  const conversationsRef = useRef(conversations);
-  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
-
-  // Título da aba mostra a quantidade de mensagens não lidas, igual o WhatsApp —
-  // não pisca mais, só atualiza o número. O mesmo número também vai pro ícone
-  // do app quando instalado no Windows (ou Mac/Chrome OS) — é a mesma bolinha
-  // vermelha com número que o WhatsApp Desktop mostra na barra de tarefas.
-  useEffect(() => {
-    const total = Object.values(unreadCounts).reduce((soma, n) => soma + n, 0);
-    document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
-
-    if ("setAppBadge" in navigator) {
-      if (total > 0) {
-        navigator.setAppBadge(total).catch(() => {});
-      } else {
-        navigator.clearAppBadge().catch(() => {});
-      }
-    }
-  }, [unreadCounts]);
-
-  // Pede permissão de notificação do sistema uma vez, assim que o chat abre
-  useEffect(() => {
-    pedirPermissaoNotificacao();
-  }, []);
-
-  // Lê a tela pedida pela URL (?view=...) — é assim que o LeftNav "navega" pra
-  // Feedbacks/Trilha/Usuários/Monitoria/Notificações sem precisar de rotas
-  // próprias pra cada uma (essas telas vivem como estado aqui dentro mesmo).
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const view = params.get("view");
-    setShowFeedbacks(view === "feedbacks");
-    setShowTrilha(view === "trilha");
-    setShowUsers(view === "users");
-    setShowMonitoring(view === "monitoring");
-    setShowAnnouncements(view === "notificacoes");
-  }, [location.search]);
-
-  // Quando a pessoa clica na notificação do Windows, o service worker avisa
-  // a página aqui pra abrir a conversa certa
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const handler = (event) => {
-      if (event.data?.type === "open-conversation" && event.data.conversationId) {
-        setActiveConvIdAndStopBlink(event.data.conversationId);
-      }
-    };
-    navigator.serviceWorker.addEventListener("message", handler);
-    return () => navigator.serviceWorker.removeEventListener("message", handler);
-  }, []);
-
-  const loadConversations = useCallback(async () => {
-    const { data } = await api.get("/conversations");
-    setConversations(data.conversations);
-    setActiveConvId((prev) => prev || data.conversations[0]?.id || null);
-    // A contagem de não lidas vem do servidor (sobrevive a F5) — mas só conta
-    // conversas que são realmente "minhas" (DM ou grupo que participo de verdade),
-    // não grupos que o ADM só enxerga pra poder monitorar.
-    setUnreadCounts(
-      data.conversations.reduce((acc, c) => {
-        const éMinha = c.type !== "group" || c.isMember !== false;
-        if (éMinha && c.unreadCount > 0) acc[c.id] = c.unreadCount;
-        return acc;
-      }, {})
-    );
-  }, []);
-
-  // Quando a aba volta a ficar visível (a pessoa estava numa aba diferente,
-  // ou o computador "dormiu"), busca tudo de novo — reforço extra pro mesmo
-  // problema do "preciso dar F5 depois de ficar um tempo parado". Precisa vir
-  // DEPOIS de "loadConversations" ser declarada aqui em cima, senão dá erro.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      loadConversations();
-      if (activeConvIdRef.current) {
-        api.get(`/conversations/${activeConvIdRef.current}/messages`)
-          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
-          .catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [loadConversations]);
-
-
-  const hiddenGroupIdsRef = useRef(new Set()); // grupos silenciados por mim — nunca deve notificar/tocar som
-
-  const loadHiddenGroupsCount = useCallback(async () => {
-    try {
-      const { data } = await api.get("/conversations/hidden-groups");
-      setHiddenGroupsCount(data.groups.length);
-      hiddenGroupIdsRef.current = new Set(data.groups.map((g) => g.id));
-    } catch { /* silencioso: não é crítico se falhar */ }
-  }, []);
-
-  const hideGroup = useCallback(async (groupId, groupName) => {
-    if (!window.confirm(`Esconder "${groupName}" da sua lista? Você pode trazer de volta quando quiser.`)) return;
-    await api.post(`/conversations/groups/${groupId}/hide`);
-    loadConversations();
-    loadHiddenGroupsCount();
-  }, [loadConversations, loadHiddenGroupsCount]);
-
-  const togglePinConversation = useCallback(async (conversationId, pinned) => {
-    await api[pinned ? "post" : "delete"](`/conversations/${conversationId}/pin`);
-    loadConversations();
-  }, [loadConversations]);
-
-  const closeConversation = useCallback(async (conversationId) => {
-    await api.post(`/conversations/${conversationId}/close`);
-    if (activeConvIdRef.current === conversationId) setActiveConvId(null);
-    loadConversations();
-  }, [loadConversations]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   useEffect(() => {
     loadConversations();
-    loadHiddenGroupsCount();
-  }, [loadConversations, loadHiddenGroupsCount]);
-
-  // Rede de segurança: mesmo com o tempo real funcionando, atualiza a lista de
-  // conversas sozinha de tempos em tempos — assim, mesmo que algum evento se perca
-  // por qualquer motivo, o app se corrige sozinho em poucos segundos, sem precisar
-  // que a pessoa dê F5 manualmente.
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      loadConversations();
-    }, 15000);
-    return () => clearInterval(intervalo);
-  }, [loadConversations]);
-
-  // Além de escutar em tempo real (socket), confere sozinho de tempos em tempos
-  // se saiu um comunicado novo — assim ninguém depende só da conexão em tempo real
-  // continuar funcionando pra saber que tem um comunicado esperando.
-  useEffect(() => {
-    let cancelado = false;
-    const checar = () => {
-      api.get("/announcements/latest").then(({ data }) => {
-        if (cancelado) return;
-        const a = data.announcement;
-        if (!a) return;
-        const dismissedId = localStorage.getItem(DISMISSED_KEY);
-        if (String(a.id) === dismissedId) return;
-        setAnnouncement((prev) => (prev?.id === a.id ? prev : a));
-      });
-    };
-    checar();
-    const intervalo = setInterval(checar, 20000);
-    return () => { cancelado = true; clearInterval(intervalo); };
-  }, []);
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    // Sempre que a conexão volta (voltou de "dormindo", trocou de rede, ficou
-    // muito tempo em segundo plano etc.), busca tudo de novo sozinho — assim
-    // nunca depende da pessoa lembrar de dar F5 depois de ficar um tempo fora.
-    const onConnect = () => {
-      loadConversations();
-      if (activeConvIdRef.current) {
-        api.get(`/conversations/${activeConvIdRef.current}/messages`)
-          .then(({ data }) => setMessagesForConv(activeConvIdRef.current, data.messages))
-          .catch(() => {});
-      }
-    };
-    socket.on("connect", onConnect);
-
-    const onNewMessage = (message) => {
-      setMessagesByConv((prev) => {
-        if (!prev[message.conversation_id]) return prev; // conversa ainda não foi aberta/carregada
-        return { ...prev, [message.conversation_id]: [...prev[message.conversation_id], message] };
-      });
-      setConversations((prev) => {
-        const jaExiste = prev.some((c) => c.id === message.conversation_id);
-        if (!jaExiste) {
-          // Conversa nova pra mim (ex: acabou de reabrir sozinha por ter sido fechada) —
-          // busca a lista completa de novo pra ela aparecer certinho, com nome/foto etc.
-          loadConversations();
-          return prev;
-        }
-        return prev.map((c) => (c.id === message.conversation_id ? { ...c, lastMessage: message } : c));
+    
+    if (socket.current) {
+      socket.current.on('user:online', (data) => {
+        setOnlineUsers(prev => new Set([...prev, data.userId]));
       });
 
-      const isMine = message.sender_id === user.id;
-      const isViewingIt = message.conversation_id === activeConvIdRef.current && document.visibilityState === "visible";
-      const conv = conversationsRef.current.find((c) => c.id === message.conversation_id);
-      // Só avisa (som + notificação) se for uma conversa que a pessoa participa de
-      // verdade — ADM entra em todo grupo pra poder monitorar, mas isso não deveria
-      // gerar barulho de grupo que ele nunca participou de fato.
-      // Se for um grupo que a pessoa silenciou, nunca notifica — mesmo que a conversa
-      // nem apareça na lista dela (grupo oculto some da lista, mas o servidor ainda
-      // manda o evento; quem filtra o aviso é aqui).
-      const grupoId = message.conversation_id.startsWith("group-") ? Number(message.conversation_id.split("-")[1]) : null;
-      const grupoSilenciado = grupoId !== null && hiddenGroupIdsRef.current.has(grupoId);
-      // "@todos" e "@MeuNome" furam o silenciar do grupo — a pessoa quis chamar
-      // atenção de propósito, então tem que notificar mesmo com o grupo mudo,
-      // igual o WhatsApp faz com menção direta.
-      const souMencionado =
-        message.type === "text" &&
-        !!message.content &&
-        new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
-      const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
-      if (!isMine && !isViewingIt && souParticipante) {
-        setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
-        playNotificationSound();
-        mostrarNotificacaoDesktop({
-          titulo: message.sender_name || "Nova mensagem",
-          corpo: previaDaMensagem(message),
-          conversationId: message.conversation_id,
+      socket.current.on('user:offline', (data) => {
+        setOnlineUsers(prev => {
+          const updated = new Set(prev);
+          updated.delete(data.userId);
+          return updated;
         });
-      }
-    };
+      });
 
-    const onEdited = (message) => {
-      setMessagesByConv((prev) => {
-        if (!prev[message.conversation_id]) return prev;
-        return {
+      socket.current.on('message:new', (msg) => {
+        setMessages(prev => [...prev, msg]);
+        setUnreadCounts(prev => ({
           ...prev,
-          [message.conversation_id]: prev[message.conversation_id].map((m) => (m.id === message.id ? { ...m, ...message } : m)),
-        };
+          [msg.conversationId]: (prev[msg.conversationId] || 0) + 1
+        }));
       });
-    };
-
-    const onDeleted = ({ id, conversation_id }) => {
-      setMessagesByConv((prev) => {
-        if (!prev[conversation_id]) return prev;
-        return {
-          ...prev,
-          [conversation_id]: prev[conversation_id].map((m) =>
-            m.id === id ? { ...m, deleted: true, content: null, file_url: null, file_name: null } : m
-          ),
-        };
-      });
-    };
-
-    const onReaction = ({ messageId, conversationId, reactions }) => {
-      setMessagesByConv((prev) => {
-        if (!prev[conversationId]) return prev;
-        return {
-          ...prev,
-          [conversationId]: prev[conversationId].map((m) => (m.id === messageId ? { ...m, reactions } : m)),
-        };
-      });
-    };
-
-    const onAnnouncementNew = (a) => setAnnouncement(a);
-    const onAnnouncementDeleted = ({ id }) => {
-      setAnnouncement((prev) => (prev && prev.id === id ? null : prev));
-    };
-    const onMessagesCleared = () => {
-      setMessagesByConv({});
-      loadConversations();
-    };
-    const onAnnouncementsCleared = () => setAnnouncement(null);
-
-    const onPinned = (message) => {
-      setMessagesByConv((prev) => {
-        if (!prev[message.conversation_id]) return prev;
-        return {
-          ...prev,
-          [message.conversation_id]: prev[message.conversation_id].map((m) =>
-            m.id === message.id ? message : { ...m, pinned: message.pinned ? false : m.pinned }
-          ),
-        };
-      });
-    };
-
-    const onGroupCreated = (payload) => {
-      // entra na sala do grupo em tempo real (o servidor confere a permissão de novo)
-      if (payload?.groupId) socket.emit("group:join", payload.groupId);
-      loadConversations();
-    };
-    const onGroupRemoved = () => loadConversations();
-
-    const onGroupUpdatedEvent = () => loadConversations();
-
-    const onPresenceList = ({ userIds }) => setOnlineUsers(new Set(userIds));
-    const onPresenceOnline = ({ userId }) => {
-      setOnlineUsers((prev) => new Set(prev).add(userId));
-    };
-    const onPresenceOffline = ({ userId }) => {
-      setOnlineUsers((prev) => {
-        const next = new Set(prev);
-        next.delete(userId);
-        return next;
-      });
-    };
-
-    // Nova tarefa/rotina atribuída — usa o mesmo som e notificação do sistema que
-    // já existe pra mensagem de chat, pra ninguém precisar de um aviso separado.
-    const onGestaoNotify = ({ titulo, corpo }) => {
-      playNotificationSound();
-      mostrarNotificacaoDesktop({ titulo, corpo });
-    };
-
-    // Um ADM registrou um feedback novo pra mim — som próprio de feedback,
-    // diferente do "pop" comum de mensagem/tarefa.
-    // (o número da bolinha vermelha no menu quem atualiza sozinho é o LeftNav)
-    const onFeedbackNovo = ({ titulo, corpo }) => {
-      playFeedbackSound();
-      mostrarNotificacaoDesktop({ titulo, corpo });
-    };
-
-    // Treinamento novo atribuído na Trilha do Conhecimento — som próprio também.
-    const onTrilhaNovo = ({ titulo, corpo }) => {
-      playTrilhaSound();
-      mostrarNotificacaoDesktop({ titulo, corpo });
-      window.dispatchEvent(new Event("rotina:atualizada")); // atualiza a bolinha do LeftNav na hora
-    };
-
-    // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
-    // MINHA que foi mandada até esse momento — igual o tique azul do WhatsApp.
-    const onConversationRead = ({ conversationId, readAt }) => {
-      setMessagesByConv((prev) => {
-        if (!prev[conversationId]) return prev;
-        const dataLeitura = new Date(readAt);
-        return {
-          ...prev,
-          [conversationId]: prev[conversationId].map((m) =>
-            m.sender_id === user.id && new Date(m.created_at) <= dataLeitura ? { ...m, read: true } : m
-          ),
-        };
-      });
-    };
-
-    socket.on("message:new", onNewMessage);
-    socket.on("conversation:read", onConversationRead);
-    // Lembrete de reunião (no dia / 30 / 15 / 5 minutos antes) — usa o mesmo
-    // som e aviso do sistema das outras notificações de gestão.
-    const onReuniaoLembrete = ({ titulo, corpo }) => {
-      playNotificationSound();
-      mostrarNotificacaoDesktop({ titulo, corpo });
-    };
-    socket.on("reuniao:lembrete", onReuniaoLembrete);
-    socket.on("gestao:notify", onGestaoNotify);
-    socket.on("feedback:novo", onFeedbackNovo);
-    socket.on("trilha:novo", onTrilhaNovo);
-    socket.on("message:pinned", onPinned);
-    socket.on("message:edited", onEdited);
-    socket.on("message:deleted", onDeleted);
-    socket.on("message:reaction", onReaction);
-    socket.on("announcement:new", onAnnouncementNew);
-    socket.on("announcement:deleted", onAnnouncementDeleted);
-    socket.on("maintenance:messages-cleared", onMessagesCleared);
-    socket.on("maintenance:announcements-cleared", onAnnouncementsCleared);
-    socket.on("group:created", onGroupCreated);
-    socket.on("group:removed", onGroupRemoved);
-    socket.on("group:updated", onGroupUpdatedEvent);
-    socket.on("presence:list", onPresenceList);
-    socket.on("presence:online", onPresenceOnline);
-    socket.on("presence:offline", onPresenceOffline);
+    }
 
     return () => {
-      socket.off("message:new", onNewMessage);
-      socket.off("conversation:read", onConversationRead);
-      socket.off("reuniao:lembrete", onReuniaoLembrete);
-      socket.off("gestao:notify", onGestaoNotify);
-      socket.off("feedback:novo", onFeedbackNovo);
-      socket.off("trilha:novo", onTrilhaNovo);
-      socket.off("connect", onConnect);
-      socket.off("message:pinned", onPinned);
-      socket.off("message:edited", onEdited);
-      socket.off("message:deleted", onDeleted);
-      socket.off("message:reaction", onReaction);
-      socket.off("announcement:new", onAnnouncementNew);
-      socket.off("announcement:deleted", onAnnouncementDeleted);
-      socket.off("maintenance:messages-cleared", onMessagesCleared);
-      socket.off("maintenance:announcements-cleared", onAnnouncementsCleared);
-      socket.off("group:created", onGroupCreated);
-      socket.off("group:removed", onGroupRemoved);
-      socket.off("group:updated", onGroupUpdatedEvent);
-      socket.off("presence:list", onPresenceList);
-      socket.off("presence:online", onPresenceOnline);
-      socket.off("presence:offline", onPresenceOffline);
+      if (socket.current) {
+        socket.current.off('user:online');
+        socket.current.off('user:offline');
+        socket.current.off('message:new');
+      }
     };
-  }, [loadConversations, user.id]);
+  }, [socket]);
 
-  const setMessagesForConv = (convId, msgs) => {
-    setMessagesByConv((prev) => ({ ...prev, [convId]: msgs }));
-  };
-
-  const togglePin = async (message, pinned) => {
+  const loadConversations = async () => {
     try {
-      await api.patch(`/conversations/${message.conversation_id}/messages/${message.id}/pin`, { pinned });
-    } catch (err) {
-      alert(err.response?.data?.error || "Não foi possível fixar essa mensagem.");
+      const res = await api.get('/chat/conversations');
+      setConversations(res.data);
+      if (res.data.length > 0) {
+        selectConversation(res.data[0]);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar conversas:', e);
     }
   };
 
-  const setActiveConvIdAndStopBlink = (id) => {
-    setActiveConvId(id);
-    setUnreadCounts((prev) => {
-      if (!prev[id]) return prev;
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-    if (id) api.post(`/conversations/${id}/read`).catch(() => {}); // avisa o servidor, pra sobreviver a um F5
+  const selectConversation = async (conv) => {
+    setSelectedConversation(conv);
+    try {
+      const res = await api.get(`/chat/conversations/${conv.id}/messages`);
+      setMessages(res.data);
+      setUnreadCounts(prev => ({ ...prev, [conv.id]: 0 }));
+    } catch (e) {
+      console.error('Erro ao carregar mensagens:', e);
+    }
   };
 
-  // Abre (ou começa) uma conversa a partir do painel de "online", mesmo que
-  // ainda não exista histórico de mensagem com essa pessoa.
-  const openFromOnlinePanel = (conv) => {
-    setPendingConversation(conv);
-    setActiveConvIdAndStopBlink(conv.id);
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+
+    try {
+      const msg = await api.post(`/chat/conversations/${selectedConversation.id}/messages`, {
+        content: newMessage,
+        userId: usuario.id
+      });
+      setMessages(prev => [...prev, msg.data]);
+      setNewMessage('');
+      socket.current?.emit('message:sent', msg.data);
+    } catch (e) {
+      console.error('Erro ao enviar mensagem:', e);
+    }
   };
 
-  const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
-  const unreadTotal = Object.values(unreadCounts).reduce((soma, n) => soma + (n || 0), 0);
+  const filteredConversations = conversations.filter(c =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const isConvOnline = selectedConversation && onlineUsers.has(selectedConversation.userId);
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden" style={{ background: "#111B21" }}>
-      <LeftNav unreadTotal={unreadTotal} onOpenAccount={() => setShowAccount(true)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-      {/* A busca é só do Chat — nas outras telas (Feedbacks, Trilha, Usuários,
-          Monitoria, Notificações) ela não faz sentido e some. */}
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
-      <Topbar
-        conversations={conversations}
-        onOpenConversation={openFromOnlinePanel}
-        onSelectConversationId={setActiveConvIdAndStopBlink}
-        onJumpToMessage={(conversationId, messageId) => {
-          setActiveConvIdAndStopBlink(conversationId);
-          setPendingJumpMessageId(messageId);
-        }}
-      />
-      )}
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
-        <AvisosPendentesBanner
-          onVerTreinamentos={() => navigate("/?view=trilha")}
-          onVerFeedbacks={() => navigate("/?view=feedbacks")}
-          onVerRotinas={() => navigate("/gestao/minha-rotina")}
-          onVerTarefas={() => navigate("/gestao/tarefas")}
-          onVerReunioes={() => navigate("/gestao/reuniao")}
-        />
-      )}
-      <div className="flex-1 flex overflow-hidden">
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
-      <Sidebar
-        conversations={conversations}
-        activeConvId={activeConvId}
-        setActiveConvId={setActiveConvIdAndStopBlink}
-        onNewGroup={() => setShowNewGroup(true)}
-        onOpenAccount={() => setShowAccount(true)}
-        onOpenUsers={() => setShowUsers(true)}
-        onOpenAnnouncement={() => setShowAnnouncements(true)}
-        onOpenMonitoring={() => setShowMonitoring(true)}
-        onlineUsers={onlineUsers}
-        unreadCounts={unreadCounts}
-        onHideGroup={hideGroup}
-        onTogglePinConversation={togglePinConversation}
-        onCloseConversation={closeConversation}
-        hiddenGroupsCount={hiddenGroupsCount}
-        onOpenHiddenGroups={() => setShowHiddenGroups(true)}
-        escondidoNoMobile={!!activeConv}
-      />
-      )}
-      {showUsers ? (
-        <UsersPage onBack={() => setShowUsers(false)} />
-      ) : showTrilha ? (
-        <TrilhaConhecimento onBack={() => setShowTrilha(false)} />
-      ) : showAnnouncements ? (
-        <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
-      ) : showMonitoring ? (
-        <MonitoringPage onBack={() => setShowMonitoring(false)} />
-      ) : showAdminPanel ? (
-        <AdminPanel onBack={() => setShowAdminPanel(false)} />
-      ) : showFeedbacks ? (
-        <FeedbacksPage />
-      ) : (
-        <>
-          {activeConv ? (
-            <ChatWindow
-              key={activeConv.id}
-              conversation={activeConv}
-              messages={messagesByConv[activeConv.id]}
-              setMessagesForConv={setMessagesForConv}
-              onTogglePin={togglePin}
-              onGroupUpdated={loadConversations}
-              isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
-              onVoltarMobile={() => setActiveConvId(null)}
-              jumpToMessageId={pendingJumpMessageId}
-              onJumpHandled={() => setPendingJumpMessageId(null)}
+    <div style={{ display: 'flex', height: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      {/* SIDEBAR - AZUL CLARO */}
+      <div style={{ width: '280px', background: '#2d5a8c', color: '#b3d1e8', borderRight: '1px solid #1e3a5f', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ padding: '16px', borderBottom: '1px solid #1e3a5f' }}>
+          <h2 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600', color: '#ffffff' }}>Chat Nacional</h2>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '8px', top: '8px', color: '#8b94a5' }} />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                paddingLeft: '32px',
+                padding: '6px 8px 6px 32px',
+                border: '1px solid #3d7ab8',
+                borderRadius: '6px',
+                background: '#3d7ab8',
+                color: '#ffffff',
+                fontSize: '13px'
+              }}
             />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
-              {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
+          </div>
+        </div>
+
+        {/* Conversas */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {filteredConversations.map((conv) => (
+            <div
+              key={conv.id}
+              onClick={() => selectConversation(conv)}
+              style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #1e3a5f',
+                cursor: 'pointer',
+                background: selectedConversation?.id === conv.id ? '#3d7ab8' : 'transparent',
+                color: selectedConversation?.id === conv.id ? '#ffffff' : '#b3d1e8',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#3d7ab8'}
+              onMouseLeave={(e) => e.currentTarget.style.background = selectedConversation?.id === conv.id ? '#3d7ab8' : 'transparent'}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: onlineUsers.has(conv.userId) ? '#10b981' : '#6b7280'
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: '500' }}>{conv.name}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {conv.lastMessage || 'Sem mensagens'}
+                  </div>
+                </div>
+                {unreadCounts[conv.id] > 0 && (
+                  <div style={{
+                    background: '#fca5a5',
+                    color: '#7f1d1d',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                    fontWeight: '600'
+                  }}>
+                    {unreadCounts[conv.id]}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
-        </>
-      )}
+          ))}
+        </div>
       </div>
 
-      {showNewGroup && (
-        <NewGroupModal
-          onClose={() => setShowNewGroup(false)}
-          onCreated={() => {
-            setShowNewGroup(false);
-            loadConversations();
-          }}
-        />
-      )}
-      {showAccount && (
-        <AccountModal
-          onClose={() => setShowAccount(false)}
-          onOpenUsers={() => setShowUsers(true)}
-          onOpenMonitoring={() => setShowMonitoring(true)}
-        />
-      )}
+      {/* MAIN CHAT */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
+        {selectedConversation ? (
+          <>
+            {/* Header com alertas */}
+            <div style={{ background: '#fee2e2', borderBottom: '1px solid #fca5a5', padding: '12px 20px' }}>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '12px', flexWrap: 'wrap' }}>
+                <span style={{ background: '#fca5a5', color: '#7f1d1d', padding: '4px 8px', borderRadius: '4px', fontWeight: '600' }}>📅 Reunião agora</span>
+                <span style={{ background: '#fca5a5', color: '#7f1d1d', padding: '4px 8px', borderRadius: '4px', fontWeight: '600' }}>⚠️ 1 alinhamento</span>
+                <span style={{ background: '#fca5a5', color: '#7f1d1d', padding: '4px 8px', borderRadius: '4px', fontWeight: '600' }}>🔴 12 rotinas atrasadas</span>
+              </div>
+            </div>
 
-      {showHiddenGroups && (
-        <HiddenGroupsModal
-          onClose={() => setShowHiddenGroups(false)}
-          onChanged={() => { loadConversations(); loadHiddenGroupsCount(); }}
-        />
-      )}
+            {/* Info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+              <div>
+                <h3 style={{ margin: '0', fontSize: '16px', fontWeight: '600', color: '#101828' }}>{selectedConversation.name}</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: isConvOnline ? '#10b981' : '#6b7280' }}>
+                  {isConvOnline ? '🟢 Online' : '⚫ Offline'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Phone size={20} style={{ cursor: 'pointer', color: '#667085' }} />
+                <Video size={20} style={{ cursor: 'pointer', color: '#667085' }} />
+                <MoreVertical size={20} style={{ cursor: 'pointer', color: '#667085' }} />
+              </div>
+            </div>
 
-      <AnnouncementOverlay
-        key={announcement?.id || "nenhum"}
-        announcement={announcement}
-        onClose={() => {
-          if (announcement) localStorage.setItem(DISMISSED_KEY, String(announcement.id));
-          setAnnouncement(null);
-        }}
-      />
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {messages.map((msg) => (
+                <div key={msg.id} style={{ display: 'flex', justifyContent: msg.userId === usuario.id ? 'flex-end' : 'flex-start', gap: '8px' }}>
+                  {msg.userId !== usuario.id && (
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#2563eb',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      flexShrink: 0
+                    }}>
+                      {msg.userName?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{
+                    maxWidth: '60%',
+                    background: msg.userId === usuario.id ? '#c7e0f4' : '#e8f0fb',
+                    color: '#1e4976',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    fontSize: '13px'
+                  }}>
+                    {msg.content}
+                    <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>
+                      {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-      <UpdateBanner />
+            {/* Input */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px 20px', background: '#ffffff' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                <Plus size={20} style={{ cursor: 'pointer', color: '#667085', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="Escreva uma mensagem..."
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: '1px solid #c7e0f4',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    background: '#ffffff',
+                    color: '#1e4976'
+                  }}
+                />
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '20px',
+                    padding: 0
+                  }}
+                >
+                  😊
+                </button>
+                <button
+                  onClick={sendMessage}
+                  style={{
+                    padding: '10px 16px',
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#667085' }}>
+            Selecione uma conversa
+          </div>
+        )}
       </div>
     </div>
   );
