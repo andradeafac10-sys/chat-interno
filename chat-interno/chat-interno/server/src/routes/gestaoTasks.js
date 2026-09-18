@@ -155,7 +155,8 @@ router.get('/', async (req, res) => {
       conditions.push(`t.priority = $${params.length}`);
     }
     if (assignee_id) {
-      params.push(assignee_id);
+      // "me" = as minhas tarefas, sem o front precisar saber o próprio id
+      params.push(assignee_id === 'me' ? req.user.id : assignee_id);
       conditions.push(
         `EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $${params.length})`
       );
