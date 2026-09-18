@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
+import LeftNav from "../components/LeftNav";
+import AvisosPendentesBanner from "../components/AvisosPendentesBanner";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import ChatWindow from "../components/ChatWindow";
@@ -17,7 +20,7 @@ import AnnouncementOverlay from "../components/AnnouncementOverlay";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
-import { playNotificationSound } from "../sound";
+import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
 const ORIGINAL_TITLE = "Chat Nacional";
@@ -33,6 +36,8 @@ const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [pendingConversation, setPendingConversation] = useState(null); // conversa aberta pelo painel de online, ainda sem mensagem
@@ -52,6 +57,12 @@ export default function Chat() {
   const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [unreadCounts, setUnreadCounts] = useState(() => ({})); // { conversationId: quantidade }
+  const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
+
+  // Grupos em que sou membro DE VERDADE (o servidor manda ao conectar). null =
+  // ainda não chegou. Só serve pra decidir som/notificação — o ADM continua
+  // enxergando e podendo abrir todo grupo pra monitorar, como antes.
+  const gruposQueParticipoRef = useRef(null);
 
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
@@ -64,7 +75,24 @@ export default function Chat() {
   useEffect(() => {
     const total = Object.values(unreadCounts).reduce((soma, n) => soma + n, 0);
     document.title = total > 0 ? `(${total}) ${ORIGINAL_TITLE}` : ORIGINAL_TITLE;
+
+    // Mesmo número na bolinha do ícone do app instalado (igual WhatsApp Desktop)
+    if ("setAppBadge" in navigator) {
+      if (total > 0) navigator.setAppBadge(total).catch(() => {});
+      else navigator.clearAppBadge().catch(() => {});
+    }
   }, [unreadCounts]);
+
+  // Abrir uma tela a partir do menu lateral (?view=trilha, ?view=feedbacks...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const view = params.get("view");
+    setShowFeedbacks(view === "feedbacks");
+    setShowTrilha(view === "trilha");
+    setShowUsers(view === "users");
+    setShowMonitoring(view === "monitoring");
+    setShowAnnouncements(view === "notificacoes");
+  }, [location.search]);
 
   // Pede permissão de notificação do sistema uma vez, assim que o chat abre
   useEffect(() => {
@@ -257,7 +285,15 @@ export default function Chat() {
         message.type === "text" &&
         !!message.content &&
         new RegExp(`@(todos|${user.name.split(" ")[0]})\\b`, "i").test(message.content);
-      const souParticipante = (souMencionado || !grupoSilenciado) && (!conv || conv.type !== "group" || conv.isMember !== false);
+      // Fonte confiável de "sou membro de verdade desse grupo": a lista que o
+      // servidor manda no socket (grupos:participo). Sem isso, o ADM — que
+      // entra em todo grupo pra monitorar — tocava som de grupo que não é dele.
+      const ehGrupo = grupoId !== null;
+      const souMembroDeVerdade = !ehGrupo || gruposQueParticipoRef.current === null
+        ? true
+        : gruposQueParticipoRef.current.has(grupoId);
+
+      const souParticipante = (souMencionado || !grupoSilenciado) && souMembroDeVerdade;
       if (!isMine && !isViewingIt && souParticipante) {
         setUnreadCounts((prev) => ({ ...prev, [message.conversation_id]: (prev[message.conversation_id] || 0) + 1 }));
         playNotificationSound();
@@ -351,11 +387,29 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
-    // Um ADM registrou um feedback novo pra mim — avisa na hora, igual tarefa nova.
+    // Um ADM registrou um alinhamento novo pra mim — som próprio, diferente do
+    // "pop" comum de mensagem, pra dar pra reconhecer de ouvido.
     const onFeedbackNovo = ({ titulo, corpo }) => {
-      playNotificationSound();
+      playFeedbackSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
       setPendingFeedbackCount((n) => n + 1);
+    };
+
+    // Treinamento novo atribuído — som próprio também.
+    const onTrilhaNovo = ({ titulo, corpo }) => {
+      playTrilhaSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
+    // Lembrete de reunião (no dia / 30 / 15 / 5 minutos antes)
+    const onReuniaoLembrete = ({ titulo, corpo }) => {
+      playNotificationSound();
+      mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
+    // Lista de grupos em que sou membro de verdade (decide som/notificação)
+    const onGruposQueParticipo = (ids) => {
+      gruposQueParticipoRef.current = new Set(ids);
     };
 
     // Alguém leu a conversa: marca como "Lido" (na hora, sem F5) toda mensagem
@@ -377,6 +431,9 @@ export default function Chat() {
     socket.on("conversation:read", onConversationRead);
     socket.on("gestao:notify", onGestaoNotify);
     socket.on("feedback:novo", onFeedbackNovo);
+    socket.on("trilha:novo", onTrilhaNovo);
+    socket.on("reuniao:lembrete", onReuniaoLembrete);
+    socket.on("grupos:participo", onGruposQueParticipo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
@@ -397,6 +454,9 @@ export default function Chat() {
       socket.off("conversation:read", onConversationRead);
       socket.off("gestao:notify", onGestaoNotify);
       socket.off("feedback:novo", onFeedbackNovo);
+      socket.off("trilha:novo", onTrilhaNovo);
+      socket.off("reuniao:lembrete", onReuniaoLembrete);
+      socket.off("grupos:participo", onGruposQueParticipo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
@@ -448,7 +508,14 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden" style={{ background: "#111B21" }}>
+    <div className="w-screen h-screen flex overflow-hidden" style={{ background: "#111B21" }}>
+      <LeftNav
+        unreadTotal={Object.values(unreadCounts).reduce((soma, n) => soma + n, 0)}
+        onOpenAccount={() => setShowAccount(true)}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* A busca é só do Chat — nas outras telas ela não faz sentido e some. */}
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Topbar
         onOpenAccount={() => setShowAccount(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
@@ -457,12 +524,26 @@ export default function Chat() {
         conversations={conversations}
         onOpenConversation={openFromOnlinePanel}
         onSelectConversationId={setActiveConvIdAndStopBlink}
+        onJumpToMessage={(conversationId, messageId) => {
+          setActiveConvIdAndStopBlink(conversationId);
+          setPendingJumpMessageId(messageId);
+        }}
         isOnline
         pendingFeedbackCount={pendingFeedbackCount}
         onOpenPendingFeedback={() => setShowFeedbacks(true)}
         onOpenTrilha={() => setShowTrilha(true)}
         pendingRoutinesCount={pendingRoutinesCount}
       />
+      )}
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
+        <AvisosPendentesBanner
+          onVerTreinamentos={() => navigate("/?view=trilha")}
+          onVerFeedbacks={() => navigate("/?view=feedbacks")}
+          onVerRotinas={() => navigate("/gestao/minha-rotina")}
+          onVerTarefas={() => navigate("/gestao/tarefas")}
+          onVerReunioes={() => navigate("/gestao/reuniao")}
+        />
+      )}
       <div className="flex-1 flex overflow-hidden">
       <Sidebar
         conversations={conversations}
@@ -504,6 +585,8 @@ export default function Chat() {
               onGroupUpdated={loadConversations}
               isOnline={activeConv.otherUserId ? onlineUsers.has(activeConv.otherUserId) : false}
               onVoltarMobile={() => setActiveConvId(null)}
+              jumpToMessageId={pendingJumpMessageId}
+              onJumpHandled={() => setPendingJumpMessageId(null)}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
@@ -513,6 +596,7 @@ export default function Chat() {
           <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
         </>
       )}
+      </div>
       </div>
 
       {showNewGroup && (
