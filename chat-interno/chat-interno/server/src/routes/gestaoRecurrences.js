@@ -399,6 +399,60 @@ router.patch('/completions/:id', async (req, res) => {
  * atrasados, quais precisam de atenção, quais ainda vêm, e o que foi
  * concluído recentemente. Tudo calculado na hora, nada é guardado à parte.
  */
+/**
+ * GET /api/gestao/recurrences/equipe-hoje
+ * Cumprimento de rotina de HOJE por pessoa (quem fez, quem não fez, %) mais a
+ * lista completa de quem está atrasado. Usado pelo Dashboard, aba "Toda a
+ * equipe". Não substitui nada — é adicional às rotas que já existiam.
+ */
+router.get('/equipe-hoje', async (req, res) => {
+  try {
+    const { rows: porPessoa } = await pool.query(
+      `SELECT u.id, u.name, u.avatar_url, u.color,
+              COUNT(rc.id)::int AS total,
+              COUNT(rc.id) FILTER (WHERE rc.done)::int AS feitas
+       FROM users u
+       LEFT JOIN routine_completions rc
+         ON rc.user_id = u.id AND rc.occurrence_date = CURRENT_DATE
+       WHERE u.active = true
+       GROUP BY u.id, u.name, u.avatar_url, u.color
+       HAVING COUNT(rc.id) > 0
+       ORDER BY u.name`
+    );
+
+    const { rows: pendentes } = await pool.query(
+      `SELECT rc.id, rc.done, r.title, r.start_time,
+              u.id AS user_id, u.name AS user_name, u.avatar_url
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       JOIN users u ON u.id = rc.user_id
+       WHERE rc.occurrence_date = CURRENT_DATE AND rc.done = false
+       ORDER BY r.start_time NULLS LAST, u.name`
+    );
+
+    // "Atrasada" é a que já passou do horário marcado e continua sem fazer
+    const agora = new Date();
+    const jaPassou = (horaStr) => {
+      if (!horaStr) return false;
+      const [h, m] = horaStr.split(':').map(Number);
+      const limite = new Date();
+      limite.setHours(h, m, 0, 0);
+      return agora > limite;
+    };
+
+    res.json({
+      por_pessoa: porPessoa.map((p) => ({
+        ...p,
+        percentual: p.total > 0 ? Math.round((p.feitas / p.total) * 100) : 0,
+      })),
+      pendentes: pendentes.map((p) => ({ ...p, atrasada: jaPassou(p.start_time) })),
+    });
+  } catch (err) {
+    console.error('Erro ao montar visão da equipe:', err);
+    res.status(500).json({ error: 'Erro ao montar visão da equipe' });
+  }
+});
+
 router.get('/visao-geral-hoje', async (req, res) => {
   try {
     const assigneeId = req.query.assignee_id ? Number(req.query.assignee_id) : null;
