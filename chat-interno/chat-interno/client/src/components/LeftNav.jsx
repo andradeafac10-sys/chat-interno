@@ -173,6 +173,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
           )}
           <div className={colapsado ? "flex flex-col items-center" : "flex flex-col ml-[27px] pl-5"} style={colapsado ? {} : { borderLeft: "1px solid #1E3555" }}>
             <ItemGestao to="/gestao" end icon={LayoutGrid} label="Visão Geral" />
+            <ItemGestao to="/gestao/dashboard" icon={LayoutDashboard} label="Dashboard" />
             <ItemGestao to="/gestao/minha-rotina" icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} />
             <ItemGestao to="/gestao/tarefas" icon={ClipboardList} label="Tarefas" badge={pendingTasks} />
             <ItemGestao to="/gestao/tarefas-equipe" icon={Users2} label="Painel da Equipe" />
