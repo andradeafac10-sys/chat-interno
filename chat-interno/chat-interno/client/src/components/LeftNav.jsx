@@ -160,10 +160,11 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
 
       {isAdm && (
         <>
-          <div className="h-px mx-4 my-2.5" style={{ background: colors.sidebarBorder }} />
-
           <ItemChat view="users" icon={UserCog} label="Usuários" />
           <ItemChat view="monitoring" icon={Eye} label="Monitoria" />
+
+          {/* A linha separa só a Gestão do resto do menu */}
+          <div className="h-px mx-4 my-2.5" style={{ background: colors.sidebarBorder }} />
 
           {!colapsado && (
             <div className="px-4 py-2.5 text-[12.5px] flex items-center gap-2.5" style={{ color: colors.sidebarTextSecondary }}>
