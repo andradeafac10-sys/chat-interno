@@ -74,6 +74,7 @@ export const gestaoApi = {
   deleteRecurrence: (id) => request(`/recurrences/${id}`, { method: 'DELETE' }),
   generateOccurrencesNow: () => request('/recurrences/generate', { method: 'POST' }),
   minhasRotinas: () => request('/recurrences/minhas'),
+  rotinasEquipeHoje: () => request('/recurrences/equipe-hoje'),
   marcarRotina: (completionId, campos) =>
     request(`/recurrences/completions/${completionId}`, { method: 'PATCH', body: JSON.stringify(campos) }),
   uploadRoutineFile: async (file) => {
