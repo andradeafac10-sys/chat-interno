@@ -7,6 +7,7 @@ import Chat from "./pages/Chat";
 import RequireAdmin from "./gestao/RequireAdmin";
 import GestaoApp from "./gestao/GestaoApp";
 import VisaoGeral from "./gestao/pages/VisaoGeral";
+import Dashboard from "./gestao/pages/Dashboard";
 import MinhaRotina from "./gestao/pages/MinhaRotina";
 import Tarefas from "./gestao/pages/Tarefas";
 import PainelEquipe from "./gestao/pages/PainelEquipe";
@@ -46,6 +47,7 @@ export default function App() {
               }
             >
               <Route index element={<VisaoGeral />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
               <Route path="tarefas-equipe" element={<PainelEquipe />} />
