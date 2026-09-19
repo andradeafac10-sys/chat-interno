@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, User, Users, Repeat, ClipboardCheck, Plus,
   List, Kanban as KanbanIcon, Calendar, Eye, Pencil, Trash2, AlertCircle,
+  Clock, Activity, CheckCircle2, Trophy,
 } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
@@ -60,6 +61,8 @@ export default function Dashboard() {
   // equipe
   const [overview, setOverview] = useState(null);
   const [rotinasEquipe, setRotinasEquipe] = useState(null);
+  const [visaoHoje, setVisaoHoje] = useState(null);   // progresso, próximas, atividade recente
+  const [ranking, setRanking] = useState([]);          // desempenho da equipe
   const [tarefas, setTarefas] = useState([]);
 
   const [filtroResponsavel, setFiltroResponsavel] = useState('');
@@ -89,14 +92,18 @@ export default function Dashboard() {
         const params = {};
         if (filtroResponsavel) params.assignee_id = filtroResponsavel;
         if (filtroStatus) params.status = filtroStatus;
-        const [ov, rotEq, tar] = await Promise.all([
+        const [ov, rotEq, tar, vh, rk] = await Promise.all([
           gestaoApi.overview(),
           gestaoApi.rotinasEquipeHoje(),
           gestaoApi.listTasks(params),
+          gestaoApi.visaoGeralHoje(filtroResponsavel || undefined),
+          gestaoApi.rankingComParams(new URLSearchParams({ periodo: 'hoje' }).toString()),
         ]);
         setOverview(ov);
         setRotinasEquipe(rotEq);
         setTarefas(tar.tasks || []);
+        setVisaoHoje(vh);
+        setRanking(rk.ranking || []);
       }
     } catch (err) {
       console.error(err);
@@ -244,13 +251,16 @@ export default function Dashboard() {
         {!loading && visao === 'equipe' && (
           <>
             {/* Cards de número */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               {[
+                { label: `Cumprimento de rotinas · ${visaoHoje?.concluidas || 0} de ${visaoHoje?.planejadas || 0}`, valor: `${visaoHoje?.percentual || 0}%`, cor: NAVY, bg: '#fff', borda: 'var(--pagina-borda)' },
+                { label: 'Rotinas atrasadas', valor: visaoHoje?.atrasadas || 0, cor: '#EA4E1B', bg: '#FFF7ED', borda: '#FED7AA' },
+                { label: 'Feedbacks pendentes', valor: visaoHoje?.feedbacksPendentes || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
+                { label: 'Treinamentos pendentes', valor: visaoHoje?.treinamentosPendentes || 0, cor: '#0EA5E9', bg: '#F0F9FF', borda: '#BAE6FD' },
                 { label: 'Total de tarefas', valor: totais.total || 0, cor: '#101828', bg: '#fff', borda: 'var(--pagina-borda)' },
                 { label: `Concluídas · ${pct(totais.done)}%`, valor: totais.done || 0, cor: '#16A34A', bg: '#F0FDF4', borda: '#BBF7D0' },
                 { label: `Em andamento · ${pct(totais.in_progress)}%`, valor: totais.in_progress || 0, cor: '#CA8A04', bg: '#FFFBEB', borda: '#FDE68A' },
-                { label: `Atrasadas · ${pct(totais.overdue)}%`, valor: totais.overdue || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
-                { label: 'Prazo em 7 dias', valor: proximosPrazos.length, cor: '#101828', bg: '#fff', borda: 'var(--pagina-borda)' },
+                { label: `Tarefas atrasadas · ${pct(totais.overdue)}%`, valor: totais.overdue || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
               ].map((c, i) => (
                 <div key={i} className="rounded-xl border p-3" style={{ background: c.bg, borderColor: c.borda }}>
                   <div className="text-[19px] font-bold" style={{ color: c.cor }}>{c.valor}</div>
@@ -258,6 +268,85 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+
+            {/* Progresso do dia — barra de cumprimento das rotinas */}
+            {visaoHoje && (
+              <div className="bg-white rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
+                <div className="flex items-center mb-2">
+                  <span className="text-[12.5px] font-semibold text-slate-800">Progresso do dia</span>
+                  <span className="ml-auto text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>
+                    <b style={{ color: NAVY }}>{visaoHoje.concluidas}</b> de {visaoHoje.planejadas} rotinas concluídas
+                  </span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--pagina-borda-suave)' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${visaoHoje.percentual}%`, background: NAVY }} />
+                </div>
+              </div>
+            )}
+
+            {/* Próximas rotinas + Atividade recente */}
+            {visaoHoje && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Clock size={14} style={{ color: NAVY }} />
+                    <span className="text-[12.5px] font-semibold text-slate-800">Próximas rotinas</span>
+                  </div>
+                  {(visaoHoje.proximas || []).length === 0 && (
+                    <p className="text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>Nada mais marcado pra hoje.</p>
+                  )}
+                  {(visaoHoje.proximas || []).map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 py-1.5 border-b last:border-0" style={{ borderColor: 'var(--pagina-borda)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: NAVY }} />
+                      <span className="text-[11.5px] flex-1 truncate" style={{ color: 'var(--pagina-texto-1)' }}>{r.title}</span>
+                      <span className="text-[11px] shrink-0" style={{ color: 'var(--pagina-texto-2)' }}>{r.start_time ? r.start_time.slice(0, 5) : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Activity size={14} style={{ color: '#16A34A' }} />
+                    <span className="text-[12.5px] font-semibold text-slate-800">Atividade recente</span>
+                  </div>
+                  {(visaoHoje.recentes || []).length === 0 && (
+                    <p className="text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>Nenhuma rotina concluída ainda hoje.</p>
+                  )}
+                  {(visaoHoje.recentes || []).map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 py-1.5 border-b last:border-0" style={{ borderColor: 'var(--pagina-borda)' }}>
+                      <CheckCircle2 size={12} style={{ color: '#16A34A' }} className="shrink-0" />
+                      <span className="text-[11.5px] flex-1 truncate" style={{ color: 'var(--pagina-texto-1)' }}>
+                        <b>{r.user_name}</b> concluiu "{r.title}"
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Desempenho da equipe (ranking do dia) */}
+            {ranking.length > 0 && (
+              <div className="bg-white rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy size={14} style={{ color: '#CA8A04' }} />
+                  <span className="text-[12.5px] font-semibold text-slate-800">Desempenho da equipe</span>
+                </div>
+                {ranking.map((p, i) => (
+                  <div key={p.id || i} className="flex items-center gap-2.5 py-1.5 border-b last:border-0" style={{ borderColor: 'var(--pagina-borda)' }}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9.5px] font-bold shrink-0"
+                      style={{ background: 'var(--pagina-borda-suave)', color: 'var(--pagina-texto-1)' }}>{i + 1}</span>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ background: p.color || NAVY }}>
+                      {iniciais(p.name)}
+                    </div>
+                    <span className="text-[11.5px] flex-1 truncate" style={{ color: 'var(--pagina-texto-1)' }}>{p.name}</span>
+                    <div className="w-20 h-1.5 rounded-full shrink-0" style={{ background: 'var(--pagina-borda-suave)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${p.percentual || 0}%`, background: (p.percentual || 0) === 100 ? '#16A34A' : NAVY }} />
+                    </div>
+                    <span className="text-[11px] w-9 text-right shrink-0" style={{ color: 'var(--pagina-texto-2)' }}>{p.percentual || 0}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Rotinas da equipe */}
             <div className="bg-white rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
