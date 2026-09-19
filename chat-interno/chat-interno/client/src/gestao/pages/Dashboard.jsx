@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, User, Users, Repeat, ClipboardCheck, Plus,
   List, Kanban as KanbanIcon, Calendar, Eye, Pencil, Trash2, AlertCircle,
-  Clock, Activity, CheckCircle2, Trophy,
+  Clock, Activity, CheckCircle2, Trophy, ListChecks,
 } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import TaskFormModal from '../components/TaskFormModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import RecurrenceFormModal from '../components/RecurrenceFormModal';
+import TodasRotinasModal from '../components/TodasRotinasModal';
 
 const NAVY = '#2563EB';
 const STATUS_LABELS = { pending: 'Pendente', in_progress: 'Em andamento', done: 'Concluída', canceled: 'Cancelada' };
@@ -72,6 +73,7 @@ export default function Dashboard() {
 
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showRotinaForm, setShowRotinaForm] = useState(false);
+  const [showTodasRotinas, setShowTodasRotinas] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [openTaskId, setOpenTaskId] = useState(null);
 
@@ -168,6 +170,10 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="flex-1" />
+          <button onClick={() => setShowTodasRotinas(true)}
+            className="flex items-center gap-1.5 text-white text-[12.5px] font-medium px-3 py-2 rounded-lg" style={{ background: '#DC2626' }}>
+            <ListChecks size={14} /> Todas as rotinas
+          </button>
           <button onClick={() => setShowTaskForm(true)}
             className="flex items-center gap-1.5 text-white text-[12.5px] font-medium px-3 py-2 rounded-lg" style={{ background: NAVY }}>
             <Plus size={14} /> Nova tarefa
@@ -619,6 +625,7 @@ export default function Dashboard() {
       {editingTask && <TaskFormModal task={editingTask} onClose={() => setEditingTask(null)} onSaved={() => { setEditingTask(null); load(); }} />}
       {openTaskId && <TaskDetailModal taskId={openTaskId} onClose={() => setOpenTaskId(null)} onChanged={load} />}
       {showRotinaForm && <RecurrenceFormModal onClose={() => setShowRotinaForm(false)} onSaved={() => { setShowRotinaForm(false); load(); }} />}
+      {showTodasRotinas && <TodasRotinasModal onClose={() => setShowTodasRotinas(false)} onChanged={load} />}
     </div>
   );
 }
