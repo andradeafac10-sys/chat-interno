@@ -89,7 +89,7 @@ export default function VisaoGeral() {
       icon: Target, corIcone: '#7C3AED', corFundo: '#F5F3FF', corNumero: '#7C3AED',
     },
     {
-      label: 'Feedbacks pendentes', valor: hoje.feedbacksPendentes, sub: `${hoje.feedbacksConcluidos} já confirmados`,
+      label: 'Alinhamentos pendentes', valor: hoje.feedbacksPendentes, sub: `${hoje.feedbacksConcluidos} já confirmados`,
       icon: Clock, corIcone: '#DC2626', corFundo: '#FEF2F2', corNumero: '#DC2626',
     },
     {
