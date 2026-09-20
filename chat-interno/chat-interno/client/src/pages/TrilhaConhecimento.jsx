@@ -30,44 +30,51 @@ export default function TrilhaConhecimento({ onBack }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-2xl mx-auto flex flex-col gap-3">
+        <div className="max-w-4xl mx-auto flex flex-col gap-4">
           {modulos?.length > 0 && <ResumoTrilha modulos={modulos} />}
           {modulos === null && <p className="text-sm text-slate-400">Carregando...</p>}
           {modulos?.length === 0 && (
             <p className="text-sm text-slate-400 text-center py-16">Nenhum treinamento publicado ainda.</p>
           )}
-          {modulos?.map((m, i) => {
-            const status = m.progresso.concluido_em ? "concluido" : m.bloqueado ? "bloqueado" : "disponivel";
-            const IconeTipo = m.tipo === "avaliacao" ? FileQuestion : PlayCircle;
-            return (
-              <button
-                key={m.id}
-                disabled={status === "bloqueado"}
-                onClick={() => setModuloAberto(m.id)}
-                className="bg-white rounded-xl border p-4 text-left flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed hover:border-[#2563EB] transition-colors"
-                style={{ borderColor: status === "concluido" ? "#86EFAC" : "#E4E8EE" }}
-              >
-                <div className="shrink-0">
-                  {status === "concluido" && <CheckCircle2 size={26} color="#16A34A" />}
-                  {status === "disponivel" && <IconeTipo size={26} color="#2563EB" />}
-                  {status === "bloqueado" && <Lock size={22} color="#94A3B8" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold text-slate-500">
-                    Treinamento {i + 1} · {m.tipo === "avaliacao" ? "Avaliação" : "Vídeo"}
-                  </div>
-                  <div className="text-[14.5px] font-semibold text-slate-800">{m.title}</div>
-                  {m.description && <div className="text-[12.5px] text-slate-500 mt-0.5">{m.description}</div>}
-                  {status === "bloqueado" && <div className="text-[11.5px] text-slate-400 mt-1">Termine o treinamento anterior pra liberar</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {modulos?.map((m, i) => {
+              const status = m.progresso.concluido_em ? "concluido" : m.bloqueado ? "bloqueado" : "disponivel";
+              const IconeTipo = m.tipo === "avaliacao" ? FileQuestion : PlayCircle;
+              const corHeader = status === "bloqueado" ? "#94A3B8" : m.tipo === "avaliacao" ? "#7C3AED" : "#0B1F3A";
+              return (
+                <button
+                  key={m.id}
+                  disabled={status === "bloqueado"}
+                  onClick={() => setModuloAberto(m.id)}
+                  className="bg-white rounded-xl border overflow-hidden text-left flex flex-col disabled:opacity-60 disabled:cursor-not-allowed hover:border-[#2563EB] transition-colors relative"
+                  style={{ borderColor: status === "concluido" ? "#86EFAC" : "#E4E8EE" }}
+                >
                   {status === "concluido" && (
-                    <div className="text-[11.5px] text-emerald-600 font-medium mt-1">
-                      Concluído {m.progresso.ultima_nota != null ? `— nota ${m.progresso.ultima_nota}%` : ""}
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center z-10" style={{ background: "#16A34A" }}>
+                      <CheckCircle2 size={13} className="text-white" />
                     </div>
                   )}
-                </div>
-              </button>
-            );
-          })}
+                  <div className="h-[70px] flex items-center justify-center shrink-0" style={{ background: corHeader }}>
+                    {status === "bloqueado" ? <Lock size={24} className="text-white/70" /> : <IconeTipo size={26} className="text-white/70" />}
+                  </div>
+                  <div className="p-3">
+                    <div className="text-[11px] font-semibold text-slate-400 mb-1">
+                      Treinamento {i + 1} · {m.tipo === "avaliacao" ? "Avaliação" : "Vídeo"}
+                    </div>
+                    <div className="text-[13px] font-semibold text-slate-800 mb-0.5 line-clamp-2">{m.title}</div>
+                    {m.description && <div className="text-[11.5px] text-slate-500 line-clamp-2 mb-1">{m.description}</div>}
+                    {status === "bloqueado" && <div className="text-[11px] text-slate-400 mt-1">Termine o anterior pra liberar</div>}
+                    {status === "disponivel" && <div className="text-[11px] font-medium mt-1" style={{ color: "#2563EB" }}>Disponível agora</div>}
+                    {status === "concluido" && (
+                      <div className="text-[11px] text-emerald-600 font-medium mt-1">
+                        Concluído {m.progresso.ultima_nota != null ? `— nota ${m.progresso.ultima_nota}%` : ""}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
