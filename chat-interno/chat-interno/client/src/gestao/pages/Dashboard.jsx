@@ -261,7 +261,7 @@ export default function Dashboard() {
               {[
                 { label: `Cumprimento de rotinas · ${visaoHoje?.concluidas || 0} de ${visaoHoje?.planejadas || 0}`, valor: `${visaoHoje?.percentual || 0}%`, cor: NAVY, bg: '#fff', borda: 'var(--pagina-borda)' },
                 { label: 'Rotinas atrasadas', valor: visaoHoje?.atrasadas || 0, cor: '#EA4E1B', bg: '#FFF7ED', borda: '#FED7AA' },
-                { label: 'Feedbacks pendentes', valor: visaoHoje?.feedbacksPendentes || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
+                { label: 'Alinhamentos pendentes', valor: visaoHoje?.feedbacksPendentes || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
                 { label: 'Treinamentos pendentes', valor: visaoHoje?.treinamentosPendentes || 0, cor: '#0EA5E9', bg: '#F0F9FF', borda: '#BAE6FD' },
                 { label: 'Total de tarefas', valor: totais.total || 0, cor: '#101828', bg: '#fff', borda: 'var(--pagina-borda)' },
                 { label: `Concluídas · ${pct(totais.done)}%`, valor: totais.done || 0, cor: '#16A34A', bg: '#F0FDF4', borda: '#BBF7D0' },
