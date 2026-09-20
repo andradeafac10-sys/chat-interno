@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, User, Users, Repeat, ClipboardCheck, Plus,
   List, Kanban as KanbanIcon, Calendar, Eye, Pencil, Trash2, AlertCircle,
-  Clock, Activity, CheckCircle2, Trophy, ListChecks,
+  Clock, Activity, CheckCircle2, Trophy, ListChecks, Check,
 } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
@@ -116,6 +116,18 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [visao, filtroResponsavel, filtroStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Marca/desmarca a rotina de hoje como feita — sem confirmação, igual na
+  // tela "Minha Rotina" original. Atualiza a lista local na hora, sem esperar
+  // recarregar tudo de novo.
+  const marcarRotina = async (rotina) => {
+    try {
+      await gestaoApi.marcarRotina(rotina.id, { done: !rotina.done });
+      setMinhasRotinas((prev) => prev.map((r) => (r.id === rotina.id ? { ...r, done: !rotina.done } : r)));
+    } catch (err) {
+      alert(err.message || 'Não consegui atualizar essa rotina.');
+    }
+  };
+
   const apagarTarefa = async (id) => {
     if (!confirm('Apagar essa tarefa? Essa ação não tem volta.')) return;
     await gestaoApi.deleteTask(id);
@@ -209,13 +221,24 @@ export default function Dashboard() {
                 {minhasRotinas.slice(0, 12).map((r) => {
                   const atrasada = !r.done && r.start_time && r.start_time.slice(0, 5) < hoje.toTimeString().slice(0, 5);
                   return (
-                    <div key={r.id} className="border rounded-lg px-3 py-2"
+                    <button
+                      key={r.id}
+                      onClick={() => marcarRotina(r)}
+                      className="border rounded-lg px-3 py-2 text-left flex items-center gap-2.5 hover:border-[#2563EB] transition-colors"
                       style={{ borderColor: 'var(--pagina-borda)', borderLeft: `3px solid ${r.done ? '#16A34A' : atrasada ? '#DC2626' : 'var(--pagina-borda)'}` }}>
-                      <div className="text-[12px] text-slate-800">{r.title}</div>
-                      <div className="text-[10px] mt-0.5" style={{ color: atrasada ? '#DC2626' : 'var(--pagina-texto-2)' }}>
-                        {r.start_time ? r.start_time.slice(0, 5) : 'sem horário'} · {r.done ? 'Concluída' : atrasada ? 'Atrasada' : 'Pendente'}
+                      <span
+                        className="w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center"
+                        style={r.done ? { background: '#16A34A', borderColor: '#16A34A' } : { borderColor: 'var(--pagina-borda)' }}
+                      >
+                        {r.done && <Check size={10} className="text-white" />}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[12px] text-slate-800" style={r.done ? { textDecoration: 'line-through', color: 'var(--pagina-texto-2)' } : {}}>{r.title}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: atrasada ? '#DC2626' : 'var(--pagina-texto-2)' }}>
+                          {r.start_time ? r.start_time.slice(0, 5) : 'sem horário'} · {r.done ? 'Concluída' : atrasada ? 'Atrasada' : 'Pendente'}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
