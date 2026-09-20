@@ -11,7 +11,7 @@ export default function Trilha() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={GraduationCap} title="Trilha do Conhecimento" subtitle="Treinamentos com vídeo e/ou avaliação" />
+      <PageHeader icon={GraduationCap} title="Treinamentos" subtitle="Vídeo com prova opcional" />
 
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
@@ -169,7 +169,7 @@ function novaPerguntaVazia() {
 
 function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
   const editando = !!moduloParaEditar;
-  const [tipo, setTipo] = useState(moduloParaEditar?.tipo || 'video'); // 'video' | 'avaliacao'
+  const [tipo] = useState('video'); // sempre vídeo — "Avaliação/Prova" sem vídeo foi removida; a prova (perguntas) continua existindo junto do vídeo
   const [title, setTitle] = useState(moduloParaEditar?.title || '');
   const [description, setDescription] = useState(moduloParaEditar?.description || '');
   const [video, setVideo] = useState(null);
@@ -207,7 +207,7 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!editando && tipo === 'video' && !video) { setError('Escolha o arquivo de vídeo (ou mude o tipo pra Avaliação).'); return; }
+    if (!editando && tipo === 'video' && !video) { setError('Escolha o arquivo de vídeo.'); return; }
     if (!editando) {
       for (const p of perguntas) {
         if (!p.question.trim() || p.opcoes.some((o) => !o.text.trim())) {
@@ -255,26 +255,6 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
-          <label className="text-xs font-medium text-slate-500 mb-1.5 block">Tipo de treinamento</label>
-          <div className="flex gap-2 mb-4">
-            <button
-              type="button"
-              onClick={() => setTipo('video')}
-              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
-              style={tipo === 'video' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
-            >
-              <PlayCircle size={14} /> Vídeo
-            </button>
-            <button
-              type="button"
-              onClick={() => setTipo('avaliacao')}
-              className="flex-1 flex items-center justify-center gap-1.5 text-[12.5px] font-medium rounded-lg py-2 border"
-              style={tipo === 'avaliacao' ? { background: '#EFF4FF', borderColor: NAVY, color: NAVY } : { borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
-            >
-              <FileQuestion size={14} /> Avaliação/Prova
-            </button>
-          </div>
-
           <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" required />
 
