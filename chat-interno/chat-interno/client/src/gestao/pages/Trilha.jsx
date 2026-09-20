@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { GraduationCap, Plus, X, Trash2, Pencil, CheckCircle2, XCircle, Circle, PlayCircle, FileQuestion } from 'lucide-react';
 import PageHeader from '../PageHeader';
-import { api, fileUrl } from '../../api';
+import { api } from '../../api';
 
 const NAVY = '#2563EB';
 
@@ -74,38 +74,43 @@ function AbaConteudo() {
       ) : modulos.length === 0 ? (
         <p className="text-sm text-slate-400">Nenhum treinamento criado ainda.</p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {modulos.map((m, i) => (
-            <div key={m.id} className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-                    {m.tipo === 'avaliacao' ? <FileQuestion size={12} /> : <PlayCircle size={12} />}
-                    TREINAMENTO {i + 1} · {m.tipo === 'avaliacao' ? 'AVALIAÇÃO' : 'VÍDEO'}
-                  </div>
-                  <div className="text-[14px] font-semibold text-slate-800">{m.title}</div>
-                  {m.description && <div className="text-[12.5px] text-slate-500 mt-0.5">{m.description}</div>}
-                  <div className="text-[11.5px] text-slate-400 mt-1">{m.total_perguntas} pergunta(s) na prova</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {modulos.map((m) => (
+            <div key={m.id} className="bg-white rounded-xl border overflow-hidden flex flex-col" style={{ borderColor: 'var(--pagina-borda)' }}>
+              <button
+                onClick={() => setModuloAberto(m)}
+                className="h-[70px] flex items-center justify-center shrink-0"
+                style={{ background: m.tipo === 'avaliacao' ? '#7C3AED' : '#0B1F3A' }}
+              >
+                {m.tipo === 'avaliacao' ? <FileQuestion size={26} className="text-white/70" /> : <PlayCircle size={26} className="text-white/70" />}
+              </button>
+              <div className="p-3 flex-1 flex flex-col">
+                <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5 mb-1">
+                  {m.tipo === 'avaliacao' ? <FileQuestion size={11} /> : <PlayCircle size={11} />}
+                  {m.tipo === 'avaliacao' ? 'AVALIAÇÃO' : 'VÍDEO'}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => setModuloParaEditar(m)} className="text-slate-400 hover:text-[#2563EB]" title="Editar treinamento">
-                    <Pencil size={15} />
+                <button onClick={() => setModuloAberto(m)} className="text-[13px] font-semibold text-slate-800 text-left mb-0.5 line-clamp-2">
+                  {m.title}
+                </button>
+                <div className="text-[11px] text-slate-400 mb-3">{m.total_perguntas} pergunta(s) na prova</div>
+                <div className="flex items-center gap-1.5 mt-auto">
+                  <button
+                    onClick={() => setModuloParaEditar(m)}
+                    className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium rounded-lg py-1.5"
+                    style={{ background: '#EFF4FF', color: NAVY }}
+                  >
+                    <Pencil size={11} /> Editar
                   </button>
-                  <button onClick={() => apagarModulo(m.id)} className="text-slate-400 hover:text-red-500" title="Apagar treinamento">
-                    <Trash2 size={15} />
+                  <button
+                    onClick={() => apagarModulo(m.id)}
+                    className="flex items-center justify-center rounded-lg py-1.5 px-2.5"
+                    style={{ background: '#FEF2F2', color: '#DC2626' }}
+                    title="Apagar treinamento"
+                  >
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
-              {m.tipo === 'video' && m.video_url && (
-                <video src={fileUrl(m.video_url)} controls className="w-full rounded-lg mt-3 max-h-52 bg-black" />
-              )}
-              <button
-                onClick={() => setModuloAberto(m)}
-                className="mt-3 text-[12.5px] font-medium"
-                style={{ color: NAVY }}
-              >
-                Gerenciar perguntas da prova →
-              </button>
             </div>
           ))}
         </div>
