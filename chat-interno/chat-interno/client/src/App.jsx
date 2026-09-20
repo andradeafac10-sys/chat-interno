@@ -46,7 +46,8 @@ export default function App() {
                 </RequireAdmin>
               }
             >
-              <Route index element={<VisaoGeral />} />
+              <Route index element={<Dashboard />} />
+              <Route path="visao-geral" element={<VisaoGeral />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="minha-rotina" element={<MinhaRotina />} />
               <Route path="tarefas" element={<Tarefas />} />
