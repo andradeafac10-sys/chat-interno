@@ -218,30 +218,50 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto">
                 {minhasRotinas.length === 0 && <p className="text-[12px]" style={{ color: 'var(--pagina-texto-2)' }}>Nenhuma rotina pra hoje.</p>}
-                {minhasRotinas.slice(0, 12).map((r) => {
-                  const atrasada = !r.done && r.start_time && r.start_time.slice(0, 5) < hoje.toTimeString().slice(0, 5);
+                {minhasRotinas.filter((r) => !r.done).slice(0, 12).map((r) => {
+                  const atrasada = r.start_time && r.start_time.slice(0, 5) < hoje.toTimeString().slice(0, 5);
                   return (
                     <button
                       key={r.id}
                       onClick={() => marcarRotina(r)}
                       className="border rounded-lg px-3 py-2 text-left flex items-center gap-2.5 hover:border-[#2563EB] transition-colors"
-                      style={{ borderColor: 'var(--pagina-borda)', borderLeft: `3px solid ${r.done ? '#16A34A' : atrasada ? '#DC2626' : 'var(--pagina-borda)'}` }}>
-                      <span
-                        className="w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center"
-                        style={r.done ? { background: '#16A34A', borderColor: '#16A34A' } : { borderColor: 'var(--pagina-borda)' }}
-                      >
-                        {r.done && <Check size={10} className="text-white" />}
-                      </span>
+                      style={{ borderColor: 'var(--pagina-borda)', borderLeft: `3px solid ${atrasada ? '#DC2626' : 'var(--pagina-borda)'}` }}>
+                      <span className="w-4 h-4 rounded-full border-2 shrink-0" style={{ borderColor: 'var(--pagina-borda)' }} />
                       <div className="min-w-0">
-                        <div className="text-[12px] text-slate-800" style={r.done ? { textDecoration: 'line-through', color: 'var(--pagina-texto-2)' } : {}}>{r.title}</div>
+                        <div className="text-[12px] text-slate-800">{r.title}</div>
                         <div className="text-[10px] mt-0.5" style={{ color: atrasada ? '#DC2626' : 'var(--pagina-texto-2)' }}>
-                          {r.start_time ? r.start_time.slice(0, 5) : 'sem horário'} · {r.done ? 'Concluída' : atrasada ? 'Atrasada' : 'Pendente'}
+                          {r.start_time ? r.start_time.slice(0, 5) : 'sem horário'} · {atrasada ? 'Atrasada' : 'Pendente'}
                         </div>
                       </div>
                     </button>
                   );
                 })}
+                {minhasRotinas.length > 0 && minhasRotinas.every((r) => r.done) && (
+                  <p className="text-[12px] text-center py-2" style={{ color: '#16A34A' }}>Tudo concluído por hoje. 🎉</p>
+                )}
               </div>
+
+              {minhasRotinas.some((r) => r.done) && (
+                <details className="mt-2">
+                  <summary className="text-[11px] font-medium cursor-pointer" style={{ color: 'var(--pagina-texto-2)' }}>
+                    Ver {minhasRotinas.filter((r) => r.done).length} concluída{minhasRotinas.filter((r) => r.done).length > 1 ? 's' : ''} hoje
+                  </summary>
+                  <div className="flex flex-col gap-1.5 mt-1.5 max-h-[160px] overflow-y-auto">
+                    {minhasRotinas.filter((r) => r.done).map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => marcarRotina(r)}
+                        className="border rounded-lg px-3 py-2 text-left flex items-center gap-2.5"
+                        style={{ borderColor: 'var(--pagina-borda)', borderLeft: '3px solid #16A34A' }}>
+                        <span className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center" style={{ background: '#16A34A' }}>
+                          <Check size={10} className="text-white" />
+                        </span>
+                        <div className="text-[12px]" style={{ textDecoration: 'line-through', color: 'var(--pagina-texto-2)' }}>{r.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              )}
             </div>
 
             <div className="bg-white rounded-xl border p-4" style={{ borderColor: 'var(--pagina-borda)' }}>
