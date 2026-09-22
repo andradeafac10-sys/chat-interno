@@ -443,6 +443,34 @@ CREATE INDEX IF NOT EXISTS idx_reunioes_serie ON reunioes(serie_id);
 -- que o horário dela ainda não tenha passado.
 ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS concluida BOOLEAN NOT NULL DEFAULT false;
 
+-- Histórico de ata por data: cada reunião da série (ou cada reunião avulsa)
+-- ganha sua própria entrada, sem apagar as anteriores. "escopo_chave" agrupa
+-- as entradas de uma mesma série (serie_id) ou de uma reunião avulsa
+-- ('reuniao:<id>'), pra achar o histórico de qualquer ocorrência da série.
+CREATE TABLE IF NOT EXISTS reuniao_ata_entradas (
+  id SERIAL PRIMARY KEY,
+  escopo_chave TEXT NOT NULL,
+  autor_id INTEGER REFERENCES users(id),
+  texto TEXT NOT NULL,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ata_entradas_escopo ON reuniao_ata_entradas(escopo_chave);
+
+-- Migração: quem já tinha escrito uma ata (texto único, sobrescrito a cada
+-- edição) vira a primeira entrada do histórico dessa série/reunião.
+INSERT INTO reuniao_ata_entradas (escopo_chave, autor_id, texto, criado_em)
+SELECT DISTINCT ON (COALESCE(serie_id, 'reuniao:' || id))
+  COALESCE(serie_id, 'reuniao:' || id) AS escopo_chave,
+  criado_por,
+  ata,
+  COALESCE(ata_atualizada_em, criado_em)
+FROM reunioes
+WHERE ata IS NOT NULL AND trim(ata) <> ''
+  AND NOT EXISTS (
+    SELECT 1 FROM reuniao_ata_entradas e WHERE e.escopo_chave = COALESCE(reunioes.serie_id, 'reuniao:' || reunioes.id)
+  )
+ORDER BY COALESCE(serie_id, 'reuniao:' || id), id;
+
 CREATE TABLE IF NOT EXISTS reuniao_participantes (
   reuniao_id INTEGER NOT NULL REFERENCES reunioes(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
