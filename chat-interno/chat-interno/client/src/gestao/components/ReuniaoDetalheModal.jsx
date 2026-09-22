@@ -1,4 +1,4 @@
-  // client/src/gestao/components/ReuniaoDetalheModal.jsx
+// client/src/gestao/components/ReuniaoDetalheModal.jsx
 import { useEffect, useState } from 'react';
 import { X, Trash2, Pencil, CheckCircle2, History } from 'lucide-react';
 import { api } from '../../api';
@@ -12,6 +12,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const [presencas, setPresencas] = useState({});
   const [salvando, setSalvando] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false); // fechado por padrão — clica pra ver
   const [erro, setErro] = useState('');
 
   const load = () => {
@@ -207,22 +208,38 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
           <div className="text-[10.5px] text-slate-400 mb-4">Só participantes dessa reunião podem escrever a ata.</div>
         )}
 
-        <div className="text-[13px] font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-          <History size={14} style={{ color: 'var(--pagina-texto-2)' }} /> Histórico da série
-        </div>
-        {(!reuniao.historicoAta || reuniao.historicoAta.length === 0) && (
-          <p className="text-[12px] text-slate-400">Nenhuma ata registrada ainda.</p>
-        )}
-        <div className="flex flex-col gap-3 pl-3 max-h-[220px] overflow-y-auto" style={{ borderLeft: '2px solid var(--pagina-borda)' }}>
-          {(reuniao.historicoAta || []).map((h) => (
-            <div key={h.id}>
-              <div className="text-[10.5px] font-bold" style={{ color: NAVY }}>
-                {new Date(h.criado_em).toLocaleDateString('pt-BR')} · {h.autor_nome}
-              </div>
-              <div className="text-[12px] text-slate-600 whitespace-pre-wrap mt-0.5">{h.texto}</div>
+        <button
+          onClick={() => setHistoricoAberto((v) => !v)}
+          className="w-full flex items-center gap-1.5 text-[13px] font-semibold text-slate-800 mb-2"
+        >
+          <History size={14} style={{ color: 'var(--pagina-texto-2)' }} />
+          Histórico da série
+          {(reuniao.historicoAta || []).length > 0 && (
+            <span className="text-[10.5px] font-normal" style={{ color: 'var(--pagina-texto-2)' }}>
+              ({reuniao.historicoAta.length})
+            </span>
+          )}
+          <span className="ml-auto text-[11px]" style={{ color: 'var(--pagina-texto-2)' }}>
+            {historicoAberto ? '▲ esconder' : '▼ mostrar'}
+          </span>
+        </button>
+        {historicoAberto && (
+          <>
+            {(!reuniao.historicoAta || reuniao.historicoAta.length === 0) && (
+              <p className="text-[12px] text-slate-400">Nenhuma ata registrada ainda.</p>
+            )}
+            <div className="flex flex-col gap-3 pl-3 max-h-[220px] overflow-y-auto" style={{ borderLeft: '2px solid var(--pagina-borda)' }}>
+              {(reuniao.historicoAta || []).map((h) => (
+                <div key={h.id}>
+                  <div className="text-[10.5px] font-bold" style={{ color: NAVY }}>
+                    {new Date(h.criado_em).toLocaleDateString('pt-BR')} · {h.autor_nome}
+                  </div>
+                  <div className="text-[12px] text-slate-600 whitespace-pre-wrap mt-0.5">{h.texto}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
