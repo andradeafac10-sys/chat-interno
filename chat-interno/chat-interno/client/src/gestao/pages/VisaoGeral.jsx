@@ -189,7 +189,10 @@ export default function VisaoGeral() {
                 {hoje.atencao.map((r) => (
                   <div key={r.id} style={styles.listItem}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EA4E1B', flexShrink: 0 }} />
-                    <span style={styles.listItemNome}>{r.title}</span>
+                    <span style={styles.listItemNome}>
+                      {r.title}
+                      {r.count > 1 && <span style={{ color: '#98A2B3', fontWeight: 400 }}> · {r.count} pessoas</span>}
+                    </span>
                     <span style={{ ...styles.listItemHora, color: '#EA4E1B', fontWeight: 700 }}>{fmtHora(r.start_time)}</span>
                   </div>
                 ))}
@@ -206,7 +209,10 @@ export default function VisaoGeral() {
                 {hoje.proximas.map((r) => (
                   <div key={r.id} style={styles.listItem}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2563EB', flexShrink: 0 }} />
-                    <span style={styles.listItemNome}>{r.title}</span>
+                    <span style={styles.listItemNome}>
+                      {r.title}
+                      {r.count > 1 && <span style={{ color: '#98A2B3', fontWeight: 400 }}> · {r.count} pessoas</span>}
+                    </span>
                     <span style={styles.listItemHora}>{fmtHora(r.start_time)}</span>
                   </div>
                 ))}
@@ -220,9 +226,9 @@ export default function VisaoGeral() {
                 <Users size={15} color="#2563EB" />
                 <span style={styles.listCardTitulo}>Desempenho da equipe</span>
               </div>
-              <div style={{ borderTop: '1px solid #EEF1F4', padding: '4px 18px' }}>
+              <div style={{ borderTop: '1px solid #EEF1F4', padding: '4px 18px', maxHeight: 340, overflowY: 'auto' }}>
                 {ranking.length === 0 && <div style={styles.listaVazia}>Ninguém com rotina nesse período.</div>}
-                {ranking.slice(0, 6).map((r, i) => (
+                {ranking.map((r, i) => (
                   <button
                     key={r.id}
                     onClick={() => setPessoaSelecionada(r)}
