@@ -177,6 +177,17 @@ router.get("/:id", async (req, res) => {
       [reuniao.id, req.user.id]
     );
 
+    // Histórico da ata por data: agrupado pela série (ou pela própria
+    // reunião, se for avulsa), mais recente primeiro.
+    const escopoChave = reuniao.serie_id || `reuniao:${reuniao.id}`;
+    const { rows: historicoAta } = await pool.query(
+      `SELECT ha.id, ha.texto, ha.criado_em, u.name AS autor_nome
+       FROM reuniao_ata_entradas ha JOIN users u ON u.id = ha.autor_id
+       WHERE ha.escopo_chave = $1
+       ORDER BY ha.criado_em DESC`,
+      [escopoChave]
+    );
+
     res.json({
       reuniao: {
         ...reuniao,
@@ -185,6 +196,7 @@ router.get("/:id", async (req, res) => {
         })),
         encaminhamentos,
         lembretes,
+        historicoAta,
         souDono: reuniao.criado_por === req.user.id,
         souParticipante: participacaoRows.length > 0,
       },
@@ -374,6 +386,44 @@ router.patch("/:id/concluir", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao atualizar a reunião." });
+  }
+});
+
+// POST /api/reunioes/:id/ata-entradas -> adiciona uma entrada nova no
+// histórico da ata (não apaga as anteriores). Qualquer participante da
+// reunião/série pode adicionar.
+router.post("/:id/ata-entradas", async (req, res) => {
+  const texto = (req.body?.texto || "").trim();
+  if (!texto) return res.status(400).json({ error: "Escreva algo pra salvar na ata." });
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.serie_id, EXISTS(
+         SELECT 1 FROM reuniao_participantes rp WHERE rp.reuniao_id = r.id AND rp.user_id = $2
+       ) AS sou_participante
+       FROM reunioes r WHERE r.id = $1`,
+      [req.params.id, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
+    if (!rows[0].sou_participante) {
+      return res.status(403).json({ error: "Só participantes dessa reunião podem escrever a ata." });
+    }
+
+    const escopoChave = rows[0].serie_id || `reuniao:${req.params.id}`;
+    const { rows: inseridas } = await pool.query(
+      `INSERT INTO reuniao_ata_entradas (escopo_chave, autor_id, texto) VALUES ($1, $2, $3) RETURNING id, criado_em`,
+      [escopoChave, req.user.id, texto]
+    );
+    // mantém o campo antigo também atualizado, só pra não quebrar nada que ainda leia "ata"
+    if (rows[0].serie_id) {
+      await pool.query(`UPDATE reunioes SET ata = $2, ata_atualizada_em = now() WHERE serie_id = $1`, [rows[0].serie_id, texto]);
+    } else {
+      await pool.query(`UPDATE reunioes SET ata = $2, ata_atualizada_em = now() WHERE id = $1`, [req.params.id, texto]);
+    }
+
+    res.json({ id: inseridas[0].id, criado_em: inseridas[0].criado_em });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao salvar a ata." });
   }
 });
 
