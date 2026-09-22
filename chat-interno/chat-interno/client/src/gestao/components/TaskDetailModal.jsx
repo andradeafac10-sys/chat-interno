@@ -15,14 +15,8 @@ const PRIORITY_COLORS = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' };
 export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) {
   const [task, setTask] = useState(null);
   const [comments, setComments] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [newItem, setNewItem] = useState('');
   const [newComment, setNewComment] = useState('');
-  const [tab, setTab] = useState('checklist');
   const [loading, setLoading] = useState(true);
-  const [anexoNovo, setAnexoNovo] = useState(null); // { url, name } — escolhido, aguardando enviar junto do comentário
-  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
-  const fileInputRef = useRef(null);
 
   async function load() {
     setLoading(true);
@@ -30,7 +24,6 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
       const data = await gestaoApi.getTask(taskId);
       setTask(data.task);
       setComments(data.comments || []);
-      setHistory(data.history || []);
     } finally {
       setLoading(false);
     }
@@ -47,49 +40,12 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
     onChanged();
   }
 
-  async function toggleItem(item) {
-    await gestaoApi.toggleChecklistItem(taskId, item.id, !item.is_done);
-    await load();
-    onChanged();
-  }
-
-  async function addItem(e) {
-    e.preventDefault();
-    if (!newItem.trim()) return;
-    await gestaoApi.addChecklistItem(taskId, newItem.trim());
-    setNewItem('');
-    await load();
-    onChanged();
-  }
-
-  async function removeItem(item) {
-    await gestaoApi.deleteChecklistItem(taskId, item.id);
-    await load();
-    onChanged();
-  }
-
   async function addComment(e) {
     e.preventDefault();
-    if (!newComment.trim() && !anexoNovo) return;
-    await gestaoApi.addComment(taskId, newComment.trim(), anexoNovo || undefined);
+    if (!newComment.trim()) return;
+    await gestaoApi.addComment(taskId, newComment.trim());
     setNewComment('');
-    setAnexoNovo(null);
     await load();
-  }
-
-  async function escolherArquivo(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setEnviandoArquivo(true);
-    try {
-      const { url, name } = await gestaoApi.uploadTaskFile(taskId, file);
-      setAnexoNovo({ url, name });
-    } catch (err) {
-      alert(err.message || 'Não consegui enviar o arquivo.');
-    } finally {
-      setEnviandoArquivo(false);
-      e.target.value = '';
-    }
   }
 
   async function finalizarTarefa() {
@@ -132,7 +88,10 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
               )}
             </div>
           </div>
-          <button style={styles.closeBtn} onClick={onClose}>✕</button>
+          <div style={styles.headerActions}>
+            <button style={styles.deleteIconBtn} onClick={handleDelete} title="Apagar tarefa">🗑</button>
+            <button style={styles.closeBtn} onClick={onClose}>✕</button>
+          </div>
         </div>
 
         <div style={styles.body}>
@@ -170,113 +129,29 @@ export default function TaskDetailModal({ taskId, onClose, onChanged, onEdit }) 
             </div>
           )}
 
-          <div style={styles.tabs}>
-            <button
-              style={tab === 'checklist' ? styles.tabActive : styles.tab}
-              onClick={() => setTab('checklist')}
-            >
-              Checklist
-            </button>
-            <button
-              style={tab === 'comments' ? styles.tabActive : styles.tab}
-              onClick={() => setTab('comments')}
-            >
-              Comentários ({comments.length})
-            </button>
-            <button
-              style={tab === 'history' ? styles.tabActive : styles.tab}
-              onClick={() => setTab('history')}
-            >
-              Histórico
-            </button>
+          <div style={styles.commentsTitle}>Comentários ({comments.length})</div>
+
+          <div>
+            {comments.map((c) => (
+              <div key={c.id} style={styles.commentRow}>
+                <strong style={styles.commentAuthor}>{c.user_name}</strong>
+                <span style={styles.commentDate}>
+                  {new Date(c.created_at).toLocaleString('pt-BR')}
+                </span>
+                {c.content && <p style={styles.commentText}>{c.content}</p>}
+              </div>
+            ))}
+            {comments.length === 0 && <p style={styles.hint}>Nenhum comentário ainda.</p>}
+            <form onSubmit={addComment} style={styles.addForm}>
+              <input
+                style={styles.input}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Escrever um comentário"
+              />
+              <button style={styles.addBtn} type="submit">Enviar</button>
+            </form>
           </div>
-
-          {tab === 'checklist' && (
-            <div>
-              {task.checklist.map((item) => (
-                <div key={item.id} style={styles.checklistRow}>
-                  <input
-                    type="checkbox"
-                    checked={item.is_done}
-                    onChange={() => toggleItem(item)}
-                  />
-                  <span style={{ ...styles.checklistText, ...(item.is_done ? styles.done : {}) }}>
-                    {item.title}
-                  </span>
-                  <button style={styles.removeBtn} onClick={() => removeItem(item)}>✕</button>
-                </div>
-              ))}
-              {task.checklist.length === 0 && <p style={styles.hint}>Nenhum item ainda.</p>}
-              <form onSubmit={addItem} style={styles.addForm}>
-                <input
-                  style={styles.input}
-                  value={newItem}
-                  onChange={(e) => setNewItem(e.target.value)}
-                  placeholder="Novo item do checklist"
-                />
-                <button style={styles.addBtn} type="submit">Adicionar</button>
-              </form>
-            </div>
-          )}
-
-          {tab === 'comments' && (
-            <div>
-              {comments.map((c) => (
-                <div key={c.id} style={styles.commentRow}>
-                  <strong style={styles.commentAuthor}>{c.user_name}</strong>
-                  <span style={styles.commentDate}>
-                    {new Date(c.created_at).toLocaleString('pt-BR')}
-                  </span>
-                  {c.content && <p style={styles.commentText}>{c.content}</p>}
-                  {c.attachment_url && (
-                    <a href={c.attachment_url} target="_blank" rel="noreferrer" style={styles.anexoLink}>
-                      📎 {c.attachment_name || 'Ver arquivo'}
-                    </a>
-                  )}
-                </div>
-              ))}
-              {comments.length === 0 && <p style={styles.hint}>Nenhum comentário ainda.</p>}
-              <form onSubmit={addComment} style={styles.addForm}>
-                <input
-                  style={styles.input}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Escrever um comentário"
-                />
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={enviandoArquivo} style={styles.anexoBtn} title="Anexar arquivo">
-                  📎
-                </button>
-                <button style={styles.addBtn} type="submit">Enviar</button>
-              </form>
-              {anexoNovo && (
-                <div style={styles.anexoPreview}>
-                  📎 {anexoNovo.name}
-                  <button type="button" onClick={() => setAnexoNovo(null)} style={styles.anexoRemover}>✕</button>
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" onChange={escolherArquivo} style={{ display: 'none' }} />
-            </div>
-          )}
-
-          {tab === 'history' && (
-            <div>
-              {history.map((h) => (
-                <div key={h.id} style={styles.historyRow}>
-                  <span style={styles.historyUser}>{h.user_name}</span>
-                  <span style={styles.historyAction}>{describeAction(h)}</span>
-                  <span style={styles.historyDate}>
-                    {new Date(h.created_at).toLocaleString('pt-BR')}
-                  </span>
-                </div>
-              ))}
-              {history.length === 0 && <p style={styles.hint}>Sem histórico.</p>}
-            </div>
-          )}
-        </div>
-
-        <div style={styles.footer}>
-          <button style={styles.deleteBtn} onClick={handleDelete}>Apagar tarefa</button>
-          <button style={styles.editBtn} onClick={() => onEdit(task)}>Editar</button>
         </div>
       </div>
     </div>
@@ -318,6 +193,8 @@ const styles = {
   badge: { color: 'var(--pagina-cartao)', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999 },
   dueDate: { color: '#cbd5e1', fontSize: 12 },
   closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
+  headerActions: { display: 'flex', alignItems: 'center', gap: 12 },
+  deleteIconBtn: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: 16, cursor: 'pointer', lineHeight: 1 },
   body: { padding: 20 },
   description: { color: 'var(--pagina-texto-1)', fontSize: 14, marginTop: 0 },
   statusRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 },
@@ -330,6 +207,10 @@ const styles = {
   assignees: { fontSize: 13, color: 'var(--pagina-texto-1)', marginBottom: 10 },
   progressBarOuter: { height: 8, background: 'var(--pagina-borda)', borderRadius: 999, marginBottom: 14, overflow: 'hidden' },
   progressBarInner: { height: '100%', background: NAVY, transition: 'width .2s' },
+  commentsTitle: {
+    fontSize: 14, fontWeight: 700, color: 'var(--pagina-texto-1)',
+    borderBottom: `2px solid ${NAVY}`, display: 'inline-block', paddingBottom: 6, marginBottom: 12,
+  },
   tabs: { display: 'flex', gap: 4, borderBottom: '1px solid #E4E8EE', marginBottom: 14 },
   tab: {
     padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
