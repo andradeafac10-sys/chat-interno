@@ -1,6 +1,6 @@
-// client/src/gestao/components/ReuniaoDetalheModal.jsx
+  // client/src/gestao/components/ReuniaoDetalheModal.jsx
 import { useEffect, useState } from 'react';
-import { X, Trash2, User, Plus, Pencil, CheckCircle2 } from 'lucide-react';
+import { X, Trash2, Pencil, CheckCircle2, History } from 'lucide-react';
 import { api } from '../../api';
 import ReuniaoFormModal from './ReuniaoFormModal';
 
@@ -8,24 +8,16 @@ const NAVY = '#2563EB';
 
 export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const [reuniao, setReuniao] = useState(null);
-  const [ata, setAta] = useState('');
+  const [ataHoje, setAtaHoje] = useState('');
   const [presencas, setPresencas] = useState({});
   const [salvando, setSalvando] = useState(false);
-  const [salvo, setSalvo] = useState(false); // mostra "Salvo!" por um instante, sem fechar a tela
   const [editando, setEditando] = useState(false);
   const [erro, setErro] = useState('');
-  const [users, setUsers] = useState([]);
-
-  // form de encaminhamento novo
-  const [novoTexto, setNovoTexto] = useState('');
-  const [novoResp, setNovoResp] = useState('');
-  const [novoPrazo, setNovoPrazo] = useState('');
 
   const load = () => {
     api.get(`/reunioes/${reuniaoId}`)
       .then(({ data }) => {
         setReuniao(data.reuniao);
-        setAta(data.reuniao.ata || '');
         const p = {};
         data.reuniao.participantes.forEach((x) => { if (x.presente != null) p[x.userId] = x.presente; });
         setPresencas(p);
@@ -33,26 +25,31 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
       .catch((err) => setErro(err.response?.data?.error || 'Não deu pra abrir essa reunião.'));
   };
 
-  useEffect(() => {
-    load();
-    api.get('/users/manage').then(({ data }) => setUsers(data.users.filter((u) => u.role === 'admin')));
-  }, [reuniaoId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [reuniaoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Salva e continua na tela — antes fechava na hora, e dava a impressão de
-  // que não dava pra ver (ou editar de novo) o que acabou de escrever.
+  // Salva como uma NOVA entrada do histórico — não apaga o que já tinha sido
+  // escrito antes (nas reuniões anteriores da série, por exemplo).
   const salvarAta = async () => {
+    if (!ataHoje.trim()) return;
     setSalvando(true);
-    setSalvo(false);
     try {
-      await api.put(`/reunioes/${reuniaoId}/ata`, { ata, presencas });
+      await api.post(`/reunioes/${reuniaoId}/ata-entradas`, { texto: ataHoje });
+      setAtaHoje('');
       onChanged?.();
       load();
-      setSalvo(true);
-      setTimeout(() => setSalvo(false), 2500);
     } catch (err) {
       alert(err.response?.data?.error || 'Não deu pra salvar a ata.');
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const salvarPresencas = async () => {
+    try {
+      await api.put(`/reunioes/${reuniaoId}/ata`, { ata: reuniao?.ata || '', presencas });
+      onChanged?.();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra salvar a presença.');
     }
   };
 
@@ -66,30 +63,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
     }
   };
 
-  const adicionarEncaminhamento = async () => {
-    if (!novoTexto.trim() || !novoResp || !novoPrazo) {
-      alert('Preencha a ação, o responsável e o prazo.');
-      return;
-    }
-    try {
-      await api.post(`/reunioes/${reuniaoId}/encaminhamentos`, {
-        descricao: novoTexto, responsavelId: Number(novoResp), prazo: novoPrazo,
-      });
-      setNovoTexto(''); setNovoResp(''); setNovoPrazo('');
-      load();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Não deu pra adicionar.');
-    }
-  };
-
-  const removerEncaminhamento = async (id) => {
-    if (!confirm('Remover esse encaminhamento? A rotina criada pro responsável também sai.')) return;
-    await api.delete(`/reunioes/encaminhamentos/${id}`);
-    load();
-  };
-
   const apagarReuniao = async () => {
-    // Se faz parte de uma série, pergunta se é só essa ou todas as futuras
     let apagarSerie = false;
     if (reuniao?.serie_id) {
       const escolha = confirm(
@@ -121,8 +95,6 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   }
   if (!reuniao) return null;
 
-  // Abriu o formulário de edição: mostra ele no lugar do detalhe, e ao salvar
-  // recarrega os dados aqui pra já aparecer atualizado.
   if (editando) {
     return (
       <ReuniaoFormModal
@@ -137,7 +109,6 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const fim = new Date(reuniao.fim);
   const jaPassou = fim < new Date();
   const souDono = reuniao.souDono;
-  // Ata e encaminhamentos: qualquer participante pode mexer, não só quem criou.
   const souParticipante = reuniao.souParticipante ?? souDono;
 
   return (
@@ -201,6 +172,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
                 type="button"
                 disabled={!souParticipante || !jaPassou}
                 onClick={() => setPresencas((prev) => ({ ...prev, [p.userId]: !prev[p.userId] }))}
+                onBlur={salvarPresencas}
                 className="text-[11.5px] font-medium rounded-full px-2.5 py-1 border disabled:cursor-default"
                 style={presente === true
                   ? { background: '#E1F5EE', borderColor: '#5DCAA5', color: '#085041' }
@@ -215,77 +187,42 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
         </div>
 
         <div className="text-[13px] font-semibold text-slate-800 mb-1.5">
-          Ata da reunião {reuniao.serie_id ? '(compartilhada por toda a série)' : ''}
+          Ata de hoje {reuniao.serie_id ? '(compartilhada por toda a série)' : ''}
         </div>
         {souParticipante ? (
-          <textarea
-            value={ata}
-            onChange={(e) => setAta(e.target.value)}
-            rows={7}
-            placeholder="O que foi conversado, o que ficou decidido..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-1"
-          />
+          <>
+            <textarea
+              value={ataHoje}
+              onChange={(e) => setAtaHoje(e.target.value)}
+              rows={4}
+              placeholder="Escreva o que foi conversado hoje..."
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-2"
+            />
+            <button onClick={salvarAta} disabled={salvando || !ataHoje.trim()}
+              className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mb-4" style={{ background: NAVY }}>
+              {salvando ? 'Salvando...' : 'Salvar ata de hoje'}
+            </button>
+          </>
         ) : (
-          <div className="border rounded-lg px-3 py-2 text-[12.5px] text-slate-600 whitespace-pre-wrap mb-1 min-h-[80px]" style={{ borderColor: 'var(--pagina-borda)' }}>
-            {ata || <span className="text-slate-400">A ata ainda não foi escrita.</span>}
-          </div>
+          <div className="text-[10.5px] text-slate-400 mb-4">Só participantes dessa reunião podem escrever a ata.</div>
         )}
-        <div className="flex items-center justify-between mb-3">
-          {reuniao.ata_atualizada_em ? (
-            <div className="text-[10.5px] text-slate-400">
-              Atualizada em {new Date(reuniao.ata_atualizada_em).toLocaleString('pt-BR')}
-            </div>
-          ) : <div />}
-          {salvo && <div className="text-[11px] font-medium" style={{ color: '#16A34A' }}>Salvo!</div>}
-        </div>
-        {!souParticipante && <div className="text-[10.5px] text-slate-400 mb-3">Só participantes dessa reunião podem escrever a ata.</div>}
 
-        <div className="text-[13px] font-semibold text-slate-800 mb-1.5 mt-3">Encaminhamentos</div>
-        <div className="flex flex-col gap-1.5 mb-2">
-          {reuniao.encaminhamentos.length === 0 && (
-            <p className="text-[12px] text-slate-400">Nada combinado ainda.</p>
-          )}
-          {reuniao.encaminhamentos.map((e) => (
-            <div key={e.id} className="border rounded-lg px-3 py-2 flex items-start gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
-              <div className="flex-1 min-w-0">
-                <div className="text-[12.5px] text-slate-700">{e.descricao}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                  <User size={11} /> {e.responsavel_nome} · prazo {new Date(e.prazo).toLocaleDateString('pt-BR')} · vira rotina
-                </div>
+        <div className="text-[13px] font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+          <History size={14} style={{ color: 'var(--pagina-texto-2)' }} /> Histórico da série
+        </div>
+        {(!reuniao.historicoAta || reuniao.historicoAta.length === 0) && (
+          <p className="text-[12px] text-slate-400">Nenhuma ata registrada ainda.</p>
+        )}
+        <div className="flex flex-col gap-3 pl-3 max-h-[220px] overflow-y-auto" style={{ borderLeft: '2px solid var(--pagina-borda)' }}>
+          {(reuniao.historicoAta || []).map((h) => (
+            <div key={h.id}>
+              <div className="text-[10.5px] font-bold" style={{ color: NAVY }}>
+                {new Date(h.criado_em).toLocaleDateString('pt-BR')} · {h.autor_nome}
               </div>
-              {souParticipante && (
-                <button onClick={() => removerEncaminhamento(e.id)} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={13} /></button>
-              )}
+              <div className="text-[12px] text-slate-600 whitespace-pre-wrap mt-0.5">{h.texto}</div>
             </div>
           ))}
         </div>
-
-        {souParticipante && (
-          <div className="border border-dashed rounded-lg p-2.5 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
-            <input value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="O que ficou combinado..."
-              className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] mb-1.5 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
-            <div className="flex gap-1.5">
-              <select value={novoResp} onChange={(e) => setNovoResp(e.target.value)}
-                className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-[12px]">
-                <option value="">Responsável...</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-              <input type="date" value={novoPrazo} onChange={(e) => setNovoPrazo(e.target.value)}
-                className="border border-slate-200 rounded-lg px-2 py-1.5 text-[12px]" />
-              <button type="button" onClick={adicionarEncaminhamento}
-                className="text-white rounded-lg px-2.5 flex items-center" style={{ background: NAVY }}>
-                <Plus size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {souParticipante && (
-          <button onClick={salvarAta} disabled={salvando}
-            className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
-            {salvando ? 'Salvando...' : 'Salvar ata'}
-          </button>
-        )}
       </div>
     </div>
   );
