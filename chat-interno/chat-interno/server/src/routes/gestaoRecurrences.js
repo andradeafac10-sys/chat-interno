@@ -524,13 +524,35 @@ router.get('/visao-geral-hoje', async (req, res) => {
       user_name: r.user_name, avatar_url: r.avatar_url, done_at: r.done_at,
     });
 
+    // Quando a mesma rotina é de várias pessoas (ex: "Ligar os computadores"
+    // pra equipe toda), sem filtrar por uma pessoa específica ela apareceria
+    // repetida uma vez pra cada uma. Agrupa por título e mostra quantas
+    // pessoas ainda estão pendentes, em vez de uma linha por pessoa.
+    const agruparPorTitulo = (linhas) => {
+      const porTitulo = new Map();
+      for (const r of linhas) {
+        const chave = r.title;
+        if (!porTitulo.has(chave)) {
+          porTitulo.set(chave, { ...formatar(r), pessoas: [r.user_name], count: 1 });
+        } else {
+          const atual = porTitulo.get(chave);
+          atual.count += 1;
+          atual.pessoas.push(r.user_name);
+        }
+      }
+      return [...porTitulo.values()];
+    };
+
+    const atencaoFormatado = assigneeId ? atrasadasRows.slice(0, 5).map(formatar) : agruparPorTitulo(atrasadasRows).slice(0, 5);
+    const proximasFormatado = assigneeId ? proximasRows.slice(0, 5).map(formatar) : agruparPorTitulo(proximasRows).slice(0, 5);
+
     res.json({
       planejadas,
       concluidas,
       atrasadas,
       percentual: planejadas > 0 ? Math.round((concluidas / planejadas) * 100) : 0,
-      atencao: atrasadasRows.slice(0, 5).map(formatar),
-      proximas: proximasRows.slice(0, 5).map(formatar),
+      atencao: atencaoFormatado,
+      proximas: proximasFormatado,
       recentes: recentesRows.slice(0, 5).map(formatar),
       tarefasPendentes: tarefasRows[0].total,
       feedbacksPendentes: feedbacksRows[0].pendentes,
