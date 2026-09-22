@@ -1,8 +1,9 @@
 // client/src/gestao/pages/Reuniao.jsx
 import { useEffect, useState } from 'react';
-import { Video, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Video, ChevronLeft, ChevronRight, Plus, User, Users } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import ReuniaoFormModal from '../components/ReuniaoFormModal';
 import ReuniaoDetalheModal from '../components/ReuniaoDetalheModal';
 
@@ -31,9 +32,11 @@ function gerarGradeDoMes(ano, mes) {
 }
 
 export default function Reuniao() {
+  const { user } = useAuth();
   const hoje = new Date();
   const [mesAtual, setMesAtual] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const [reunioes, setReunioes] = useState([]);
+  const [visao, setVisao] = useState('minhas'); // minhas | todas
   const [loading, setLoading] = useState(true);
   const [diaForm, setDiaForm] = useState(null);     // usado só quando o botão "Nova reunião" é clicado
   const [diaAberto, setDiaAberto] = useState(null);  // dia clicado no calendário — mostra a lista do dia
@@ -55,7 +58,12 @@ export default function Reuniao() {
   useEffect(() => { load(); }, [mesAtual]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dias = gerarGradeDoMes(mesAtual.getFullYear(), mesAtual.getMonth());
-  const reunioesDoDia = (dia) => reunioes.filter((r) => mesmoDia(new Date(r.inicio), dia));
+  // "Minhas" mostra só as reuniões em que eu sou participante — quem
+  // gerencia tudo troca pra "Todas" quando precisa ver o panorama geral.
+  const reunioesVisiveis = visao === 'minhas'
+    ? reunioes.filter((r) => (r.participantes || []).some((p) => p.userId === user?.id))
+    : reunioes;
+  const reunioesDoDia = (dia) => reunioesVisiveis.filter((r) => mesmoDia(new Date(r.inicio), dia));
 
   const trocarMes = (delta) => {
     setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + delta, 1));
@@ -78,6 +86,22 @@ export default function Reuniao() {
         >
           Hoje
         </button>
+        <div className="flex rounded-full p-1 ml-1" style={{ background: 'var(--pagina-borda-suave)' }}>
+          <button
+            onClick={() => setVisao('minhas')}
+            className="flex items-center gap-1.5 text-[11.5px] font-semibold rounded-full px-3 py-1.5"
+            style={visao === 'minhas' ? { background: NAVY, color: '#fff' } : { color: 'var(--pagina-texto-2)' }}
+          >
+            <User size={12} /> Minhas
+          </button>
+          <button
+            onClick={() => setVisao('todas')}
+            className="flex items-center gap-1.5 text-[11.5px] font-semibold rounded-full px-3 py-1.5"
+            style={visao === 'todas' ? { background: NAVY, color: '#fff' } : { color: 'var(--pagina-texto-2)' }}
+          >
+            <Users size={12} /> Todas
+          </button>
+        </div>
         <div className="flex-1" />
         <div className="flex items-center gap-3 mr-2">
           <span className="flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>
