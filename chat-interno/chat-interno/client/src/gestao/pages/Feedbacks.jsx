@@ -55,6 +55,9 @@ export default function Feedbacks() {
     feedbacks.flatMap((f) => f.recipients.filter((r) => r.acknowledgedAt).map((r) => r.name))
   )].sort();
 
+  // Ignora acento e caixa na busca — "atencao" acha "atenção"
+  const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   const filtrados = feedbacks.filter((f) => {
     if (filtroStatus === 'assinados' && !estaAssinado(f)) return false;
     if (filtroStatus === 'pendentes' && estaAssinado(f)) return false;
@@ -63,13 +66,14 @@ export default function Feedbacks() {
     if (dataDe && f.created_at.slice(0, 10) < dataDe) return false;
     if (dataAte && f.created_at.slice(0, 10) > dataAte) return false;
 
-    const alvo = busca.trim().toLowerCase();
+    const alvo = normalizar(busca.trim());
     if (!alvo) return true;
     return (
-      f.title.toLowerCase().includes(alvo) ||
-      f.content.toLowerCase().includes(alvo) ||
-      f.created_by_name.toLowerCase().includes(alvo) ||
-      f.recipients.some((r) => r.name.toLowerCase().includes(alvo))
+      normalizar(f.title).includes(alvo) ||
+      normalizar(f.content).includes(alvo) ||
+      normalizar(f.created_by_name).includes(alvo) ||
+      normalizar(f.attachment_name).includes(alvo) ||
+      f.recipients.some((r) => normalizar(r.name).includes(alvo))
     );
   });
 
@@ -172,7 +176,7 @@ export default function Feedbacks() {
       {aba === 'ranking' ? (
         <RankingFeedbacks />
       ) : aba === 'calendario' ? (
-        <CalendarioAlinhamentos feedbacks={feedbacks} />
+        <CalendarioAlinhamentos feedbacks={filtrados} />
       ) : (
       <>
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
