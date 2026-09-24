@@ -1,701 +1,734 @@
-// server/src/routes/gestaoRecurrences.js
-// Rotinas do Painel Gestão — cadastro geral (a "receita") + lista de afazeres
-// diária por pessoa (feito/não feito), isolado do resto do sistema.
+// client/src/gestao/pages/Feedbacks.jsx
+import { useEffect, useState } from 'react';
+import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, ChevronRight, ChevronLeft, Trash2, Calendar } from 'lucide-react';
+import PageHeader from '../PageHeader';
+import { api, fileUrl } from '../../api';
 
-const express = require('express');
-const router = express.Router();
-const { pool } = require('../db');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const NAVY = '#2563EB';
 
-router.use(requireAuth, requireAdmin);
+export default function Feedbacks() {
+  const [aba, setAba] = useState('lista'); // 'lista' | 'ranking' | 'calendario'
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos' | 'assinados' | 'pendentes'
+  const [filtroAplicou, setFiltroAplicou] = useState('');
+  const [filtroAssinou, setFiltroAssinou] = useState('');
+  const [dataDe, setDataDe] = useState('');
+  const [dataAte, setDataAte] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [abertoId, setAbertoId] = useState(null);
 
-const DIAS_A_FRENTE = 14; // até quantos dias no futuro gera ocorrências de uma vez
+  const load = () => {
+    setLoading(true);
+    api.get('/feedbacks').then(({ data }) => {
+      setFeedbacks(data.feedbacks);
+      setLoading(false);
+    });
+  };
 
-// -------------------------------------------------------------
-// Helpers de data (comparando ano/mês/dia, sem depender de fuso horário)
-// -------------------------------------------------------------
-function chaveDia(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-function somarDias(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
-}
+  useEffect(() => { load(); }, []);
 
-// A rotina "bate" com esse dia?
-function diaCombina(recorrencia, date) {
-  const diaSemana = date.getDay();
-  switch (recorrencia.recurrence_type) {
-    case 'daily': return true;
-    case 'weekdays': return diaSemana >= 1 && diaSemana <= 5;
-    case 'specific_days': return (recorrencia.days_of_week || []).includes(diaSemana);
-    case 'monthly': return date.getDate() === recorrencia.day_of_month;
-    default: return false;
-  }
-}
+  const apagarFeedback = async (id) => {
+    if (!confirm('Deseja realmente excluir este feedback?')) return;
+    try {
+      await api.delete(`/feedbacks/${id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra apagar o feedback.');
+    }
+  };
 
-/**
- * Gera as linhas de "a fazer" (routine_completions) dos próximos dias, uma por
- * responsável, pra cada dia que a rotina deveria acontecer. Pode rodar quantas
- * vezes for — o índice único (recurrence_id, user_id, occurrence_date) impede duplicar.
- */
-async function gerarOcorrenciasDaRotina(recorrencia) {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const inicio = new Date(recorrencia.start_date) > hoje ? new Date(recorrencia.start_date) : hoje;
-  const fimJanela = somarDias(hoje, DIAS_A_FRENTE);
-  const fimRotina = recorrencia.end_date ? new Date(recorrencia.end_date) : null;
+  // "Assinado" = todo mundo que recebeu já confirmou; "Pendente" = falta pelo
+  // menos uma pessoa confirmar ainda.
+  const estaAssinado = (f) => f.recipients.length > 0 && f.recipients.every((r) => r.acknowledgedAt);
 
-  const assignees = await pool.query(
-    'SELECT user_id FROM recurrence_assignees WHERE recurrence_id = $1',
-    [recorrencia.id]
+  const contagem = {
+    todos: feedbacks.length,
+    assinados: feedbacks.filter(estaAssinado).length,
+    pendentes: feedbacks.filter((f) => !estaAssinado(f)).length,
+  };
+
+  // Listas pra preencher os dois seletores de pessoa — sem repetir nome
+  const pessoasQueAplicaram = [...new Set(feedbacks.map((f) => f.created_by_name))].sort();
+  const pessoasQueAssinaram = [...new Set(
+    feedbacks.flatMap((f) => f.recipients.filter((r) => r.acknowledgedAt).map((r) => r.name))
+  )].sort();
+
+  const filtrados = feedbacks.filter((f) => {
+    if (filtroStatus === 'assinados' && !estaAssinado(f)) return false;
+    if (filtroStatus === 'pendentes' && estaAssinado(f)) return false;
+    if (filtroAplicou && f.created_by_name !== filtroAplicou) return false;
+    if (filtroAssinou && !f.recipients.some((r) => r.name === filtroAssinou && r.acknowledgedAt)) return false;
+    if (dataDe && f.created_at.slice(0, 10) < dataDe) return false;
+    if (dataAte && f.created_at.slice(0, 10) > dataAte) return false;
+
+    const alvo = busca.trim().toLowerCase();
+    if (!alvo) return true;
+    return (
+      f.title.toLowerCase().includes(alvo) ||
+      f.content.toLowerCase().includes(alvo) ||
+      f.created_by_name.toLowerCase().includes(alvo) ||
+      f.recipients.some((r) => r.name.toLowerCase().includes(alvo))
+    );
+  });
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <PageHeader icon={MessageSquareText} title="Alinhamento" subtitle="Registre e acompanhe alinhamentos dados à equipe" />
+
+      <div className="px-6 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <div className="relative flex-1 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por pessoa ou texto do feedback..."
+            className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          />
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="ml-auto flex items-center gap-1.5 text-white text-[13px] font-medium px-3 py-2 rounded-lg"
+          style={{ background: NAVY }}
+        >
+          <Plus size={15} /> Novo alinhamento
+        </button>
+      </div>
+
+      <div className="px-6 py-2.5 bg-white border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <select
+          value={filtroAplicou}
+          onChange={(e) => setFiltroAplicou(e.target.value)}
+          className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px]"
+        >
+          <option value="">Quem aplicou: todos</option>
+          {pessoasQueAplicaram.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+        </select>
+
+        <select
+          value={filtroAssinou}
+          onChange={(e) => setFiltroAssinou(e.target.value)}
+          className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px]"
+        >
+          <option value="">Quem assinou: todos</option>
+          {pessoasQueAssinaram.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+        </select>
+
+        <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5">
+          <Calendar size={13} className="text-slate-400" />
+          <input
+            type="date"
+            value={dataDe}
+            onChange={(e) => setDataDe(e.target.value)}
+            className="text-[12px] outline-none"
+            style={{ colorScheme: 'light' }}
+          />
+          <span className="text-[11px] text-slate-400">até</span>
+          <input
+            type="date"
+            value={dataAte}
+            onChange={(e) => setDataAte(e.target.value)}
+            className="text-[12px] outline-none"
+            style={{ colorScheme: 'light' }}
+          />
+        </div>
+
+        {(filtroAplicou || filtroAssinou || dataDe || dataAte) && (
+          <button
+            onClick={() => { setFiltroAplicou(''); setFiltroAssinou(''); setDataDe(''); setDataAte(''); }}
+            className="text-[12px] font-medium"
+            style={{ color: NAVY }}
+          >
+            Limpar filtros ×
+          </button>
+        )}
+      </div>
+
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <button
+          onClick={() => setAba('lista')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+          style={{ background: aba === 'lista' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'lista' ? 'var(--pagina-cartao)' : '#64748B' }}
+        >
+          Feedbacks
+        </button>
+        <button
+          onClick={() => setAba('ranking')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+          style={{ background: aba === 'ranking' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'ranking' ? 'var(--pagina-cartao)' : '#64748B' }}
+        >
+          Ranking
+        </button>
+        <button
+          onClick={() => setAba('calendario')}
+          className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3 flex items-center gap-1.5"
+          style={{ background: aba === 'calendario' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'calendario' ? 'var(--pagina-cartao)' : '#64748B' }}
+        >
+          <Calendar size={12} /> Calendário
+        </button>
+      </div>
+
+      {aba === 'ranking' ? (
+        <RankingFeedbacks />
+      ) : aba === 'calendario' ? (
+        <CalendarioAlinhamentos feedbacks={feedbacks} />
+      ) : (
+      <>
+      <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
+        {[
+          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: 'var(--pagina-cartao)' },
+          { key: 'assinados', label: `Assinados (${contagem.assinados})`, corBg: '#F0FDF4', corTexto: '#16A34A' },
+          { key: 'pendentes', label: `Pendentes (${contagem.pendentes})`, corBg: '#FEF2F2', corTexto: '#DC2626' },
+        ].map((op) => (
+          <button
+            key={op.key}
+            onClick={() => setFiltroStatus(op.key)}
+            className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
+            style={{
+              background: filtroStatus === op.key ? op.corBg : 'var(--pagina-borda-suave)',
+              color: filtroStatus === op.key ? op.corTexto : '#64748B',
+            }}
+          >
+            {op.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
+        {loading ? (
+          <p className="text-sm text-slate-400">Carregando...</p>
+        ) : filtrados.length === 0 ? (
+          <div className="text-center py-16">
+            <MessageSquareText size={32} className="mx-auto text-slate-300 mb-2" />
+            <p className="text-sm text-slate-400">Nenhum alinhamento encontrado.</p>
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto flex flex-col gap-3">
+            {filtrados.map((f) => {
+              const aberto = abertoId === f.id;
+              const resumoPessoas = f.recipients.length === 1
+                ? f.recipients[0].name
+                : `${f.recipients[0]?.name || ''} + ${f.recipients.length - 1} pessoa${f.recipients.length - 1 > 1 ? 's' : ''}`;
+              return (
+              <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
+                <div className="w-full flex items-center gap-3 p-4">
+                  <button onClick={() => setAbertoId(aberto ? null : f.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                    {aberto ? <ChevronDown size={15} className="text-slate-400 shrink-0" /> : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-semibold text-slate-800 truncate">{f.title}</div>
+                      <div className="text-[11.5px] text-slate-500 truncate">{resumoPessoas}</div>
+                    </div>
+                  </button>
+                  <span
+                    className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0"
+                    style={estaAssinado(f) ? { background: '#F0FDF4', color: '#16A34A' } : { background: '#FEF2F2', color: '#DC2626' }}
+                  >
+                    {estaAssinado(f) ? 'Assinado' : 'Pendente'}
+                  </span>
+                  <button
+                    onClick={() => apagarFeedback(f.id)}
+                    title="Apagar feedback"
+                    className="text-slate-400 hover:text-red-500 shrink-0"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+
+                {aberto && (
+                <div className="px-4 pb-4 pt-0.5 border-t" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2 mt-3">
+                  <span><b className="text-slate-500 font-semibold">Aplicador:</b> {f.created_by_name}</span>
+                  <span className="text-slate-300">·</span>
+                  <span>{new Date(f.created_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div className="text-[13px] text-slate-600 whitespace-pre-wrap">{f.content}</div>
+                {f.attachment_url && (
+                  <a
+                    href={fileUrl(f.attachment_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[12px] font-medium mt-2 underline"
+                    style={{ color: NAVY }}
+                  >
+                    <Paperclip size={12} /> {f.attachment_name || 'Ver anexo'}
+                  </a>
+                )}
+
+                <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
+                  <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                    Operador{f.recipients.length > 1 ? "es" : ""}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                  {f.recipients.map((r) => (
+                    <span
+                      key={r.userId}
+                      className="flex items-center gap-1.5 text-[11px] font-medium rounded-full pl-1 pr-2.5 py-1"
+                      style={
+                        r.acknowledgedAt
+                          ? { background: '#F0FDF4', color: '#16A34A' }
+                          : { background: '#FEF2F2', color: '#DC2626' }
+                      }
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-semibold overflow-hidden shrink-0"
+                        style={{ background: NAVY }}
+                      >
+                        {r.avatarUrl ? (
+                          <img src={fileUrl(r.avatarUrl)} alt={r.name} className="w-full h-full object-cover" />
+                        ) : (
+                          r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
+                        )}
+                      </span>
+                      {r.name} {r.acknowledgedAt ? <Check size={11} /> : '· Aguardando ciente'}
+                    </span>
+                  ))}
+                  </div>
+                </div>
+                </div>
+                )}
+              </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {showForm && (
+        <NewFeedbackModal onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
+      )}
+      </>
+      )}
+    </div>
   );
-  if (assignees.rows.length === 0) return 0;
-
-  let criadas = 0;
-  for (let d = new Date(inicio); d <= fimJanela; d = somarDias(d, 1)) {
-    if (fimRotina && d > fimRotina) break;
-    if (!diaCombina(recorrencia, d)) continue;
-
-    for (const a of assignees.rows) {
-      const resultado = await pool.query(
-        `INSERT INTO routine_completions (recurrence_id, user_id, occurrence_date)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (recurrence_id, user_id, occurrence_date) DO NOTHING
-         RETURNING id`,
-        [recorrencia.id, a.user_id, chaveDia(d)]
-      );
-      if (resultado.rows[0]) criadas++;
-    }
-  }
-  return criadas;
 }
 
-async function gerarTodasAsOcorrencias() {
-  const { rows } = await pool.query('SELECT * FROM task_recurrences WHERE active = TRUE');
-  let total = 0;
-  for (const r of rows) total += await gerarOcorrenciasDaRotina(r);
-  return total;
-}
+function NewFeedbackModal({ onClose, onSaved }) {
+  const [etapa, setEtapa] = useState('form'); // 'form' | 'perguntar' | 'agendar'
+  const [feedbackCriadoId, setFeedbackCriadoId] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [userIds, setUserIds] = useState([]);
+  const [filtroPessoa, setFiltroPessoa] = useState('');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-async function hydrateRecurrence(id) {
-  const { rows } = await pool.query(
-    `SELECT r.*, u.name AS created_by_name FROM task_recurrences r
-     JOIN users u ON u.id = r.created_by WHERE r.id = $1`,
-    [id]
+  useEffect(() => {
+    api.get('/users/manage').then(({ data }) => setUsers(data.users));
+  }, []);
+
+  const pessoasEscolhidas = users.filter((u) => userIds.includes(u.id));
+  const pessoasFiltradas = users.filter(
+    (u) => !userIds.includes(u.id) && u.name.toLowerCase().includes(filtroPessoa.toLowerCase())
   );
-  const rec = rows[0];
-  if (!rec) return null;
 
-  const assignees = await pool.query(
-    `SELECT usr.id, usr.name, usr.avatar_url FROM recurrence_assignees ra
-     JOIN users usr ON usr.id = ra.user_id WHERE ra.recurrence_id = $1 ORDER BY usr.name`,
-    [id]
+  const toggleAdd = (id) => setUserIds((prev) => [...prev, id]);
+  const remover = (id) => setUserIds((prev) => prev.filter((x) => x !== id));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (userIds.length === 0) { setError('Marque pelo menos uma pessoa.'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      const form = new FormData();
+      form.append('title', title);
+      form.append('content', content);
+      form.append('userIds', JSON.stringify(userIds));
+      if (attachment) form.append('attachment', attachment);
+      const { data } = await api.post('/feedbacks', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setFeedbackCriadoId(data.feedbackId);
+      setEtapa('perguntar');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Não deu pra registrar o feedback.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (etapa === 'perguntar') {
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl w-[360px] p-5 text-center">
+          <h3 className="text-slate-800 font-semibold text-base mb-2">Registrado com sucesso!</h3>
+          <p className="text-[13.5px] text-slate-600 mb-5">Cadastrar novo alinhamento?</p>
+          <div className="flex gap-2">
+            <button onClick={onSaved} className="flex-1 rounded-lg py-2.5 text-sm font-medium border border-slate-200 text-slate-600">Não</button>
+            <button onClick={() => setEtapa('agendar')} className="flex-1 rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: NAVY }}>Sim</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (etapa === 'agendar') {
+    return (
+      <AgendarProximoModal
+        feedbackAnteriorId={feedbackCriadoId}
+        colaboradores={pessoasEscolhidas}
+        onClose={onSaved}
+        onSaved={onSaved}
+      />
+    );
+  }
+
+  return (
+    // Sem fechar ao clicar fora: só pelo X ou registrando o feedback — pra não
+    // perder tudo que já foi escrito com um clique sem querer.
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-[440px] max-h-[85vh] overflow-y-auto p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Novo alinhamento</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">
+            Pra quem é esse feedback (pode marcar várias pessoas)
+          </label>
+          {pessoasEscolhidas.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {pessoasEscolhidas.map((u) => (
+                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EFF4FF', color: NAVY }}>
+                  {u.name}
+                  <button type="button" onClick={() => remover(u.id)}><X size={12} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input
+            value={filtroPessoa}
+            onChange={(e) => setFiltroPessoa(e.target.value)}
+            placeholder="Buscar pessoa pra adicionar..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          />
+          {filtroPessoa && (
+            <div className="max-h-32 overflow-y-auto border border-slate-100 rounded-lg mb-3 divide-y divide-slate-50">
+              {pessoasFiltradas.slice(0, 20).map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => { toggleAdd(u.id); setFiltroPessoa(''); }}
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50"
+                >
+                  {u.name}
+                </button>
+              ))}
+              {pessoasFiltradas.length === 0 && (
+                <div className="px-3 py-1.5 text-[12px] text-slate-400">Ninguém encontrado.</div>
+              )}
+            </div>
+          )}
+          {!filtroPessoa && <div className="mb-3" />}
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ex: Feedback sobre atendimento"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            required
+          />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Resumo / observações</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Escreva aqui o resumo da conversa, pontos combinados, etc."
+            rows={5}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            required
+          />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Anexo (opcional)</label>
+          {attachment ? (
+            <div className="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4">
+              <span className="truncate flex items-center gap-1.5"><Paperclip size={13} /> {attachment.name}</span>
+              <button type="button" onClick={() => setAttachment(null)} className="text-slate-400 hover:text-slate-600 shrink-0">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 text-sm text-slate-500 border border-dashed border-slate-300 rounded-lg px-3 py-2 mb-4 cursor-pointer hover:bg-slate-50">
+              <Paperclip size={15} /> Anexar arquivo
+              <input type="file" className="hidden" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
+            </label>
+          )}
+
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: NAVY }}
+          >
+            {saving ? 'Salvando...' : `Registrar feedback${userIds.length > 1 ? ` (${userIds.length} pessoas)` : ''}`}
+          </button>
+        </form>
+      </div>
+    </div>
   );
-  return { ...rec, assignees: assignees.rows };
 }
 
-// -------------------------------------------------------------
-// GET /api/gestao/recurrences — cadastro geral de rotinas (visível a qualquer ADM)
-// -------------------------------------------------------------
-router.get('/', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT id FROM task_recurrences ORDER BY created_at DESC');
-    const recorrencias = [];
-    for (const r of rows) recorrencias.push(await hydrateRecurrence(r.id));
-    res.json({ recurrences: recorrencias });
-  } catch (err) {
-    console.error('Erro ao listar rotinas:', err);
-    res.status(500).json({ error: 'Erro ao listar rotinas' });
-  }
-});
+function AgendarProximoModal({ feedbackAnteriorId, colaboradores, onClose, onSaved }) {
+  const [colaboradorId, setColaboradorId] = useState(colaboradores[0]?.id || null);
+  const [users, setUsers] = useState([]);
+  const [responsavelId, setResponsavelId] = useState(null);
+  const [dataPrevista, setDataPrevista] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-// -------------------------------------------------------------
-// POST /api/gestao/recurrences — criar rotina (já gera as próximas ocorrências)
-// -------------------------------------------------------------
-router.post('/', async (req, res) => {
-  try {
-    const { title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, assignee_ids } = req.body;
-
-    if (!title || !title.trim()) return res.status(400).json({ error: 'Título é obrigatório' });
-    if (!['low', 'medium', 'high'].includes(priority)) {
-      return res.status(400).json({ error: 'Prioridade inválida' });
-    }
-    if (!['daily', 'weekdays', 'specific_days', 'monthly'].includes(recurrence_type)) {
-      return res.status(400).json({ error: 'Tipo de repetição inválido' });
-    }
-    if (recurrence_type === 'specific_days' && (!days_of_week || days_of_week.length === 0)) {
-      return res.status(400).json({ error: 'Escolha pelo menos um dia da semana' });
-    }
-    if (recurrence_type === 'monthly' && !day_of_month) {
-      return res.status(400).json({ error: 'Escolha o dia do mês' });
-    }
-    if (!Array.isArray(assignee_ids) || assignee_ids.length === 0) {
-      return res.status(400).json({ error: 'Escolha ao menos um responsável' });
-    }
-
-    const result = await pool.query(
-      `INSERT INTO task_recurrences
-        (title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [
-        title.trim(), description || null, priority, recurrence_type,
-        recurrence_type === 'specific_days' ? days_of_week : [],
-        recurrence_type === 'monthly' ? day_of_month : null,
-        start_time || null, start_date || new Date().toISOString().slice(0, 10), end_date || null,
-        req.user.id,
-      ]
-    );
-    const recurrenceId = result.rows[0].id;
-
-    for (const userId of assignee_ids) {
-      await pool.query(
-        'INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [recurrenceId, userId]
-      );
-    }
-
-    const io = req.app.get('io');
-    if (io) {
-      assignee_ids
-        .filter((uid) => uid !== req.user.id)
-        .forEach((uid) => {
-          io.to(`user-${uid}`).emit('gestao:notify', {
-            titulo: 'Nova rotina',
-            corpo: `${req.user.name} te colocou em: ${title.trim()}`,
-          });
-        });
-    }
-    const { rows: recRows } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [recurrenceId]);
-    const criadas = await gerarOcorrenciasDaRotina(recRows[0]);
-
-    res.status(201).json({ recurrence: await hydrateRecurrence(recurrenceId), ocorrencias_criadas: criadas });
-  } catch (err) {
-    console.error('Erro ao criar rotina:', err);
-    res.status(500).json({ error: 'Erro ao criar rotina' });
-  }
-});
-
-// -------------------------------------------------------------
-// PATCH /api/gestao/recurrences/:id — editar / pausar / reativar
-// -------------------------------------------------------------
-router.patch('/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const existing = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
-    if (!existing.rows[0]) return res.status(404).json({ error: 'Rotina não encontrada' });
-
-    const { title, description, priority, recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date, active, assignee_ids } = req.body;
-
-    const fields = [];
-    const params = [];
-    let i = 1;
-    const set = (coluna, valor) => { fields.push(`${coluna} = $${i++}`); params.push(valor); };
-
-    if (title !== undefined) set('title', title.trim());
-    if (description !== undefined) set('description', description);
-    if (priority !== undefined) set('priority', priority);
-    if (recurrence_type !== undefined) set('recurrence_type', recurrence_type);
-    if (days_of_week !== undefined) set('days_of_week', days_of_week);
-    if (day_of_month !== undefined) set('day_of_month', day_of_month);
-    if (start_time !== undefined) set('start_time', start_time);
-    if (start_date !== undefined) set('start_date', start_date);
-    if (end_date !== undefined) set('end_date', end_date);
-    if (active !== undefined) set('active', active);
-
-    if (fields.length > 0) {
-      fields.push('updated_at = NOW()');
-      params.push(id);
-      await pool.query(`UPDATE task_recurrences SET ${fields.join(', ')} WHERE id = $${i}`, params);
-    }
-
-    if (Array.isArray(assignee_ids)) {
-      await pool.query('DELETE FROM recurrence_assignees WHERE recurrence_id = $1', [id]);
-      for (const userId of assignee_ids) {
-        await pool.query(
-          'INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [id, userId]
-        );
-      }
-    }
-
-    const { rows: atualizada } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
-    if (atualizada[0].active) await gerarOcorrenciasDaRotina(atualizada[0]);
-
-    res.json({ recurrence: await hydrateRecurrence(id) });
-  } catch (err) {
-    console.error('Erro ao atualizar rotina:', err);
-    res.status(500).json({ error: 'Erro ao atualizar rotina' });
-  }
-});
-
-// -------------------------------------------------------------
-// DELETE /api/gestao/recurrences/:id
-// -------------------------------------------------------------
-router.delete('/:id', async (req, res) => {
-  try {
-    const result = await pool.query('DELETE FROM task_recurrences WHERE id = $1 RETURNING id', [req.params.id]);
-    if (!result.rows[0]) return res.status(404).json({ error: 'Rotina não encontrada' });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('Erro ao apagar rotina:', err);
-    res.status(500).json({ error: 'Erro ao apagar rotina' });
-  }
-});
-
-// -------------------------------------------------------------
-// POST /api/gestao/recurrences/generate — gera na hora (botão manual)
-// -------------------------------------------------------------
-router.post('/generate', async (req, res) => {
-  try {
-    const total = await gerarTodasAsOcorrencias();
-    res.json({ ok: true, ocorrencias_criadas: total });
-  } catch (err) {
-    console.error('Erro ao gerar ocorrências:', err);
-    res.status(500).json({ error: 'Erro ao gerar ocorrências' });
-  }
-});
-
-// -------------------------------------------------------------
-// GET /api/gestao/recurrences/minhas — "Minha Rotina": só as MINHAS ocorrências,
-// de hoje (e um resumo dos últimos dias) — nunca as de outra pessoa.
-// -------------------------------------------------------------
-// GET /api/gestao/recurrences/minhas/pendentes-count -> quantas rotinas de
-// HOJE a própria pessoa ainda não marcou como feita (não importa se já
-// passou do horário ou não — muita rotina nem tem horário cadastrado, então
-// nunca "vence"; o que importa aqui é só "ainda falta fazer"). Usado pra
-// tarja vermelha no topo (mesmo estilo do feedback pendente).
-router.get('/minhas/pendentes-count', async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT COUNT(*)::int AS count
-       FROM routine_completions rc
-       WHERE rc.user_id = $1 AND rc.occurrence_date = CURRENT_DATE AND rc.done = false`,
-      [req.user.id]
-    );
-    res.json({ count: rows[0].count });
-  } catch (err) {
-    console.error('Erro ao contar rotinas pendentes:', err);
-    res.status(500).json({ error: 'Erro ao contar rotinas pendentes' });
-  }
-});
-
-// GET /api/gestao/recurrences/minhas/atrasadas-count -> rotinas de HOJE que
-// já passaram do horário marcado e continuam sem fazer. Diferente do
-// "pendentes-count", que conta tudo que falta (mesmo sem horário/ainda no prazo).
-router.get('/minhas/atrasadas-count', async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT COUNT(*)::int AS count
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       WHERE rc.user_id = $1
-         AND rc.occurrence_date = CURRENT_DATE
-         AND rc.done = false
-         AND r.start_time IS NOT NULL
-         AND r.start_time < CURRENT_TIME`,
-      [req.user.id]
-    );
-    res.json({ count: rows[0].count });
-  } catch (err) {
-    console.error('Erro ao contar rotinas atrasadas:', err);
-    res.status(500).json({ error: 'Erro ao contar rotinas atrasadas' });
-  }
-});
-
-router.get('/minhas', async (req, res) => {
-  try {
-    const hoje = chaveDia(new Date());
-    const { rows } = await pool.query(
-      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, rc.nota, rc.anexo_url, rc.anexo_nome,
-              r.id AS recurrence_id, r.title, r.description, r.start_time, r.priority
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       WHERE rc.user_id = $1 AND rc.occurrence_date = $2
-       ORDER BY CASE r.priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, r.start_time NULLS LAST, r.title`,
-      [req.user.id, hoje]
-    );
-
-    // Resumo dos últimos 7 dias (pra pessoa ver como andou a semana)
-    const { rows: semana } = await pool.query(
-      `SELECT occurrence_date, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE done)::int AS feitas
-       FROM routine_completions
-       WHERE user_id = $1 AND occurrence_date BETWEEN $2 AND $3
-       GROUP BY occurrence_date ORDER BY occurrence_date`,
-      [req.user.id, chaveDia(somarDias(new Date(), -6)), hoje]
-    );
-
-    res.json({ hoje: rows, resumoSemana: semana });
-  } catch (err) {
-    console.error('Erro ao buscar minhas rotinas:', err);
-    res.status(500).json({ error: 'Erro ao buscar suas rotinas' });
-  }
-});
-
-// -------------------------------------------------------------
-// PATCH /api/gestao/recurrences/completions/:id — marcar feito / não feito
-// (só a própria pessoa marca a própria rotina)
-// -------------------------------------------------------------
-// POST /completions/upload -> sobe um arquivo pra anexar numa rotina do dia
-router.post('/completions/upload', upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  res.json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
-});
-
-router.patch('/completions/:id', async (req, res) => {
-  try {
-    const { done, nota, anexo_url, anexo_nome } = req.body;
-    const campos = ['done = $1', 'done_at = $2'];
-    const valores = [!!done, done ? new Date() : null];
-    let i = 3;
-    if (nota !== undefined) { campos.push(`nota = $${i++}`); valores.push(nota || null); }
-    if (anexo_url !== undefined) { campos.push(`anexo_url = $${i++}`); valores.push(anexo_url || null); }
-    if (anexo_nome !== undefined) { campos.push(`anexo_nome = $${i++}`); valores.push(anexo_nome || null); }
-    valores.push(req.params.id, req.user.id);
-    const { rows } = await pool.query(
-      `UPDATE routine_completions SET ${campos.join(', ')}
-       WHERE id = $${i++} AND user_id = $${i} RETURNING *`,
-      valores
-    );
-    if (!rows[0]) return res.status(404).json({ error: 'Rotina não encontrada ou não é sua.' });
-
-    // Quando marca como FEITA, avisa todo mundo — igual uma notificação de mensagem
-    if (done) {
-      const io = req.app.get('io');
-      if (io) {
-        const { rows: infoRotina } = await pool.query(
-          `SELECT r.title FROM task_recurrences r WHERE r.id = (
-             SELECT recurrence_id FROM routine_completions WHERE id = $1
-           )`,
-          [req.params.id]
-        );
-        io.emit('gestao:notify', {
-          titulo: 'Rotina concluída',
-          corpo: `${req.user.name} concluiu: ${infoRotina[0]?.title || 'uma rotina'}`,
-        });
-      }
-    }
-
-    res.json({ completion: rows[0] });
-  } catch (err) {
-    console.error('Erro ao marcar rotina:', err);
-    res.status(500).json({ error: 'Erro ao marcar rotina' });
-  }
-});
-
-// -------------------------------------------------------------
-// GET /api/gestao/recurrences/ranking?periodo=day|week|month — ranking de
-// cumprimento das rotinas (feitas ÷ previstas, contando não marcadas como
-// "não feita" assim que o dia já passou).
-// -------------------------------------------------------------
-/**
- * GET /api/gestao/recurrences/visao-geral-hoje?assignee_id=opcional
- * Dados reais de HOJE pra tela Visão Geral: quantos planejados/concluídos/
- * atrasados, quais precisam de atenção, quais ainda vêm, e o que foi
- * concluído recentemente. Tudo calculado na hora, nada é guardado à parte.
- */
-/**
- * GET /api/gestao/recurrences/equipe-hoje
- * Cumprimento de rotina de HOJE por pessoa (quem fez, quem não fez, %) mais a
- * lista completa de quem está atrasado. Usado pelo Dashboard, aba "Toda a
- * equipe". Não substitui nada — é adicional às rotas que já existiam.
- */
-router.get('/equipe-hoje', async (req, res) => {
-  try {
-    const { rows: porPessoa } = await pool.query(
-      `SELECT u.id, u.name, u.avatar_url, u.color,
-              COUNT(rc.id)::int AS total,
-              COUNT(rc.id) FILTER (WHERE rc.done)::int AS feitas
-       FROM users u
-       LEFT JOIN routine_completions rc
-         ON rc.user_id = u.id AND rc.occurrence_date = CURRENT_DATE
-       WHERE u.active = true
-       GROUP BY u.id, u.name, u.avatar_url, u.color
-       HAVING COUNT(rc.id) > 0
-       ORDER BY u.name`
-    );
-
-    const { rows: pendentes } = await pool.query(
-      `SELECT rc.id, rc.done, r.title, r.start_time,
-              u.id AS user_id, u.name AS user_name, u.avatar_url
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date = CURRENT_DATE AND rc.done = false
-       ORDER BY r.start_time NULLS LAST, u.name`
-    );
-
-    // "Atrasada" é a que já passou do horário marcado e continua sem fazer
-    const agora = new Date();
-    const jaPassou = (horaStr) => {
-      if (!horaStr) return false;
-      const [h, m] = horaStr.split(':').map(Number);
-      const limite = new Date();
-      limite.setHours(h, m, 0, 0);
-      return agora > limite;
-    };
-
-    res.json({
-      por_pessoa: porPessoa.map((p) => ({
-        ...p,
-        percentual: p.total > 0 ? Math.round((p.feitas / p.total) * 100) : 0,
-      })),
-      pendentes: pendentes.map((p) => ({ ...p, atrasada: jaPassou(p.start_time) })),
+  useEffect(() => {
+    api.get('/users/manage').then(({ data }) => {
+      setUsers(data.users);
+      const admins = data.users.filter((u) => u.role === 'admin');
+      if (admins[0]) setResponsavelId(admins[0].id);
     });
-  } catch (err) {
-    console.error('Erro ao montar visão da equipe:', err);
-    res.status(500).json({ error: 'Erro ao montar visão da equipe' });
-  }
-});
+  }, []);
 
-router.get('/visao-geral-hoje', async (req, res) => {
-  try {
-    const assigneeId = req.query.assignee_id ? Number(req.query.assignee_id) : null;
-    const { rows } = await pool.query(
-      `SELECT rc.id, rc.done, rc.done_at, r.title, r.start_time, u.id AS user_id, u.name AS user_name, u.avatar_url
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date = CURRENT_DATE
-         AND ($1::int IS NULL OR rc.user_id = $1)
-       ORDER BY r.start_time NULLS LAST, r.title`,
-      [assigneeId]
-    );
-
-    const agora = new Date();
-    const jaPassou = (horaStr) => {
-      if (!horaStr) return false;
-      const [h, m] = horaStr.split(':').map(Number);
-      const limite = new Date();
-      limite.setHours(h, m, 0, 0);
-      return agora > limite;
-    };
-
-    const planejadas = rows.length;
-    const concluidas = rows.filter((r) => r.done).length;
-    const atrasadasRows = rows.filter((r) => !r.done && jaPassou(r.start_time));
-    const atrasadas = atrasadasRows.length;
-
-    const proximasRows = rows.filter((r) => !r.done && !jaPassou(r.start_time) && r.start_time);
-
-    const recentesRows = rows
-      .filter((r) => r.done && r.done_at)
-      .sort((a, b) => new Date(b.done_at) - new Date(a.done_at));
-
-    // Tarefas, feedbacks e treinamentos entraram depois que essa tela foi
-    // criada e nunca tinham sido ligados aqui — os cards ficavam sempre
-    // mostrando só rotina. Adicionando os números de verdade agora.
-    const { rows: tarefasRows } = await pool.query(
-      `SELECT COUNT(DISTINCT t.id)::int AS total FROM tasks t
-       JOIN task_assignees ta ON ta.task_id = t.id
-       WHERE t.status NOT IN ('done', 'canceled') AND ($1::int IS NULL OR ta.user_id = $1)`,
-      [assigneeId]
-    );
-    const { rows: feedbacksRows } = await pool.query(
-      `SELECT
-         COUNT(*) FILTER (WHERE fr.acknowledged_at IS NULL)::int AS pendentes,
-         COUNT(*) FILTER (WHERE fr.acknowledged_at IS NOT NULL)::int AS concluidos
-       FROM feedback_recipients fr
-       WHERE ($1::int IS NULL OR fr.user_id = $1)`,
-      [assigneeId]
-    );
-    const { rows: treinamentosRows } = await pool.query(
-      `SELECT
-         COUNT(*) FILTER (WHERE p.concluido_em IS NULL)::int AS pendentes,
-         COUNT(*) FILTER (WHERE p.concluido_em IS NOT NULL)::int AS concluidos
-       FROM users u
-       CROSS JOIN trilha_modulos m
-       LEFT JOIN trilha_progresso p ON p.modulo_id = m.id AND p.user_id = u.id
-       WHERE u.active = true AND ($1::int IS NULL OR u.id = $1)
-         AND (
-           NOT EXISTS (SELECT 1 FROM trilha_modulo_destinatarios d WHERE d.modulo_id = m.id)
-           OR EXISTS (SELECT 1 FROM trilha_modulo_destinatarios d WHERE d.modulo_id = m.id AND d.user_id = u.id)
-         )`,
-      [assigneeId]
-    );
-
-    const formatar = (r) => ({
-      id: r.id, title: r.title, start_time: r.start_time,
-      user_name: r.user_name, avatar_url: r.avatar_url, done_at: r.done_at,
-    });
-
-    // Quando a mesma rotina é de várias pessoas (ex: "Ligar os computadores"
-    // pra equipe toda), sem filtrar por uma pessoa específica ela apareceria
-    // repetida uma vez pra cada uma. Agrupa por título e mostra quantas
-    // pessoas ainda estão pendentes, em vez de uma linha por pessoa.
-    const agruparPorTitulo = (linhas) => {
-      const porTitulo = new Map();
-      for (const r of linhas) {
-        const chave = r.title;
-        if (!porTitulo.has(chave)) {
-          porTitulo.set(chave, { ...formatar(r), pessoas: [r.user_name], count: 1 });
-        } else {
-          const atual = porTitulo.get(chave);
-          atual.count += 1;
-          atual.pessoas.push(r.user_name);
-        }
-      }
-      return [...porTitulo.values()];
-    };
-
-    const atencaoFormatado = assigneeId ? atrasadasRows.slice(0, 5).map(formatar) : agruparPorTitulo(atrasadasRows).slice(0, 5);
-    const proximasFormatado = assigneeId ? proximasRows.slice(0, 5).map(formatar) : agruparPorTitulo(proximasRows).slice(0, 5);
-
-    res.json({
-      planejadas,
-      concluidas,
-      atrasadas,
-      percentual: planejadas > 0 ? Math.round((concluidas / planejadas) * 100) : 0,
-      atencao: atencaoFormatado,
-      proximas: proximasFormatado,
-      recentes: recentesRows.slice(0, 5).map(formatar),
-      tarefasPendentes: tarefasRows[0].total,
-      feedbacksPendentes: feedbacksRows[0].pendentes,
-      feedbacksConcluidos: feedbacksRows[0].concluidos,
-      treinamentosPendentes: treinamentosRows[0].pendentes,
-      treinamentosConcluidos: treinamentosRows[0].concluidos,
-    });
-  } catch (err) {
-    console.error('Erro ao montar visão geral de hoje:', err);
-    res.status(500).json({ error: 'Erro ao montar visão geral de hoje' });
-  }
-});
-
-router.get('/ranking/dados', async (req, res) => {
-  try {
-    const hoje = new Date();
-    let periodo = 'week';
-    let dataInicio;
-    let dataFim = chaveDia(hoje);
-
-    // Se vier "de"/"ate" (calendário), usa essas datas específicas em vez do período fixo
-    if (req.query.de && req.query.ate) {
-      dataInicio = req.query.de;
-      dataFim = req.query.ate;
-      periodo = 'custom';
-    } else {
-      periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
-      if (periodo === 'day') dataInicio = chaveDia(hoje);
-      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
-      else dataInicio = chaveDia(somarDias(hoje, -29));
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!colaboradorId || !responsavelId || !dataPrevista || !motivo.trim()) {
+      setError('Preencha colaborador, responsável, data e motivo.');
+      return;
     }
-
-    const filtroAssignee = req.query.assignee_id ? 'AND u.id = $3' : '';
-    const params = [dataInicio, dataFim];
-    if (req.query.assignee_id) params.push(req.query.assignee_id);
-
-    // Só considera dias que já passaram (ou hoje) — não faz sentido cobrar rotina do futuro
-    const { rows } = await pool.query(
-      `SELECT u.id, u.name, u.avatar_url, u.color,
-              COUNT(rc.*)::int AS total,
-              COUNT(*) FILTER (WHERE rc.done)::int AS feitas
-       FROM routine_completions rc
-       JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date >= $1 AND rc.occurrence_date <= $2 ${filtroAssignee}
-       GROUP BY u.id
-       ORDER BY (COUNT(*) FILTER (WHERE rc.done))::float / GREATEST(COUNT(rc.*), 1) DESC, feitas DESC`,
-      params
-    );
-
-    const ranking = rows.map((r) => ({
-      ...r,
-      percentual: r.total > 0 ? Math.round((r.feitas / r.total) * 100) : 0,
-    }));
-
-    res.json({ periodo, ranking });
-  } catch (err) {
-    console.error('Erro ao montar ranking:', err);
-    res.status(500).json({ error: 'Erro ao montar ranking' });
-  }
-});
-
-/**
- * GET /api/gestao/recurrences/pessoa-resumo?assignee_id=X&periodo=day|week|month
- * (ou &de=&ate= pra período personalizado)
- * Resumo das atividades de UM ADM específico no período — feitas e
- * pendentes, uma por uma. Usado quando clica em alguém no "Desempenho da
- * equipe" da Visão Geral. Qualquer ADM pode ver o resumo de qualquer outro.
- */
-router.get('/pessoa-resumo', async (req, res) => {
-  try {
-    if (!req.query.assignee_id) return res.status(400).json({ error: 'Falta informar a pessoa.' });
-
-    const hoje = new Date();
-    let dataInicio;
-    let dataFim = chaveDia(hoje);
-    if (req.query.de && req.query.ate) {
-      dataInicio = req.query.de;
-      dataFim = req.query.ate;
-    } else {
-      const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
-      if (periodo === 'day') dataInicio = chaveDia(hoje);
-      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
-      else dataInicio = chaveDia(somarDias(hoje, -29));
-    }
-
-    const { rows: pessoaRows } = await pool.query('SELECT id, name, avatar_url, color FROM users WHERE id = $1', [req.query.assignee_id]);
-    if (!pessoaRows[0]) return res.status(404).json({ error: 'Pessoa não encontrada.' });
-
-    const { rows } = await pool.query(
-      `SELECT rc.id, rc.occurrence_date, rc.done, rc.done_at, r.title, r.start_time, r.priority
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       WHERE rc.user_id = $1 AND rc.occurrence_date >= $2 AND rc.occurrence_date <= $3
-       ORDER BY rc.occurrence_date DESC, r.start_time NULLS LAST, r.title`,
-      [req.query.assignee_id, dataInicio, dataFim]
-    );
-
-    const feitas = rows.filter((r) => r.done);
-    const pendentes = rows.filter((r) => !r.done);
-
-    res.json({
-      pessoa: pessoaRows[0],
-      periodo: { de: dataInicio, ate: dataFim },
-      total: rows.length,
-      percentual: rows.length > 0 ? Math.round((feitas.length / rows.length) * 100) : 0,
-      feitas,
-      pendentes,
-    });
-  } catch (err) {
-    console.error('Erro ao montar resumo da pessoa:', err);
-    res.status(500).json({ error: 'Erro ao montar o resumo dessa pessoa' });
-  }
-});
-
-/**
- * Mesma ideia do lembrete de tarefa, mas pra rotina: junta a data da ocorrência
- * com o horário cadastrado na rotina, e avisa 15min e depois 5min antes.
- */
-async function verificarLembretesRotinas(io) {
-  const janelas = [
-    { coluna: 'reminder_15_sent', de: '14 minutes', ate: '16 minutes', texto: 'Faltam 15 minutos' },
-    { coluna: 'reminder_5_sent', de: '4 minutes', ate: '6 minutes', texto: 'Faltam 5 minutos' },
-  ];
-
-  for (const j of janelas) {
-    const { rows } = await pool.query(
-      `SELECT rc.id, rc.user_id, r.title
-       FROM routine_completions rc
-       JOIN task_recurrences r ON r.id = rc.recurrence_id
-       WHERE r.start_time IS NOT NULL AND rc.done = false AND rc.${j.coluna} = false
-         AND (rc.occurrence_date + r.start_time) BETWEEN now() + interval '${j.de}' AND now() + interval '${j.ate}'`
-    );
-    if (rows.length === 0) continue;
-
-    for (const r of rows) {
-      io?.to(`user-${r.user_id}`).emit('gestao:notify', {
-        titulo: 'Lembrete de rotina',
-        corpo: `${j.texto}: ${r.title}`,
+    setError('');
+    setSaving(true);
+    try {
+      await api.post('/feedbacks/agendar-proximo', {
+        feedbackAnteriorId, colaboradorId, responsavelId,
+        dataPrevista: new Date(dataPrevista).toISOString(),
+        motivo, observacao,
       });
+      onSaved();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Não deu pra agendar o próximo feedback.');
+    } finally {
+      setSaving(false);
     }
-    const ids = [...new Set(rows.map((r) => r.id))];
-    await pool.query(`UPDATE routine_completions SET ${j.coluna} = true WHERE id = ANY($1::int[])`, [ids]);
-  }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-[400px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-800 font-semibold text-base">Agendar próximo feedback</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Colaborador</label>
+          <select value={colaboradorId || ''} onChange={(e) => setColaboradorId(Number(e.target.value))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3">
+            {colaboradores.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Responsável por aplicar</label>
+          <select value={responsavelId || ''} onChange={(e) => setResponsavelId(Number(e.target.value))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3">
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Data prevista</label>
+          <input type="datetime-local" value={dataPrevista} onChange={(e) => setDataPrevista(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Motivo/assunto</label>
+          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3" required />
+
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Observação (opcional)</label>
+          <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none" />
+
+          <p className="text-[11px] text-slate-400 mb-3">Isso vai criar uma tarefa automaticamente na rotina do responsável, com a data marcada.</p>
+
+          {error && <div className="text-red-500 text-xs mb-3">{error}</div>}
+
+          <button type="submit" disabled={saving} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: NAVY }}>
+            {saving ? 'Salvando...' : 'Agendar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
-module.exports = { router, gerarTodasAsOcorrencias, verificarLembretesRotinas };
+const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function mesmoDia(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function gerarGradeDoMes(ano, mes) {
+  const primeiro = new Date(ano, mes, 1);
+  const inicio = new Date(primeiro);
+  inicio.setDate(inicio.getDate() - inicio.getDay());
+  const dias = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    dias.push(d);
+    if (i >= 34 && d.getMonth() !== mes && d.getDay() === 6) break;
+  }
+  return dias;
+}
+
+// Calendário de alinhamentos: usa a lista que a tela já carregou (sem chamar
+// o servidor de novo), agrupando por dia de criação. Clica num dia pra ver
+// quais alinhamentos aconteceram ali.
+function CalendarioAlinhamentos({ feedbacks }) {
+  const hoje = new Date();
+  const [mesAtual, setMesAtual] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const [diaAberto, setDiaAberto] = useState(null);
+
+  const dias = gerarGradeDoMes(mesAtual.getFullYear(), mesAtual.getMonth());
+  const doDia = (dia) => feedbacks.filter((f) => mesmoDia(new Date(f.created_at), dia));
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 1))} className="text-slate-500 hover:text-slate-700">
+          <ChevronLeft size={18} />
+        </button>
+        <span className="text-[13.5px] font-semibold text-slate-800 min-w-[140px] text-center">
+          {MESES[mesAtual.getMonth()]} {mesAtual.getFullYear()}
+        </span>
+        <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1))} className="text-slate-500 hover:text-slate-700">
+          <ChevronRight size={18} />
+        </button>
+        <button
+          onClick={() => setMesAtual(new Date(hoje.getFullYear(), hoje.getMonth(), 1))}
+          className="text-[12px] font-medium border rounded-lg px-2.5 py-1"
+          style={{ borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }}
+        >
+          Hoje
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border p-3" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <div className="grid grid-cols-7 gap-1 mb-1.5">
+          {DIAS_SEMANA.map((d) => (
+            <div key={d} className="text-[11px] text-center" style={{ color: 'var(--pagina-texto-2)' }}>{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {dias.map((dia, i) => {
+            const doMes = dia.getMonth() === mesAtual.getMonth();
+            const ehHoje = mesmoDia(dia, hoje);
+            const itens = doDia(dia);
+            return (
+              <button
+                key={i}
+                onClick={() => itens.length > 0 && setDiaAberto(dia)}
+                className="min-h-[70px] rounded-md p-1.5 text-left border transition-colors hover:border-[#2563EB]"
+                style={{
+                  borderColor: ehHoje ? '#2563EB' : 'var(--pagina-borda)',
+                  borderWidth: ehHoje ? 2 : 1,
+                  opacity: doMes ? 1 : 0.4,
+                  background: ehHoje ? '#EFF4FF' : 'transparent',
+                  cursor: itens.length > 0 ? 'pointer' : 'default',
+                }}
+              >
+                <span className="text-[11px] font-medium" style={{ color: ehHoje ? '#2563EB' : 'var(--pagina-texto-2)' }}>
+                  {dia.getDate()}{ehHoje ? ' hoje' : ''}
+                </span>
+                {itens.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <span
+                      className="text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                      style={{ background: '#EFF4FF', color: '#2563EB' }}
+                    >
+                      {itens.length}
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--pagina-texto-2)' }}>
+                      {itens.length === 1 ? 'alinhamento' : 'alinhamentos'}
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {diaAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4" onClick={() => setDiaAberto(null)}>
+          <div className="bg-white rounded-xl w-[440px] max-w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-slate-800 font-semibold text-base">
+                Alinhamentos — {diaAberto.toLocaleDateString('pt-BR')}
+              </h3>
+              <button onClick={() => setDiaAberto(null)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+              {doDia(diaAberto).map((f) => (
+                <div key={f.id} className="border rounded-lg p-3" style={{ borderColor: 'var(--pagina-borda)' }}>
+                  <div className="text-[13.5px] font-semibold text-slate-800">{f.title}</div>
+                  <div className="text-[12px] text-slate-500 mt-0.5">
+                    {new Date(f.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · por {f.created_by_name}
+                  </div>
+                  <div className="text-[12.5px] text-slate-600 mt-1.5 line-clamp-2">{f.content}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RankingFeedbacks() {
+  const [ranking, setRanking] = useState(null);
+  const [periodo, setPeriodo] = useState('30'); // dias, ou 'tudo'
+
+  useEffect(() => {
+    const params = {};
+    if (periodo !== 'tudo') {
+      const ate = new Date();
+      const de = new Date();
+      de.setDate(de.getDate() - Number(periodo));
+      params.de = de.toISOString().slice(0, 10);
+      params.ate = ate.toISOString().slice(0, 10);
+    }
+    api.get('/feedbacks/ranking', { params }).then(({ data }) => setRanking(data.ranking));
+  }, [periodo]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
+      <div className="max-w-xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-[13px] font-semibold text-slate-700">Quem mais recebeu feedback</div>
+          <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px]">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="tudo">Desde sempre</option>
+          </select>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Filtro por supervisor/coordenador/equipe ainda não disponível — o sistema não tem esses papéis cadastrados hoje.
+        </p>
+        {ranking === null ? (
+          <p className="text-sm text-slate-400">Carregando...</p>
+        ) : ranking.length === 0 ? (
+          <p className="text-sm text-slate-400">Nenhum alinhamento nesse período.</p>
+        ) : (
+          <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
+            {ranking.map((r, i) => (
+              <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-0" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
+                <span className="text-[12px] font-bold text-slate-400 w-5">{i + 1}º</span>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden shrink-0" style={{ background: r.color || NAVY }}>
+                  {r.avatar_url ? <img src={fileUrl(r.avatar_url)} alt="" className="w-full h-full object-cover" /> : r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+                </div>
+                <span className="text-[13px] font-medium text-slate-700 flex-1">{r.name}</span>
+                <span className="text-[13px] font-bold" style={{ color: NAVY }}>{r.total}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
