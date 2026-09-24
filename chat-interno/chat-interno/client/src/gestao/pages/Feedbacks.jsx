@@ -12,6 +12,10 @@ export default function Feedbacks() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos'); // 'todos' | 'assinados' | 'pendentes'
+  const [filtroAplicou, setFiltroAplicou] = useState('');
+  const [filtroAssinou, setFiltroAssinou] = useState('');
+  const [dataDe, setDataDe] = useState('');
+  const [dataAte, setDataAte] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [abertoId, setAbertoId] = useState(null);
 
@@ -45,9 +49,19 @@ export default function Feedbacks() {
     pendentes: feedbacks.filter((f) => !estaAssinado(f)).length,
   };
 
+  // Listas pra preencher os dois seletores de pessoa — sem repetir nome
+  const pessoasQueAplicaram = [...new Set(feedbacks.map((f) => f.created_by_name))].sort();
+  const pessoasQueAssinaram = [...new Set(
+    feedbacks.flatMap((f) => f.recipients.filter((r) => r.acknowledgedAt).map((r) => r.name))
+  )].sort();
+
   const filtrados = feedbacks.filter((f) => {
     if (filtroStatus === 'assinados' && !estaAssinado(f)) return false;
     if (filtroStatus === 'pendentes' && estaAssinado(f)) return false;
+    if (filtroAplicou && f.created_by_name !== filtroAplicou) return false;
+    if (filtroAssinou && !f.recipients.some((r) => r.name === filtroAssinou && r.acknowledgedAt)) return false;
+    if (dataDe && f.created_at.slice(0, 10) < dataDe) return false;
+    if (dataAte && f.created_at.slice(0, 10) > dataAte) return false;
 
     const alvo = busca.trim().toLowerCase();
     if (!alvo) return true;
@@ -80,6 +94,55 @@ export default function Feedbacks() {
         >
           <Plus size={15} /> Novo alinhamento
         </button>
+      </div>
+
+      <div className="px-6 py-2.5 bg-white border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--pagina-borda)' }}>
+        <select
+          value={filtroAplicou}
+          onChange={(e) => setFiltroAplicou(e.target.value)}
+          className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px]"
+        >
+          <option value="">Quem aplicou: todos</option>
+          {pessoasQueAplicaram.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+        </select>
+
+        <select
+          value={filtroAssinou}
+          onChange={(e) => setFiltroAssinou(e.target.value)}
+          className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px]"
+        >
+          <option value="">Quem assinou: todos</option>
+          {pessoasQueAssinaram.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+        </select>
+
+        <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5">
+          <Calendar size={13} className="text-slate-400" />
+          <input
+            type="date"
+            value={dataDe}
+            onChange={(e) => setDataDe(e.target.value)}
+            className="text-[12px] outline-none"
+            style={{ colorScheme: 'light' }}
+          />
+          <span className="text-[11px] text-slate-400">até</span>
+          <input
+            type="date"
+            value={dataAte}
+            onChange={(e) => setDataAte(e.target.value)}
+            className="text-[12px] outline-none"
+            style={{ colorScheme: 'light' }}
+          />
+        </div>
+
+        {(filtroAplicou || filtroAssinou || dataDe || dataAte) && (
+          <button
+            onClick={() => { setFiltroAplicou(''); setFiltroAssinou(''); setDataDe(''); setDataAte(''); }}
+            className="text-[12px] font-medium"
+            style={{ color: NAVY }}
+          >
+            Limpar filtros ×
+          </button>
+        )}
       </div>
 
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
