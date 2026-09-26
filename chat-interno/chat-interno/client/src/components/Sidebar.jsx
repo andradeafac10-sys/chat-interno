@@ -1,24 +1,29 @@
-import React, { useState } from "react";
-import { Plus, Users, ShieldCheck, Eye, EyeOff, VolumeX, Pin, PinOff, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Users, ShieldCheck, Eye, EyeOff, Pin, PinOff, X, MailPlus, VolumeX } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
 
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-function preview(last) {
-  if (!last) return "";
-  if (last.type === "text") return last.content;
-  if (last.type === "image") return "📎 Foto";
-  if (last.type === "audio") return "🎤 Áudio";
-  return "📎 Arquivo";
-}
-
-export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenUsers, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, escondidoNoMobile }) {
+export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenUsers, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, onMarkUnread, escondidoNoMobile }) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const [tab, setTab] = useState("all"); // all | groups | unread
   const isAdm = user.role === "admin";
+  const [menuAberto, setMenuAberto] = useState(null); // { convId, x, y }
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuAberto) return;
+    const fechar = () => setMenuAberto(null);
+    window.addEventListener("click", fechar);
+    window.addEventListener("contextmenu", fechar);
+    return () => {
+      window.removeEventListener("click", fechar);
+      window.removeEventListener("contextmenu", fechar);
+    };
+  }, [menuAberto]);
 
   const filtered = conversations
     .filter((c) => {
@@ -82,7 +87,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         </div>
       )}
 
-      {/* Lista de conversas */}
+      {/* Lista de conversas — estilo Discord: só foto + nome, sem prévia de mensagem */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {filtered.map((c) => {
           const active = c.id === activeConvId;
@@ -94,6 +99,10 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               tabIndex={0}
               onClick={() => setActiveConvId(c.id)}
               onKeyDown={(e) => e.key === "Enter" && setActiveConvId(c.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setMenuAberto({ convId: c.id, x: e.clientX, y: e.clientY });
+              }}
               className="group w-full flex items-center gap-3 pl-2.5 pr-2 py-2.5 rounded-lg text-left cursor-pointer transition-colors relative"
               style={{
                 background: active ? colors.border : "transparent",
@@ -114,67 +123,76 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full" style={{ background: colors.success || "#22C55E", border: `2px solid ${colors.panelBg}` }} />
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-[13.5px] truncate flex items-center gap-1"
-                    style={{ color: colors.textPrimary, fontWeight: naoLida ? 700 : 600 }}
-                  >
-                    {c.pinned && <Pin size={11} className="shrink-0" style={{ color: colors.accent }} />}
-                    {c.title}
-                  </span>
-                  {c.lastMessage && <span className="text-[11px] shrink-0 ml-1" style={{ color: colors.textMuted || colors.textSecondary }}>{fmtTime(c.lastMessage.created_at)}</span>}
-                </div>
-                <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <div className="text-[12.5px] truncate" style={{ color: colors.textSecondary }}>{preview(c.lastMessage) || (c.type === "group" ? `${c.memberCount} membro(s)` : "")}</div>
-                  {naoLida && (
-                    <span
-                      className="min-w-[20px] h-[20px] px-1.5 rounded-full text-white text-[11px] font-bold shrink-0 flex items-center justify-center"
-                      style={{ background: colors.accent }}
-                      title={`${unreadCounts[c.id]} não lida(s)`}
-                    >
-                      {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 rounded-md p-0.5" style={{ background: active ? colors.border : colors.borderLight ?? colors.border }}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onTogglePinConversation?.(c.id, !c.pinned); }}
-                  title={c.pinned ? "Desafixar conversa" : "Fixar conversa no topo"}
-                  aria-label={c.pinned ? "Desafixar conversa" : "Fixar conversa"}
-                  className="p-1"
-                  style={{ color: c.pinned ? colors.accent : colors.textSecondary }}
+              <div className="min-w-0 flex-1 flex items-center gap-1">
+                {c.pinned && <Pin size={11} className="shrink-0" style={{ color: colors.accent }} />}
+                <span
+                  className="text-[14px] truncate"
+                  style={{ color: colors.textPrimary, fontWeight: naoLida ? 700 : 500 }}
                 >
-                  {c.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                </button>
-                {c.type === "group" ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onHideGroup?.(c.groupId, c.title); }}
-                    title="Silenciar (esconder da minha lista)"
-                    aria-label="Silenciar grupo"
-                    className="p-1"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    <VolumeX size={14} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onCloseConversation?.(c.id, c.title); }}
-                    title="Fechar (some da lista, histórico continua salvo)"
-                    aria-label="Fechar conversa"
-                    className="p-1"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                  {c.title}
+                </span>
               </div>
+              {naoLida && (
+                <span
+                  className="min-w-[20px] h-[20px] px-1.5 rounded-full text-white text-[11px] font-bold shrink-0 flex items-center justify-center"
+                  style={{ background: "#DC2626" }}
+                  title={`${unreadCounts[c.id]} não lida(s)`}
+                >
+                  {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
+                </span>
+              )}
             </div>
           );
         })}
         {filtered.length === 0 && <div className="text-center text-sm mt-8" style={{ color: colors.textSecondary }}>Nenhuma conversa encontrada</div>}
       </div>
+
+      {/* Menu de botão direito: Fixar, Marcar como não lido, Fechar/Silenciar */}
+      {menuAberto && (() => {
+        const conv = conversations.find((c) => c.id === menuAberto.convId);
+        if (!conv) return null;
+        return (
+          <div
+            ref={menuRef}
+            className="fixed z-50 rounded-lg py-1 w-[190px] shadow-lg"
+            style={{ top: menuAberto.y, left: menuAberto.x, background: colors.panelBg, border: `1px solid ${colors.border}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => { onTogglePinConversation?.(conv.id, !conv.pinned); setMenuAberto(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left hover:opacity-80"
+              style={{ color: colors.textPrimary }}
+            >
+              {conv.pinned ? <PinOff size={14} /> : <Pin size={14} />} {conv.pinned ? "Desafixar" : "Fixar"}
+            </button>
+            <button
+              onClick={() => { onMarkUnread?.(conv.id); setMenuAberto(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left hover:opacity-80"
+              style={{ color: colors.textPrimary }}
+            >
+              <MailPlus size={14} /> Marcar como não lido
+            </button>
+            {conv.type === "group" ? (
+              <button
+                onClick={() => { onHideGroup?.(conv.groupId, conv.title); setMenuAberto(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left hover:opacity-80"
+                style={{ color: colors.textPrimary }}
+              >
+                <VolumeX size={14} /> Silenciar
+              </button>
+            ) : (
+              <button
+                onClick={() => { onCloseConversation?.(conv.id, conv.title); setMenuAberto(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left hover:opacity-80"
+                style={{ color: "#DC2626" }}
+              >
+                <X size={14} /> Fechar conversa
+              </button>
+            )}
+          </div>
+        );
+      })()}
     </div>
+
   );
 }
