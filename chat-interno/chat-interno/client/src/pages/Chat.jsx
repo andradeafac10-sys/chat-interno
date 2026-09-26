@@ -198,6 +198,12 @@ export default function Chat() {
     loadConversations();
   }, [loadConversations]);
 
+  // "Marcar como não lido" — só um jeito de deixar visualmente marcada de
+  // novo (negrito + bolinha), não recupera contagem antiga do servidor.
+  const marcarComoNaoLida = useCallback((conversationId) => {
+    setUnreadCounts((prev) => ({ ...prev, [conversationId]: Math.max(1, prev[conversationId] || 1) }));
+  }, []);
+
   useEffect(() => {
     loadConversations();
     loadHiddenGroupsCount();
@@ -560,6 +566,7 @@ export default function Chat() {
         onHideGroup={hideGroup}
         onTogglePinConversation={togglePinConversation}
         onCloseConversation={closeConversation}
+        onMarkUnread={marcarComoNaoLida}
         hiddenGroupsCount={hiddenGroupsCount}
         onOpenHiddenGroups={() => setShowHiddenGroups(true)}
         escondidoNoMobile={!!activeConv}
