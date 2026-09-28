@@ -99,7 +99,7 @@ export default function Dashboard() {
           gestaoApi.rotinasEquipeHoje(),
           gestaoApi.listTasks(params),
           gestaoApi.visaoGeralHoje(filtroResponsavel || undefined),
-          gestaoApi.rankingComParams(new URLSearchParams({ periodo: 'hoje' }).toString()),
+          gestaoApi.rankingComParams(new URLSearchParams({ periodo: 'day' }).toString()),
         ]);
         setOverview(ov);
         setRotinasEquipe(rotEq);
