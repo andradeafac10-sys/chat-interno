@@ -518,6 +518,63 @@ router.get('/visao-geral-hoje', async (req, res) => {
 });
 
 // -------------------------------------------------------------
+// GET /api/gestao/recurrences/pessoa-resumo?assignee_id=&periodo=day|week|month
+// OU &de=&ate= — lista as rotinas feitas e pendentes de UMA pessoa no
+// período. Usado no "Resumo de atividades" que abre ao clicar numa pessoa
+// em "Desempenho da equipe".
+// -------------------------------------------------------------
+router.get('/pessoa-resumo', async (req, res) => {
+  try {
+    const assigneeId = Number(req.query.assignee_id);
+    if (!assigneeId) return res.status(400).json({ error: 'Pessoa não informada' });
+
+    const hoje = new Date();
+    let dataInicio;
+    let dataFim = req.query.ate || chaveDia(hoje);
+    if (req.query.de) {
+      dataInicio = req.query.de;
+    } else {
+      const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'day';
+      if (periodo === 'day') dataInicio = chaveDia(hoje);
+      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
+      else dataInicio = chaveDia(somarDias(hoje, -29));
+    }
+
+    const { rows } = await pool.query(
+      `SELECT rc.id, rc.done, rc.done_at, rc.occurrence_date,
+              r.title, r.priority, r.start_time
+       FROM routine_completions rc
+       JOIN task_recurrences r ON r.id = rc.recurrence_id
+       WHERE rc.user_id = $1 AND rc.occurrence_date >= $2 AND rc.occurrence_date <= $3
+       ORDER BY rc.occurrence_date DESC, r.start_time NULLS LAST, r.title`,
+      [assigneeId, dataInicio, dataFim]
+    );
+
+    // occurrence_date vem como Date do Postgres — a tela espera "AAAA-MM-DD"
+    const normalizar = (r) => ({
+      id: r.id,
+      title: r.title,
+      priority: r.priority,
+      start_time: r.start_time,
+      occurrence_date: r.occurrence_date instanceof Date ? chaveDia(r.occurrence_date) : String(r.occurrence_date).slice(0, 10),
+    });
+
+    const feitas = rows.filter((r) => r.done).map(normalizar);
+    const pendentes = rows.filter((r) => !r.done).map(normalizar);
+
+    res.json({
+      total: rows.length,
+      feitas,
+      pendentes,
+      percentual: rows.length > 0 ? Math.round((feitas.length / rows.length) * 100) : 0,
+    });
+  } catch (err) {
+    console.error('Erro ao montar resumo da pessoa:', err);
+    res.status(500).json({ error: 'Erro ao montar resumo da pessoa' });
+  }
+});
+
+// -------------------------------------------------------------
 // GET /api/gestao/recurrences/ranking/dados?periodo=day|week|month OU de=&ate=
 // &assignee_id=opcional — ranking de cumprimento das rotinas (feitas ÷
 // previstas). Aceita tanto um período pronto quanto datas específicas.
