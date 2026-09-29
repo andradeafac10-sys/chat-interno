@@ -155,7 +155,7 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {dados.modulo.description && <p className="text-[13px] text-slate-600 mb-3">{dados.modulo.description}</p>}
 
           {dados.modulo.tipo === "video" && (
@@ -250,7 +250,7 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
   return (
     <div
       ref={containerRef}
-      className={emTelaCheia ? "bg-black overflow-hidden flex flex-col h-screen w-screen" : "bg-black rounded-xl overflow-hidden mb-2"}
+      className={emTelaCheia ? "bg-black overflow-hidden flex flex-col h-screen w-screen" : "bg-black rounded-xl overflow-hidden mb-2 flex flex-col"}
     >
       <video
         ref={videoRef}
@@ -262,7 +262,7 @@ function VideoPlayer({ videoUrl, jaAssistiu, onTerminou }) {
         onSeeking={onSeeking}
         onEnded={() => { setTocando(false); onTerminou(); }}
         onLoadedMetadata={(e) => setDuracao(e.target.duration)}
-        className={emTelaCheia ? "flex-1 min-h-0 w-full cursor-pointer object-contain" : "w-full max-h-[60vh] cursor-pointer"}
+        className={emTelaCheia ? "flex-1 min-h-0 w-full cursor-pointer object-contain" : "w-full h-[70vh] cursor-pointer object-contain"}
       />
       <div className="flex items-center gap-3 px-3 py-2" style={{ background: "#111827" }}>
         <button onClick={alternarPlay} className="text-white shrink-0">
