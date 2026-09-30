@@ -1,6 +1,6 @@
 // client/src/gestao/pages/PainelEquipe.jsx
-import { useEffect, useState } from 'react';
-import { Users, List, Kanban as KanbanIcon, Calendar, Eye, Pencil, Trash2, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Users, List, Kanban as KanbanIcon, Calendar, Eye, Pencil, Trash2, Plus, Clock3, AlertTriangle, CheckCircle2, ListTodo, TimerOff, CalendarCheck2 } from 'lucide-react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import TaskFormModal from '../components/TaskFormModal';
@@ -36,17 +36,34 @@ function gerarGradeDoMes(ano, mes) {
   return dias;
 }
 
+// Uma tarefa concluída foi "no prazo" quando não tinha prazo marcado, ou
+// quando a conclusão aconteceu até o prazo. Passou disso, é "atrasada".
+function foiNoPrazo(t) {
+  if (!t.due_date) return true;
+  if (!t.completed_at) return null; // não dá pra saber ainda
+  return new Date(t.completed_at) <= new Date(t.due_date);
+}
+
+const CARDS = [
+  { key: '', label: 'Total de tarefas', icone: ListTodo, cor: '#334155', bg: '#F1F5F9' },
+  { key: 'done', label: 'Concluídas', icone: CheckCircle2, cor: '#16A34A', bg: '#ECFDF3' },
+  { key: 'in_progress', label: 'Em andamento', icone: Clock3, cor: NAVY, bg: '#EFF4FF' },
+  { key: 'overdue', label: 'Atrasadas', icone: AlertTriangle, cor: '#DC2626', bg: '#FEF2F2' },
+  { key: 'on_time', label: 'Feitas no prazo', icone: CalendarCheck2, cor: '#16A34A', bg: '#ECFDF3' },
+  { key: 'late', label: 'Feitas atrasadas', icone: TimerOff, cor: '#CA8A04', bg: '#FEFCE8' },
+];
+
 // Painel da equipe: visão geral por responsável + todas as tarefas da
 // empresa numa lista/kanban/calendário só. A tela de "Tarefas" comum
 // continua existindo do jeito que está, só mostrando as tarefas da própria
 // pessoa — esse painel aqui é o extra, pra quem gerencia enxergar tudo.
 export default function PainelEquipe() {
   const [overview, setOverview] = useState(null);
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState([]); // sempre TODAS as tarefas do responsável filtrado — o filtro de card é feito aqui na tela
   const [loading, setLoading] = useState(true);
   const [visao, setVisao] = useState('lista'); // lista | kanban | calendario
   const [filtroResponsavel, setFiltroResponsavel] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroCard, setFiltroCard] = useState(''); // '' | 'done' | 'in_progress' | 'overdue' | 'on_time' | 'late'
   const [showForm, setShowForm] = useState(false);
   const [openTaskId, setOpenTaskId] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
@@ -59,7 +76,6 @@ export default function PainelEquipe() {
     try {
       const params = {};
       if (filtroResponsavel) params.assignee_id = filtroResponsavel;
-      if (filtroStatus) params.status = filtroStatus;
       const [ov, ts] = await Promise.all([gestaoApi.overview(), gestaoApi.listTasks(params)]);
       setOverview(ov);
       setTasks(ts.tasks || []);
@@ -70,7 +86,7 @@ export default function PainelEquipe() {
     }
   };
 
-  useEffect(() => { load(); }, [filtroResponsavel, filtroStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [filtroResponsavel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const apagar = async (id) => {
     if (!confirm('Apagar essa tarefa? Essa ação não tem volta.')) return;
@@ -78,8 +94,33 @@ export default function PainelEquipe() {
     load();
   };
 
+  // Contagens dos 6 cards, calculadas em cima de TODAS as tarefas (do
+  // responsável filtrado) — não mudam quando clica num card, só quando troca
+  // o responsável.
+  const contagens = useMemo(() => {
+    const concluidas = tasks.filter((t) => t.status === 'done');
+    const noPrazo = concluidas.filter((t) => foiNoPrazo(t) === true);
+    const atrasadasFeitas = concluidas.filter((t) => foiNoPrazo(t) === false);
+    return {
+      '': tasks.length,
+      done: concluidas.length,
+      in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+      overdue: tasks.filter((t) => t.is_overdue).length,
+      on_time: noPrazo.length,
+      late: atrasadasFeitas.length,
+    };
+  }, [tasks]);
+
+  const tasksFiltradas = useMemo(() => {
+    if (!filtroCard) return tasks;
+    if (filtroCard === 'overdue') return tasks.filter((t) => t.is_overdue);
+    if (filtroCard === 'on_time') return tasks.filter((t) => t.status === 'done' && foiNoPrazo(t) === true);
+    if (filtroCard === 'late') return tasks.filter((t) => t.status === 'done' && foiNoPrazo(t) === false);
+    return tasks.filter((t) => t.status === filtroCard);
+  }, [tasks, filtroCard]);
+
   const dias = gerarGradeDoMes(mesAtual.getFullYear(), mesAtual.getMonth());
-  const tasksNoDia = (dia) => tasks.filter((t) => t.due_date && mesmoDia(new Date(t.due_date), dia));
+  const tasksNoDia = (dia) => tasksFiltradas.filter((t) => t.due_date && mesmoDia(new Date(t.due_date), dia));
 
   const statusOrdem = ['pending', 'in_progress', 'done'];
 
@@ -88,6 +129,34 @@ export default function PainelEquipe() {
       <PageHeader icon={Users} title="Painel da Equipe" subtitle="Visão geral e acompanhamento de todas as tarefas" />
 
       <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
+
+        {/* Cards de resumo — clica num pra filtrar a tabela embaixo */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          {CARDS.map((c) => {
+            const Icone = c.icone;
+            const valor = contagens[c.key] ?? 0;
+            const pct = contagens[''] > 0 ? Math.round((valor / contagens['']) * 100) : 0;
+            const ativo = filtroCard === c.key;
+            return (
+              <button
+                key={c.key || 'total'}
+                onClick={() => setFiltroCard(ativo ? '' : c.key)}
+                className="rounded-xl border p-3 text-left transition-colors"
+                style={{ background: c.bg, borderColor: ativo ? c.cor : 'transparent', borderWidth: ativo ? 2 : 1 }}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Icone size={12} style={{ color: c.cor }} />
+                  <span className="text-[10px]" style={{ color: c.cor }}>{c.label}</span>
+                </div>
+                <div className="text-[20px] font-bold" style={{ color: c.cor }}>
+                  {valor}
+                  {c.key && <span className="text-[12px] font-medium"> · {pct}%</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Visão por responsável — números que já existiam, só não apareciam em lugar nenhum */}
         <div className="bg-white rounded-xl border p-4 mb-4" style={{ borderColor: 'var(--pagina-borda)' }}>
           <div className="text-[13px] font-semibold text-slate-800 mb-3 flex items-center gap-1.5">
@@ -122,18 +191,13 @@ export default function PainelEquipe() {
 
         {/* Barra de filtros/visão */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="border rounded-lg px-2.5 py-1.5 text-[12.5px]"
-            style={{ borderColor: 'var(--pagina-borda)' }}
-          >
-            <option value="">Todos os status</option>
-            {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-          {filtroResponsavel && (
-            <button onClick={() => setFiltroResponsavel('')} className="text-[12px] font-medium" style={{ color: NAVY }}>
-              Limpar filtro de responsável ×
+          {(filtroResponsavel || filtroCard) && (
+            <button
+              onClick={() => { setFiltroResponsavel(''); setFiltroCard(''); }}
+              className="text-[12px] font-medium"
+              style={{ color: NAVY }}
+            >
+              Limpar filtros ×
             </button>
           )}
           <div className="flex-1" />
@@ -175,10 +239,10 @@ export default function PainelEquipe() {
                 </tr>
               </thead>
               <tbody>
-                {tasks.length === 0 && (
+                {tasksFiltradas.length === 0 && (
                   <tr><td colSpan={7} className="text-center py-6 text-slate-400 text-[12.5px]">Nenhuma tarefa encontrada.</td></tr>
                 )}
-                {tasks.map((t) => (
+                {tasksFiltradas.map((t) => (
                   <tr key={t.id} className="border-b last:border-0" style={{ borderColor: 'var(--pagina-borda)' }}>
                     <td className="px-3 py-2 text-slate-700">{(t.assignees || []).map((a) => a.name).join(', ') || '—'}</td>
                     <td className="px-3 py-2 text-slate-800 font-medium">{t.title}</td>
@@ -215,10 +279,10 @@ export default function PainelEquipe() {
             {statusOrdem.map((status) => (
               <div key={status} className="bg-white rounded-xl border p-3" style={{ borderColor: 'var(--pagina-borda)' }}>
                 <div className="text-[12px] font-semibold mb-2 flex items-center gap-1.5" style={{ color: STATUS_CORES[status].cor }}>
-                  {STATUS_LABELS[status]} ({tasks.filter((t) => t.status === status).length})
+                  {STATUS_LABELS[status]} ({tasksFiltradas.filter((t) => t.status === status).length})
                 </div>
                 <div className="flex flex-col gap-2">
-                  {tasks.filter((t) => t.status === status).map((t) => (
+                  {tasksFiltradas.filter((t) => t.status === status).map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setOpenTaskId(t.id)}
