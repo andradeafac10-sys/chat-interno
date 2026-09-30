@@ -101,7 +101,7 @@ export default function VisaoGeral() {
   return (
     <div style={{ background: 'var(--pagina-fundo)', minHeight: '100%', padding: '24px 28px 30px' }}>
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--pagina-texto-1)' }}>Visão Geral</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--pagina-texto-1)' }}>Dashboard Rotinas</div>
         <div style={{ fontSize: 14, color: 'var(--pagina-texto-2)', marginTop: 2 }}>Cumprimento de rotinas da equipe</div>
       </div>
 
