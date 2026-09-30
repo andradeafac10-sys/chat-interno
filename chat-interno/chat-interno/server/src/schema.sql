@@ -443,6 +443,11 @@ CREATE INDEX IF NOT EXISTS idx_reunioes_serie ON reunioes(serie_id);
 -- que o horário dela ainda não tenha passado.
 ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS concluida BOOLEAN NOT NULL DEFAULT false;
 
+-- Alerta cheio de tela (piscando roxo) 1h e 5min antes da reunião — separado
+-- dos lembretes configuráveis (0/30/15/5), que continuam sendo só um toast.
+ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS alerta_60_enviado BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE reunioes ADD COLUMN IF NOT EXISTS alerta_5_enviado BOOLEAN NOT NULL DEFAULT false;
+
 -- Histórico de ata por data: cada reunião da série (ou cada reunião avulsa)
 -- ganha sua própria entrada, sem apagar as anteriores. "escopo_chave" agrupa
 -- as entradas de uma mesma série (serie_id) ou de uma reunião avulsa
