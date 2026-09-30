@@ -126,7 +126,7 @@ export default function PainelEquipe() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <PageHeader icon={Users} title="Painel da Equipe" subtitle="Visão geral e acompanhamento de todas as tarefas" />
+      <PageHeader icon={Users} title="Dashboard Tarefas" subtitle="Visão geral e acompanhamento de todas as tarefas" />
 
       <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
 
