@@ -74,6 +74,58 @@ export function startAlertLoop() {
   };
 }
 
+// Beep do alerta de reunião — três notas em "sino" (onda senoidal, mais
+// suave que o beep quadrado do comunicado), pra dar pra diferenciar de
+// ouvido que é sobre reunião e não um comunicado geral.
+function playReuniaoBeep(ctx) {
+  const notes = [
+    { freq: 784, start: 0, dur: 0.18 },
+    { freq: 988, start: 0.2, dur: 0.18 },
+    { freq: 1175, start: 0.4, dur: 0.3 },
+  ];
+  notes.forEach(({ freq, start, dur }) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(freq, ctx.currentTime + start);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + start + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start(ctx.currentTime + start);
+    o.stop(ctx.currentTime + start + dur);
+  });
+}
+
+/**
+ * Mesmo esquema do startAlertLoop (comunicado), só que com o som da reunião.
+ * Devolve uma função que para o alerta.
+ */
+export function startReuniaoAlertLoop() {
+  let ctx = null;
+  let timer = null;
+
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    playReuniaoBeep(ctx);
+    timer = setInterval(() => {
+      try {
+        if (ctx.state === "suspended") ctx.resume().catch(() => {});
+        playReuniaoBeep(ctx);
+      } catch (err) { /* ignora */ }
+    }, 1800);
+  } catch (err) {
+    // navegador bloqueou o áudio — o alerta visual (piscar) continua funcionando
+  }
+
+  return function stopReuniaoAlertLoop() {
+    if (timer) clearInterval(timer);
+    try { ctx?.close(); } catch (err) { /* ignora */ }
+  };
+}
+
 // Som de feedback novo: três notas descendo, tom mais "quente" (dente de
 // serra suave), bem diferente do "pop" comum — pra dar pra reconhecer de
 // ouvido que é um feedback, sem nem olhar a tela.
