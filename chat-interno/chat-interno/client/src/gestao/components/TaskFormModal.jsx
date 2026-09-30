@@ -21,7 +21,6 @@ export default function TaskFormModal({ task, onClose, onSaved }) {
   const [dueDate, setDueDate] = useState(toLocalInputValue(task?.due_date));
   const [assignees, setAssignees] = useState([]);
   const [assigneeIds, setAssigneeIds] = useState((task?.assignees || []).map((a) => a.id));
-  const [checklistText, setChecklistText] = useState(''); // uma por linha — só na criação
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -52,8 +51,7 @@ export default function TaskFormModal({ task, onClose, onSaved }) {
       if (editando) {
         await gestaoApi.updateTask(task.id, payload);
       } else {
-        const itens = checklistText.split('\n').map((l) => l.trim()).filter(Boolean);
-        await gestaoApi.createTask({ ...payload, checklist_items: itens.length > 0 ? itens : undefined });
+        await gestaoApi.createTask(payload);
       }
       onSaved();
       onClose();
@@ -126,18 +124,6 @@ export default function TaskFormModal({ task, onClose, onSaved }) {
             ))}
           </div>
 
-          {!editando && (
-            <>
-              <label style={styles.label}>Checklist inicial (opcional, um item por linha)</label>
-              <textarea
-                style={styles.textarea}
-                value={checklistText}
-                onChange={(e) => setChecklistText(e.target.value)}
-                placeholder={'Ligar pro cliente\nConfirmar pagamento'}
-                rows={3}
-              />
-            </>
-          )}
 
           {error && <p style={styles.error}>{error}</p>}
         </div>
