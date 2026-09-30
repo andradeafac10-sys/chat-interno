@@ -322,9 +322,10 @@ router.patch("/:id", async (req, res) => {
 
     // Se veio lista de participantes, sincroniza: adiciona quem entrou e tira
     // quem saiu (sem mexer na presença de quem continua). Numa série, vale
-    // pra todas as ocorrências.
+    // pra todas as ocorrências. Quem criou a reunião NÃO é forçado de volta —
+    // se tirou a si mesmo de propósito, tem que sair mesmo.
     if (Array.isArray(participantes)) {
-      const ids = [...new Set([donoRows[0].criado_por, ...participantes])];
+      const ids = [...new Set(participantes)];
       const reunioesAlvo = serieId
         ? (await client.query(`SELECT id FROM reunioes WHERE serie_id = $1`, [serieId])).rows.map((r) => r.id)
         : [Number(req.params.id)];
