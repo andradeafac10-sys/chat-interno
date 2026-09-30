@@ -17,6 +17,7 @@ import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import AnnouncementOverlay from "../components/AnnouncementOverlay";
+import ReuniaoAlertOverlay from "../components/ReuniaoAlertOverlay";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
 import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
@@ -58,6 +59,7 @@ export default function Chat() {
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [unreadCounts, setUnreadCounts] = useState(() => ({})); // { conversationId: quantidade }
   const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
+  const [reuniaoAlerta, setReuniaoAlerta] = useState(null); // alerta de tela cheia (1h/5min antes)
 
   // Grupos em que sou membro DE VERDADE (o servidor manda ao conectar). null =
   // ainda não chegou. Só serve pra decidir som/notificação — o ADM continua
@@ -407,10 +409,16 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
-    // Lembrete de reunião (no dia / 30 / 15 / 5 minutos antes)
+    // Lembrete de reunião (no dia / 30 / 15 / 5 minutos antes) — toast comum
     const onReuniaoLembrete = ({ titulo, corpo }) => {
       playNotificationSound();
       mostrarNotificacaoDesktop({ titulo, corpo });
+    };
+
+    // Alerta de tela cheia piscando roxo — sempre 1h e 5min antes, pra quem
+    // participa, independente dos lembretes configurados na criação.
+    const onReuniaoAlertaTela = (alerta) => {
+      setReuniaoAlerta(alerta);
     };
 
     // Lista de grupos em que sou membro de verdade (decide som/notificação)
@@ -439,6 +447,7 @@ export default function Chat() {
     socket.on("feedback:novo", onFeedbackNovo);
     socket.on("trilha:novo", onTrilhaNovo);
     socket.on("reuniao:lembrete", onReuniaoLembrete);
+    socket.on("reuniao:alerta-tela", onReuniaoAlertaTela);
     socket.on("grupos:participo", onGruposQueParticipo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
@@ -462,6 +471,7 @@ export default function Chat() {
       socket.off("feedback:novo", onFeedbackNovo);
       socket.off("trilha:novo", onTrilhaNovo);
       socket.off("reuniao:lembrete", onReuniaoLembrete);
+      socket.off("reuniao:alerta-tela", onReuniaoAlertaTela);
       socket.off("grupos:participo", onGruposQueParticipo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
@@ -646,6 +656,16 @@ export default function Chat() {
           setAnnouncement(null);
         }}
       />
+
+      {/* Só mostra o alerta de reunião se não tiver comunicado geral na tela
+          — os dois são de tela cheia, não dá pra empilhar os dois juntos. */}
+      {!announcement && (
+        <ReuniaoAlertOverlay
+          key={reuniaoAlerta ? `${reuniaoAlerta.reuniaoId}-${reuniaoAlerta.faltam}` : "nenhum"}
+          alerta={reuniaoAlerta}
+          onClose={() => setReuniaoAlerta(null)}
+        />
+      )}
 
       <UpdateBanner />
     </div>
