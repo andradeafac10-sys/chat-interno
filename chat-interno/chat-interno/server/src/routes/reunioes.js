@@ -277,11 +277,12 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { rows: donoRows } = await client.query(`SELECT criado_por FROM reunioes WHERE id = $1`, [req.params.id]);
+    const { rows: donoRows } = await client.query(`SELECT criado_por, serie_id FROM reunioes WHERE id = $1`, [req.params.id]);
     if (!donoRows[0]) return res.status(404).json({ error: "Reunião não encontrada." });
     if (donoRows[0].criado_por !== req.user.id) {
       return res.status(403).json({ error: "Só quem criou a reunião pode editar." });
     }
+    const serieId = donoRows[0].serie_id;
 
     const { titulo, tipo, inicio, fim, local, descricao, participantes } = req.body || {};
     if (inicio && fim && new Date(fim) <= new Date(inicio)) {
@@ -289,35 +290,77 @@ router.patch("/:id", async (req, res) => {
     }
 
     await client.query("BEGIN");
-    await client.query(
-      `UPDATE reunioes SET
-         titulo = COALESCE($2, titulo), tipo = COALESCE($3, tipo),
-         inicio = COALESCE($4, inicio), fim = COALESCE($5, fim),
-         local = $6, descricao = $7
-       WHERE id = $1`,
-      [req.params.id, titulo?.trim() || null, tipo || null, inicio || null, fim || null, local?.trim() || null, descricao?.trim() || null]
-    );
+
+    // Reunião que se repete: título, tipo, local, descrição e participantes
+    // valem pra série inteira. Só a DATA de cada ocorrência continua sua —
+    // do horário (inicio/fim) a gente só reaproveita a HORA, aplicada em
+    // cima da data que cada uma já tinha, pra não bagunçar o calendário.
+    if (serieId) {
+      await client.query(
+        `UPDATE reunioes SET
+           titulo = COALESCE($2, titulo), tipo = COALESCE($3, tipo),
+           local = $4, descricao = $5,
+           inicio = CASE WHEN $6::time IS NOT NULL THEN inicio::date + $6::time ELSE inicio END,
+           fim = CASE WHEN $7::time IS NOT NULL THEN fim::date + $7::time ELSE fim END
+         WHERE serie_id = $1`,
+        [
+          serieId, titulo?.trim() || null, tipo || null, local?.trim() || null, descricao?.trim() || null,
+          inicio ? new Date(inicio).toTimeString().slice(0, 8) : null,
+          fim ? new Date(fim).toTimeString().slice(0, 8) : null,
+        ]
+      );
+    } else {
+      await client.query(
+        `UPDATE reunioes SET
+           titulo = COALESCE($2, titulo), tipo = COALESCE($3, tipo),
+           inicio = COALESCE($4, inicio), fim = COALESCE($5, fim),
+           local = $6, descricao = $7
+         WHERE id = $1`,
+        [req.params.id, titulo?.trim() || null, tipo || null, inicio || null, fim || null, local?.trim() || null, descricao?.trim() || null]
+      );
+    }
 
     // Se veio lista de participantes, sincroniza: adiciona quem entrou e tira
-    // quem saiu (sem mexer na presença de quem continua).
+    // quem saiu (sem mexer na presença de quem continua). Numa série, vale
+    // pra todas as ocorrências.
     if (Array.isArray(participantes)) {
       const ids = [...new Set([donoRows[0].criado_por, ...participantes])];
-      await client.query(
-        `DELETE FROM reuniao_participantes WHERE reuniao_id = $1 AND user_id <> ALL($2::int[])`,
-        [req.params.id, ids]
-      );
-      for (const userId of ids) {
+      const reunioesAlvo = serieId
+        ? (await client.query(`SELECT id FROM reunioes WHERE serie_id = $1`, [serieId])).rows.map((r) => r.id)
+        : [Number(req.params.id)];
+      for (const reuniaoId of reunioesAlvo) {
         await client.query(
-          `INSERT INTO reuniao_participantes (reuniao_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-          [req.params.id, userId]
+          `DELETE FROM reuniao_participantes WHERE reuniao_id = $1 AND user_id <> ALL($2::int[])`,
+          [reuniaoId, ids]
         );
+        for (const userId of ids) {
+          await client.query(
+            `INSERT INTO reuniao_participantes (reuniao_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [reuniaoId, userId]
+          );
+        }
       }
     }
 
     // Mudou o horário? os lembretes já enviados precisam valer de novo,
-    // senão a pessoa não é avisada da nova hora.
+    // senão a pessoa não é avisada da nova hora. Numa série, reseta a todas.
     if (inicio) {
-      await client.query(`UPDATE reuniao_lembretes SET enviado_em = NULL WHERE reuniao_id = $1`, [req.params.id]);
+      if (serieId) {
+        await client.query(
+          `UPDATE reuniao_lembretes SET enviado_em = NULL WHERE reuniao_id IN (SELECT id FROM reunioes WHERE serie_id = $1)`,
+          [serieId]
+        );
+        await client.query(
+          `UPDATE reunioes SET alerta_60_enviado = false, alerta_5_enviado = false WHERE serie_id = $1`,
+          [serieId]
+        );
+      } else {
+        await client.query(`UPDATE reuniao_lembretes SET enviado_em = NULL WHERE reuniao_id = $1`, [req.params.id]);
+        await client.query(
+          `UPDATE reunioes SET alerta_60_enviado = false, alerta_5_enviado = false WHERE id = $1`,
+          [req.params.id]
+        );
+      }
     }
     await client.query("COMMIT");
 
@@ -331,7 +374,7 @@ router.patch("/:id", async (req, res) => {
       });
     });
 
-    res.json({ ok: true });
+    res.json({ ok: true, serie: !!serieId });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
@@ -598,4 +641,47 @@ async function verificarLembretesReunioes(io) {
   }
 }
 
-module.exports = { router, verificarLembretesReunioes };
+// Alerta de tela cheia (piscando roxo), separado dos lembretes configuráveis
+// acima — dispara sempre, pra todo mundo que participa, exatamente 1 hora e
+// 5 minutos antes de CADA reunião, sem precisar ser marcado na criação.
+async function verificarAlertasTelaReuniao(io) {
+  try {
+    const janelas = [
+      { coluna: "alerta_60_enviado", minutos: 60, texto: "1 hora" },
+      { coluna: "alerta_5_enviado", minutos: 5, texto: "5 minutos" },
+    ];
+
+    for (const j of janelas) {
+      const { rows } = await pool.query(
+        `SELECT id, titulo, inicio, fim, local
+         FROM reunioes
+         WHERE ${j.coluna} = false
+           AND concluida = false
+           AND inicio - ($1 || ' minutes')::interval <= now()
+           AND inicio > now()`,
+        [j.minutos]
+      );
+
+      for (const r of rows) {
+        const { rows: participantes } = await pool.query(
+          `SELECT user_id FROM reuniao_participantes WHERE reuniao_id = $1`,
+          [r.id]
+        );
+        participantes.forEach((p) => {
+          io.to(`user-${p.user_id}`).emit("reuniao:alerta-tela", {
+            reuniaoId: r.id,
+            titulo: r.titulo,
+            inicio: r.inicio,
+            local: r.local,
+            faltam: j.texto,
+          });
+        });
+        await pool.query(`UPDATE reunioes SET ${j.coluna} = true WHERE id = $1`, [r.id]);
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao verificar alerta de tela de reunião:", err);
+  }
+}
+
+module.exports = { router, verificarLembretesReunioes, verificarAlertasTelaReuniao };
