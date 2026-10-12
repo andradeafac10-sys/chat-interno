@@ -4,7 +4,7 @@
 
 html, body, #root { height: 100%; margin: 0; }
 body {
-  background: #F7F9FC;
+  background: #ECE8F6;
   font-family: "Noto Sans", "Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
@@ -13,23 +13,23 @@ body {
    esquema de cores via ThemeContext — essas variáveis cobrem o resto do
    sistema, que até então ficava sempre claro não importa o tema escolhido. */
 :root {
-  --pagina-fundo: #F7F9FB;
+  --pagina-fundo: #F6F4FB;
   --pagina-cartao: #FFFFFF;
   --pagina-texto-1: #101828;
   --pagina-texto-2: #667085;
-  --pagina-borda: #E4E8EE;
-  --pagina-borda-suave: #F1F5F9;
+  --pagina-borda: #E7E2F3;
+  --pagina-borda-suave: #F3F0FA;
 }
 body.tema-escuro {
   /* Tons calibrados a partir do resultado que ficou bom na prática:
      preto com um leve toque de azul, cards um pouco acima do fundo e
      texto secundário claro o bastante pra ler sem esforço. */
-  --pagina-fundo: #0D1117;        /* fundo geral */
-  --pagina-cartao: #161B22;       /* cards e modais */
-  --pagina-texto-1: #E6EDF3;      /* títulos e texto principal */
-  --pagina-texto-2: #9BA7B4;      /* texto secundário */
-  --pagina-borda: #21262D;        /* bordas discretas */
-  --pagina-borda-suave: #1C2128;  /* fundo de destaque leve (hover, chips) */
+  --pagina-fundo: #120C22;        /* fundo geral */
+  --pagina-cartao: #17102B;       /* cards e modais */
+  --pagina-texto-1: #EDE9FE;      /* títulos e texto principal */
+  --pagina-texto-2: #B4A5E0;      /* texto secundário */
+  --pagina-borda: #2A1D52;        /* bordas discretas */
+  --pagina-borda-suave: #241A40;  /* fundo de destaque leve (hover, chips) */
   /* Avisa o navegador que a página é escura: barras de rolagem, menus de
      select e outros controles nativos se ajustam sozinhos. */
   color-scheme: dark;
@@ -86,11 +86,11 @@ body.tema-escuro input[type="datetime-local"]::-webkit-calendar-picker-indicator
 
 /* Azul (informativo, chips de pessoa, tipo "interna") */
 body.tema-escuro [style*="background: #EEF4FF"],
-body.tema-escuro [style*="background: #EFF4FF"],
+body.tema-escuro [style*="background: #EDE9FE"],
 body.tema-escuro [style*="background: #E6F1FB"],
 body.tema-escuro [style*="background: #F0F9FF"],
-body.tema-escuro [style*="background:#EFF4FF"] {
-  background-color: rgba(88, 166, 255, 0.16) !important;
+body.tema-escuro [style*="background:#EDE9FE"] {
+  background-color: rgba(167, 139, 250, 0.18) !important;
   color: var(--pagina-texto-1) !important;
   border-color: rgba(88, 166, 255, 0.40) !important;
 }
@@ -139,7 +139,7 @@ body.tema-escuro [style*="background: #F8FAFC"] {
 /* O texto dentro desses chips herda a cor certa, mesmo quando o filho tem
    cor própria definida no código (ex: <span style="color: #0C447C">) */
 body.tema-escuro [style*="background: #EEF4FF"] *,
-body.tema-escuro [style*="background: #EFF4FF"] *,
+body.tema-escuro [style*="background: #EDE9FE"] *,
 body.tema-escuro [style*="background: #E6F1FB"] *,
 body.tema-escuro [style*="background: #ECFDF3"] *,
 body.tema-escuro [style*="background: #F0FDF4"] *,
@@ -156,7 +156,7 @@ body.tema-escuro [style*="background: #FFEDD5"] * {
 /* Texto em azul/verde/vermelho escuro solto na página (sem fundo colorido)
    também precisa clarear pra ter contraste no preto. */
 body.tema-escuro [style*="color: #0C447C"],
-body.tema-escuro [style*="color: #2563EB"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #7C3AED"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [style*="color: #085041"],
 body.tema-escuro [style*="color: #16A34A"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [style*="color: #633806"],
@@ -208,14 +208,14 @@ body.tema-escuro [style*="color: #E5484D"] { color: var(--pagina-texto-1) !impor
 body.tema-escuro [style*="color: #16a34a"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [style*="color: #f59e0b"] { color: var(--pagina-texto-1) !important; }
 
-/* Botões azuis sólidos (fundo #2563EB) mantêm o texto branco — a regra de
+/* Botões azuis sólidos (fundo #7C3AED) mantêm o texto branco — a regra de
    "color" acima não pode clarear o texto deles pra azul claro. */
-body.tema-escuro [style*="background: #2563EB"],
-body.tema-escuro [style*="background:#2563EB"],
+body.tema-escuro [style*="background: #7C3AED"],
+body.tema-escuro [style*="background:#7C3AED"],
 body.tema-escuro [style*="background: #DC2626"],
 body.tema-escuro [style*="background: #EA4E1B"],
 body.tema-escuro [style*="background: #EF4444"] { color: #FFFFFF !important; }
-body.tema-escuro [style*="background: #2563EB"] *,
+body.tema-escuro [style*="background: #7C3AED"] *,
 body.tema-escuro [style*="background: #DC2626"] *,
 body.tema-escuro [style*="background: #EF4444"] * { color: #FFFFFF !important; }
 
@@ -236,7 +236,7 @@ body.tema-escuro [style*="background: #FFFFFF"] {
    do navegador — mais discreta e combinando com o resto da interface. */
 * {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #2563EB transparent;
+  scrollbar-color: #7C3AED transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -246,7 +246,7 @@ body.tema-escuro [style*="background: #FFFFFF"] {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #2563EB;
+  background-color: #7C3AED;
   border-radius: 999px;
   opacity: 0.5;
 }
@@ -261,8 +261,8 @@ body.tema-escuro svg { color: #58A6FF; }
 
 /* Ícone dentro de botão sólido (azul/vermelho) continua branco, senão
    sumiria no fundo colorido. */
-body.tema-escuro [style*="background: #2563EB"] svg,
-body.tema-escuro [style*="background:#2563EB"] svg,
+body.tema-escuro [style*="background: #7C3AED"] svg,
+body.tema-escuro [style*="background:#7C3AED"] svg,
 body.tema-escuro [style*="background: #DC2626"] svg,
 body.tema-escuro [style*="background: #EF4444"] svg,
 body.tema-escuro [style*="background: #EA4E1B"] svg,
