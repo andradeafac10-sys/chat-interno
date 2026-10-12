@@ -4,7 +4,7 @@ import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import RecurrenceFormModal from '../components/RecurrenceFormModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const DIAS_SEMANA_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
@@ -213,7 +213,7 @@ const styles = {
   cardDescricao: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: '6px 0 0' },
   cardMeta: { fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' },
   assigneesRow: { display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' },
-  assigneeChip: { background: 'var(--pagina-borda-suave)', color: '#1c4270', fontSize: 11, padding: '3px 9px', borderRadius: 999 },
+  assigneeChip: { background: 'var(--pagina-borda-suave)', color: '#4C1D95', fontSize: 11, padding: '3px 9px', borderRadius: 999 },
   cardFooter: { display: 'flex', gap: 14, marginTop: 12 },
   linkBtn: { background: 'none', border: 'none', color: NAVY, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 },
   linkBtnPerigo: { background: 'none', border: 'none', color: '#dc2626', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 },
