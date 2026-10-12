@@ -88,22 +88,23 @@ export default function Topbar({ conversations, onOpenConversation, onSelectConv
   const temResultados = pessoas.length > 0 || conversasFiltradas.length > 0 || mensagens.length > 0;
 
   return (
-    <div className="h-14 shrink-0 flex items-center gap-4 px-4" style={{ background: colors.topbarBg }}>
+    <div className="h-12 shrink-0 flex items-center gap-4">
       <div className="flex-1 max-w-[420px] relative" ref={buscaRef}>
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             onFocus={() => setBuscaAberta(true)}
             placeholder="Buscar mensagens, pessoas ou conversas..."
             aria-label="Buscar mensagens, pessoas ou conversas"
-            className="w-full h-9 pl-9 pr-8 rounded-lg text-[13px] text-white placeholder-white/50 bg-white/10 focus:bg-white/15 outline-none transition-colors"
+            className="w-full h-10 pl-9 pr-8 rounded-2xl text-[13px] outline-none transition-colors"
+            style={{ background: colors.panelBg, color: colors.textPrimary }}
           />
           {busca && (
             <button
               onClick={() => { setBusca(""); setBuscaAberta(false); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }}
               aria-label="Limpar busca"
             >
               <X size={14} />
