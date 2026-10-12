@@ -1,12 +1,12 @@
 {
-  "name": "Chat Nacional",
-  "short_name": "Chat Nacional",
+  "name": "Painel Nacional",
+  "short_name": "Painel Nacional",
   "description": "Chat interno da equipe",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f2a4a",
-  "theme_color": "#0f2a4a",
+  "background_color": "#2E1065",
+  "theme_color": "#2E1065",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
