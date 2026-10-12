@@ -40,7 +40,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
     });
 
   return (
-    <div className={`w-full md:w-[320px] flex-col border-r ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.panelBg, borderColor: colors.border }}>
+    <div className={`w-full md:w-[320px] flex-col rounded-2xl overflow-hidden ${escondidoNoMobile ? "hidden md:flex" : "flex"}`} style={{ background: colors.panelBg, borderColor: colors.border }}>
       {/* Filtros — segmented control discreto, sem virar tudo azul */}
       <div className="px-3 pb-2.5 pt-3 flex gap-1 p-0.5 rounded-lg" style={{ background: colors.chatBg }}>
         {[
@@ -106,8 +106,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
               }}
               className="group w-full flex items-center gap-3 pl-2.5 pr-2 py-2.5 rounded-lg text-left cursor-pointer transition-colors relative"
               style={{
-                background: active ? colors.border : "transparent",
-                borderLeft: active ? `3px solid ${colors.accent}` : "3px solid transparent",
+                background: active ? (colors.selectedBg || colors.border) : "transparent",
               }}
               onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = colors.borderLight ?? colors.border; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
@@ -135,15 +134,15 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   </span>
                 </span>
                 {c.lastMessage && (
-                  <span className="text-[11px] shrink-0" style={{ color: naoLida ? "#DC2626" : colors.textMuted || colors.textSecondary, fontWeight: naoLida ? 700 : 400 }}>
+                  <span className="text-[11px] shrink-0" style={{ color: naoLida ? colors.accent : colors.textMuted || colors.textSecondary, fontWeight: naoLida ? 700 : 400 }}>
                     {fmtTime(c.lastMessage.created_at)}
                   </span>
                 )}
               </div>
               {naoLida && (
                 <span
-                  className="min-w-[20px] h-[20px] px-1.5 rounded-full text-white text-[11px] font-bold shrink-0 flex items-center justify-center"
-                  style={{ background: "#DC2626" }}
+                  className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-bold shrink-0 flex items-center justify-center"
+                  style={{ background: colors.badgeBg || "#6D28D9", color: colors.badgeText || "#fff" }}
                   title={`${unreadCounts[c.id]} não lida(s)`}
                 >
                   {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
