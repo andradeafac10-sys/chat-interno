@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import LeftNav from "../components/LeftNav";
 import AvisosPendentesBanner from "../components/AvisosPendentesBanner";
 import Sidebar from "../components/Sidebar";
@@ -24,7 +25,7 @@ import UpdateBanner from "../components/UpdateBanner";
 import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
 
-const ORIGINAL_TITLE = "Chat Nacional";
+const ORIGINAL_TITLE = "Painel Nacional";
 
 // Resumo curto do conteúdo, pra mostrar na notificação do sistema
 function previaDaMensagem(m) {
@@ -37,6 +38,7 @@ const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [conversations, setConversations] = useState([]);
@@ -524,12 +526,12 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden" style={{ background: "#111B21" }}>
+    <div className="w-screen h-screen flex overflow-hidden p-2 gap-2" style={{ background: colors.canvas }}>
       <LeftNav
         unreadTotal={Object.values(unreadCounts).reduce((soma, n) => soma + n, 0)}
         onOpenAccount={() => setShowAccount(true)}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden gap-2">
       {/* A busca é só do Chat — nas outras telas ela não faz sentido e some. */}
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Topbar
@@ -560,7 +562,7 @@ export default function Chat() {
           onVerReunioes={() => navigate("/gestao/reuniao")}
         />
       )}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden gap-2 min-h-0">
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Sidebar
         conversations={conversations}
@@ -583,15 +585,15 @@ export default function Chat() {
       />
       )}
       {showUsers ? (
-        <UsersPage onBack={() => setShowUsers(false)} />
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><UsersPage onBack={() => setShowUsers(false)} /></div>
       ) : showTrilha ? (
-        <TrilhaConhecimento onBack={() => setShowTrilha(false)} />
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><TrilhaConhecimento onBack={() => setShowTrilha(false)} /></div>
       ) : showAnnouncements ? (
-        <AnnouncementsPage onBack={() => setShowAnnouncements(false)} />
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><AnnouncementsPage onBack={() => setShowAnnouncements(false)} /></div>
       ) : showMonitoring ? (
-        <MonitoringPage onBack={() => setShowMonitoring(false)} />
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><MonitoringPage onBack={() => setShowMonitoring(false)} /></div>
       ) : showAdminPanel ? (
-        <AdminPanel onBack={() => setShowAdminPanel(false)} />
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><AdminPanel onBack={() => setShowAdminPanel(false)} /></div>
       ) : (
         <>
           {activeConv ? (
