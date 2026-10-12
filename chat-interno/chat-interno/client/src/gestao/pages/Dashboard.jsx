@@ -12,11 +12,11 @@ import TaskDetailModal from '../components/TaskDetailModal';
 import RecurrenceFormModal from '../components/RecurrenceFormModal';
 import TodasRotinasModal from '../components/TodasRotinasModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const STATUS_LABELS = { pending: 'Pendente', in_progress: 'Em andamento', done: 'Concluída', canceled: 'Cancelada' };
 const STATUS_CORES = {
   pending: { bg: '#F1F5F9', cor: '#475569' },
-  in_progress: { bg: '#EFF4FF', cor: NAVY },
+  in_progress: { bg: '#EDE9FE', cor: NAVY },
   done: { bg: '#ECFDF3', cor: '#16A34A' },
   canceled: { bg: '#F1F5F9', cor: '#94A3B8' },
 };
@@ -191,7 +191,7 @@ export default function Dashboard() {
             <Plus size={14} /> Nova tarefa
           </button>
           <button onClick={() => setShowRotinaForm(true)}
-            className="flex items-center gap-1.5 text-white text-[12.5px] font-medium px-3 py-2 rounded-lg" style={{ background: '#0B1F3A' }}>
+            className="flex items-center gap-1.5 text-white text-[12.5px] font-medium px-3 py-2 rounded-lg" style={{ background: '#2E1065' }}>
             <Plus size={14} /> Nova rotina
           </button>
         </div>
@@ -224,7 +224,7 @@ export default function Dashboard() {
                     <button
                       key={r.id}
                       onClick={() => marcarRotina(r)}
-                      className="border rounded-lg px-3 py-2 text-left flex items-center gap-2.5 hover:border-[#2563EB] transition-colors"
+                      className="border rounded-lg px-3 py-2 text-left flex items-center gap-2.5 hover:border-[#7C3AED] transition-colors"
                       style={{ borderColor: 'var(--pagina-borda)', borderLeft: `3px solid ${atrasada ? '#DC2626' : 'var(--pagina-borda)'}` }}>
                       <span className="w-4 h-4 rounded-full border-2 shrink-0" style={{ borderColor: 'var(--pagina-borda)' }} />
                       <div className="min-w-0">
@@ -283,7 +283,7 @@ export default function Dashboard() {
                 {minhasTarefas.length === 0 && <p className="text-[12px]" style={{ color: 'var(--pagina-texto-2)' }}>Nenhuma tarefa atribuída a você.</p>}
                 {minhasTarefas.filter((t) => t.status !== 'done' && t.status !== 'canceled').slice(0, 12).map((t) => (
                   <button key={t.id} onClick={() => setOpenTaskId(t.id)}
-                    className="text-left border rounded-lg px-3 py-2 hover:border-[#2563EB] transition-colors"
+                    className="text-left border rounded-lg px-3 py-2 hover:border-[#7C3AED] transition-colors"
                     style={{ borderColor: 'var(--pagina-borda)', borderLeft: `3px solid ${t.is_overdue ? '#DC2626' : t.status === 'in_progress' ? NAVY : 'var(--pagina-borda)'}` }}>
                     <div className="text-[12px] text-slate-800">{t.title}</div>
                     <div className="text-[10px] mt-0.5" style={{ color: t.is_overdue ? '#DC2626' : 'var(--pagina-texto-2)' }}>
@@ -305,7 +305,7 @@ export default function Dashboard() {
                 { label: `Cumprimento de rotinas · ${visaoHoje?.concluidas || 0} de ${visaoHoje?.planejadas || 0}`, valor: `${visaoHoje?.percentual || 0}%`, cor: NAVY, bg: '#fff', borda: 'var(--pagina-borda)' },
                 { label: 'Rotinas atrasadas', valor: visaoHoje?.atrasadas || 0, cor: '#EA4E1B', bg: '#FFF7ED', borda: '#FED7AA' },
                 { label: 'Alinhamentos pendentes', valor: visaoHoje?.feedbacksPendentes || 0, cor: '#DC2626', bg: '#FEF2F2', borda: '#FECACA' },
-                { label: 'Treinamentos pendentes', valor: visaoHoje?.treinamentosPendentes || 0, cor: '#0EA5E9', bg: '#F0F9FF', borda: '#BAE6FD' },
+                { label: 'Treinamentos pendentes', valor: visaoHoje?.treinamentosPendentes || 0, cor: '#8B5CF6', bg: '#EDE9FE', borda: '#DDD6FE' },
                 { label: 'Total de tarefas', valor: totais.total || 0, cor: '#101828', bg: '#fff', borda: 'var(--pagina-borda)' },
                 { label: `Concluídas · ${pct(totais.done)}%`, valor: totais.done || 0, cor: '#16A34A', bg: '#F0FDF4', borda: '#BBF7D0' },
                 { label: `Em andamento · ${pct(totais.in_progress)}%`, valor: totais.in_progress || 0, cor: '#CA8A04', bg: '#FFFBEB', borda: '#FDE68A' },
@@ -458,7 +458,7 @@ export default function Dashboard() {
                   return (
                     <button key={a.id} onClick={() => setFiltroResponsavel(ativo ? '' : String(a.id))}
                       className="shrink-0 rounded-xl border px-3 py-2.5 text-left min-w-[150px]"
-                      style={{ borderColor: ativo ? NAVY : 'var(--pagina-borda)', background: ativo ? '#EFF4FF' : 'transparent' }}>
+                      style={{ borderColor: ativo ? NAVY : 'var(--pagina-borda)', background: ativo ? '#EDE9FE' : 'transparent' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ background: NAVY }}>
                           {iniciais(a.name)}
@@ -538,8 +538,8 @@ export default function Dashboard() {
                         <td className="px-3 py-2 max-w-[160px] truncate" style={{ color: 'var(--pagina-texto-2)' }} title={t.description}>{t.description || '—'}</td>
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <button onClick={() => setOpenTaskId(t.id)} className="text-slate-400 hover:text-[#2563EB]" title="Ver"><Eye size={14} /></button>
-                            <button onClick={() => setEditingTask(t)} className="text-slate-400 hover:text-[#2563EB]" title="Editar"><Pencil size={14} /></button>
+                            <button onClick={() => setOpenTaskId(t.id)} className="text-slate-400 hover:text-[#7C3AED]" title="Ver"><Eye size={14} /></button>
+                            <button onClick={() => setEditingTask(t)} className="text-slate-400 hover:text-[#7C3AED]" title="Editar"><Pencil size={14} /></button>
                             <button onClick={() => apagarTarefa(t.id)} className="text-slate-400 hover:text-red-500" title="Apagar"><Trash2 size={14} /></button>
                           </div>
                         </td>
@@ -559,7 +559,7 @@ export default function Dashboard() {
                       <div className="flex flex-col gap-1.5">
                         {tarefasFiltradas.filter((t) => t.status === st).map((t) => (
                           <button key={t.id} onClick={() => setOpenTaskId(t.id)}
-                            className="text-left border rounded-lg p-2 hover:border-[#2563EB]" style={{ borderColor: 'var(--pagina-borda)' }}>
+                            className="text-left border rounded-lg p-2 hover:border-[#7C3AED]" style={{ borderColor: 'var(--pagina-borda)' }}>
                             <div className="text-[12px] font-medium text-slate-800">{t.title}</div>
                             <div className="text-[10px] mt-0.5" style={{ color: 'var(--pagina-texto-2)' }}>{(t.assignees || []).map((a) => a.name).join(', ') || 'sem responsável'}</div>
                             {t.due_date && <div className="text-[10px] mt-0.5" style={{ color: t.is_overdue ? '#DC2626' : 'var(--pagina-texto-2)' }}>{new Date(t.due_date).toLocaleDateString('pt-BR')}</div>}
@@ -594,7 +594,7 @@ export default function Dashboard() {
                             {doDia.slice(0, 2).map((t) => (
                               <button key={t.id} onClick={() => setOpenTaskId(t.id)}
                                 className="text-[9.5px] rounded px-1 py-0.5 truncate block text-left"
-                                style={{ background: t.is_overdue ? '#FEE2E2' : '#EFF4FF', color: t.is_overdue ? '#DC2626' : '#0C447C' }}>
+                                style={{ background: t.is_overdue ? '#FEE2E2' : '#EDE9FE', color: t.is_overdue ? '#DC2626' : '#4C1D95' }}>
                                 {t.title}
                               </button>
                             ))}
