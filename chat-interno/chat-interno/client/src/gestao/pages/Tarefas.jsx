@@ -16,7 +16,7 @@ const FILTERS = [
 
 const PRIORITY_LABELS = { low: 'Baixa', medium: 'Média', high: 'Alta' };
 const PRIORITY_COLORS = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' };
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 export default function Tarefas() {
   const { user } = useAuth();
@@ -213,7 +213,7 @@ const styles = {
   cardMeta: { fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 6, display: 'flex', gap: 6 },
   assigneesRow: { display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' },
   assigneeChip: {
-    background: 'var(--pagina-borda-suave)', color: '#1c4270', fontSize: 11, padding: '3px 9px',
+    background: 'var(--pagina-borda-suave)', color: '#4C1D95', fontSize: 11, padding: '3px 9px',
     borderRadius: 999,
   },
   progressOuter: { height: 6, background: 'var(--pagina-borda)', borderRadius: 999, marginTop: 10, overflow: 'hidden' },
