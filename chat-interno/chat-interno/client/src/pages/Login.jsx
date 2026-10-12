@@ -28,7 +28,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#111B21" }}>
       <form onSubmit={handleSubmit} className="w-[340px] bg-[#202C33] rounded-2xl p-7 border border-slate-800">
         <div className="flex flex-col items-center mb-6">
-          {logo ? <img src={logo} alt="Nacional" className="max-h-16 max-w-[220px] object-contain mb-3" style={{ background: "#2E1065", borderRadius: 12, padding: 10 }} /> : <img src="/logo.svg" alt="Painel Nacional" className="w-20 h-20 mb-3" />}
+          {logo ? <img src={logo} alt="Nacional" className="max-h-16 max-w-[220px] object-contain mb-3" style={{ background: "#2E1065", borderRadius: 12, padding: 10 }} /> : <img src="/logo-painel-nacional.svg" alt="Painel Nacional" className="w-56 rounded-xl mb-2" />}
           <h1 className="text-slate-100 text-xl font-semibold">Painel Nacional</h1>
           <p className="text-slate-500 text-xs mt-1">Acesso restrito à equipe</p>
         </div>
