@@ -19,7 +19,7 @@ function realcar(texto, termo) {
   const partes = String(texto).split(new RegExp(`(${escapado})`, "gi"));
   return partes.map((parte, i) =>
     parte.toLowerCase() === t.toLowerCase()
-      ? <mark key={i} style={{ background: "#2563EB", color: "#0B1410", borderRadius: 3, padding: "0 2px" }}>{parte}</mark>
+      ? <mark key={i} style={{ background: "#7C3AED", color: "#0B1410", borderRadius: 3, padding: "0 2px" }}>{parte}</mark>
       : parte
   );
 }
@@ -651,7 +651,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
   }, [jumpToMessageId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="w-full flex-1 flex flex-col relative" style={{ background: colors.chatBg }}>
+    <div className="w-full flex-1 flex flex-col relative rounded-2xl overflow-hidden" style={{ background: colors.chatBg }}>
       <button
         onClick={() => conversation.type === "group" && setShowGroupSettings(true)}
         className="h-16 flex items-center gap-3 px-4 border-b shrink-0 text-left"
@@ -666,7 +666,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <ArrowLeftIcon size={20} />
           </span>
         )}
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#2563EB" }}>
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative" style={{ background: conversation.type === "group" ? "#334155" : conversation.color || "#7C3AED" }}>
           {conversation.avatarUrl ? (
             <img src={fileUrl(conversation.avatarUrl)} alt={conversation.title} className="w-full h-full object-cover" />
           ) : conversation.type === "group" ? (
@@ -675,7 +675,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             conversation.title.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
           )}
           {conversation.type === "dm" && isOnline && (
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#2563EB]" style={{ border: `2px solid ${colors.headerBg}` }} />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#7C3AED]" style={{ border: `2px solid ${colors.headerBg}` }} />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -685,23 +685,23 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           ) : (
             <div className="text-[11px]" style={{ color: colors.textSecondary }}>
               {quemEstaDigitando ? (
-                <span className="text-[#2563EB] italic">{quemEstaDigitando} está digitando...</span>
+                <span className="text-[#7C3AED] italic">{quemEstaDigitando} está digitando...</span>
               ) : isOnline ? "online" : ""}
             </div>
           )}
         </div>
         <span
           onClick={(e) => { e.stopPropagation(); setShowSearch((v) => !v); setShowPinnedPanel(false); }}
-          className="p-1.5 hover:text-[#2563EB] cursor-pointer"
-          style={{ color: showSearch ? "#2563EB" : colors.textSecondary }}
+          className="p-1.5 hover:text-[#7C3AED] cursor-pointer"
+          style={{ color: showSearch ? "#7C3AED" : colors.textSecondary }}
           title="Buscar nesta conversa"
         >
           <Search size={18} />
         </span>
         <span
           onClick={(e) => { e.stopPropagation(); openPinnedPanel(); }}
-          className="p-1.5 hover:text-[#2563EB] cursor-pointer relative"
-          style={{ color: showPinnedPanel ? "#2563EB" : colors.textSecondary }}
+          className="p-1.5 hover:text-[#7C3AED] cursor-pointer relative"
+          style={{ color: showPinnedPanel ? "#7C3AED" : colors.textSecondary }}
           title="Mensagens fixadas"
         >
           <Pin size={18} />
@@ -722,7 +722,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               value={searchQuery}
               onChange={(e) => runSearch(e.target.value)}
               placeholder="Buscar mensagens nesta conversa..."
-              className="w-full rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="w-full rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
               style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
             />
             <button
@@ -784,7 +784,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           >
             <div className="flex items-center justify-between px-4 py-3 border-b shrink-0 rounded-t-xl" style={{ borderColor: colors.headerBorder, background: colors.panelBg }}>
               <span className="text-[14px] font-semibold flex items-center gap-1.5" style={{ color: colors.textPrimary }}>
-                <Pin size={15} className="text-[#2563EB]" /> Mensagens fixadas
+                <Pin size={15} className="text-[#7C3AED]" /> Mensagens fixadas
               </span>
               <button onClick={() => setShowPinnedPanel(false)} style={{ color: colors.textSecondary }}>
                 <X size={16} />
@@ -806,7 +806,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                   <div className="flex items-start gap-2.5 p-3">
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden mt-0.5"
-                      style={{ background: p.sender_color || "#2563EB" }}
+                      style={{ background: p.sender_color || "#7C3AED" }}
                     >
                       {p.sender_avatar_url ? (
                         <img src={fileUrl(p.sender_avatar_url)} alt={p.sender_name} className="w-full h-full object-cover" />
@@ -817,7 +817,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
                     <button onClick={() => jumpToMessage(p.id)} className="text-left flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-semibold" style={{ color: "#2563EB" }}>{p.sender_name}</span>
+                        <span className="text-[13px] font-semibold" style={{ color: "#7C3AED" }}>{p.sender_name}</span>
                         <span className="text-[11px]" style={{ color: colors.textSecondary }}>
                           {new Date(p.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
@@ -925,9 +925,9 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
       <div className="border-t px-3 py-3 shrink-0" style={{ background: colors.inputBarBg, borderColor: colors.headerBorder }}>
         {(replyingTo || editingMessage) && (
           <div className="flex items-center gap-2 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
-            {editingMessage ? <Pencil size={14} className="text-[#2563EB] shrink-0" /> : <Reply size={14} className="text-[#2563EB] shrink-0" />}
+            {editingMessage ? <Pencil size={14} className="text-[#7C3AED] shrink-0" /> : <Reply size={14} className="text-[#7C3AED] shrink-0" />}
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium text-[#2563EB]">{editingMessage ? "Editando mensagem" : `Respondendo ${replyingTo.sender_name?.split(" ")[0]}`}</div>
+              <div className="text-[11px] font-medium text-[#7C3AED]">{editingMessage ? "Editando mensagem" : `Respondendo ${replyingTo.sender_name?.split(" ")[0]}`}</div>
               <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>
                 {editingMessage ? editingMessage.content : replyPreviewText(replyingTo.type, replyingTo.content, replyingTo.deleted)}
               </div>
@@ -944,11 +944,11 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
               <img src={pendingUpload.previewUrl} alt="Prévia" className="w-14 h-14 rounded-lg object-cover shrink-0" />
             ) : (
               <div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
-                <FileIcon size={22} color="#2563EB" />
+                <FileIcon size={22} color="#7C3AED" />
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium text-[#2563EB]">{pendingUpload.kind === "image" ? "Enviar foto" : "Enviar arquivo"}</div>
+              <div className="text-[11px] font-medium text-[#7C3AED]">{pendingUpload.kind === "image" ? "Enviar foto" : "Enviar arquivo"}</div>
               <div className="text-[12px] truncate" style={{ color: colors.textSecondary }}>{pendingUpload.file.name}</div>
             </div>
             <button onClick={cancelarUploadPendente} className="shrink-0" style={{ color: colors.textSecondary }}>
@@ -959,7 +959,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
 
         {multiUploadProgress && (
           <div className="flex items-center gap-3 mb-2 rounded-lg px-3 py-2" style={{ background: colors.inputFieldBg }}>
-            <div className="w-5 h-5 rounded-full border-2 border-[#2563EB] border-t-transparent animate-spin shrink-0" />
+            <div className="w-5 h-5 rounded-full border-2 border-[#7C3AED] border-t-transparent animate-spin shrink-0" />
             <span className="text-[12px]" style={{ color: colors.textSecondary }}>
               Enviando arquivo {multiUploadProgress.atual} de {multiUploadProgress.total}...
             </span>
@@ -970,13 +970,13 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
           <div className="flex items-center gap-3 rounded-full px-4 py-2.5" style={{ background: colors.inputFieldBg }}>
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
             <span className="text-sm font-mono flex-1" style={{ color: colors.textPrimary }}>Gravando áudio — 0:{String(seconds).padStart(2, "0")}</span>
-            <button onClick={stopRecording} className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2563EB" }}>
+            <button onClick={stopRecording} className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#7C3AED" }}>
               <Square size={13} fill="white" />
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
-            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
+            <button onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#7C3AED] shrink-0" style={{ color: colors.textSecondary }}>
               <Paperclip size={19} />
             </button>
             {/* Um botão só de anexo — aceita qualquer tipo de arquivo (imagem,
@@ -1002,7 +1002,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                 }}
                 placeholder={pendingUpload ? "Escreva uma legenda (opcional)" : "Escreva uma mensagem (Shift+Enter pula linha)"}
                 rows={1}
-                className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] resize-none max-h-40 overflow-y-auto"
+                className="w-full rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none max-h-40 overflow-y-auto"
                 style={{ background: colors.inputFieldBg, color: colors.textPrimary }}
                 onInput={(e) => {
                   e.target.style.height = "auto";
@@ -1061,7 +1061,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
                       style={{ background: i === mentionIndex ? colors.inputFieldBg : "transparent" }}
                     >
                       {mMember.isTodos ? (
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2563EB" }}>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#7C3AED" }}>
                           <AtSign size={12} />
                         </div>
                       ) : (
@@ -1081,7 +1081,7 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             <div className="relative">
               <button
                 onClick={() => setShowEmojis((v) => !v)}
-                className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#7C3AED] shrink-0"
                 style={{ color: colors.textSecondary }}
               >
                 <Smile size={19} />
@@ -1090,11 +1090,11 @@ export default function ChatWindow({ conversation, messages, setMessagesForConv,
             </div>
 
             {draft.trim() || pendingUpload ? (
-              <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#2563EB" }}>
+              <button onClick={sendText} className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "#7C3AED" }}>
                 <Send size={16} />
               </button>
             ) : (
-              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#2563EB] shrink-0" style={{ color: colors.textSecondary }}>
+              <button onClick={startRecording} className="w-9 h-9 rounded-full flex items-center justify-center hover:text-[#7C3AED] shrink-0" style={{ color: colors.textSecondary }}>
                 <Mic size={19} />
               </button>
             )}
