@@ -5,7 +5,7 @@ import { gestaoApi } from '../gestaoApi';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskFormModal from '../components/TaskFormModal';
 
-const NAVY = '#0f2a4a';
+const NAVY = '#2E1065';
 const PRIORITY_COLORS = { low: '#6b7280', medium: '#d97706', high: '#dc2626' };
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MESES = [
@@ -371,7 +371,7 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 4, background: '#eef2f7', borderRadius: 5,
     padding: '2px 6px', cursor: 'pointer', overflow: 'hidden',
   },
-  chipTexto: { fontSize: 10.5, color: '#1c4270', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  chipTexto: { fontSize: 10.5, color: '#4C1D95', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   linhaTarefa: {
     display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #e5e7eb',
     borderRadius: 8, padding: '10px 12px', cursor: 'pointer',
