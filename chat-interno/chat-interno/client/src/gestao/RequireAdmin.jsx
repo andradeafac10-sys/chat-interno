@@ -12,7 +12,7 @@ export default function RequireAdmin({ children }) {
 
   if (loading) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center text-slate-400 text-sm" style={{ background: "#0A1628" }}>
+      <div className="w-screen h-screen flex items-center justify-center text-slate-400 text-sm" style={{ background: "#120C22" }}>
         Carregando...
       </div>
     );
