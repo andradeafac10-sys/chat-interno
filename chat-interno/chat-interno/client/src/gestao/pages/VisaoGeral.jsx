@@ -70,11 +70,11 @@ export default function VisaoGeral() {
   const kpis = hoje ? [
     {
       label: 'Cumprimento', valor: `${hoje.percentual}%`, sub: `${hoje.concluidas} de ${hoje.planejadas} rotinas concluídas`,
-      icon: Target, corIcone: '#2563EB', corFundo: '#EEF4FF', corNumero: '#2563EB',
+      icon: Target, corIcone: '#7C3AED', corFundo: '#EDE9FE', corNumero: '#7C3AED',
     },
     {
       label: 'Rotinas planejadas', valor: hoje.planejadas, sub: 'Total de rotinas para hoje',
-      icon: Calendar, corIcone: '#2563EB', corFundo: '#EEF4FF', corNumero: '#2563EB',
+      icon: Calendar, corIcone: '#7C3AED', corFundo: '#EDE9FE', corNumero: '#7C3AED',
     },
     {
       label: 'Concluídas', valor: hoje.concluidas, sub: `${hoje.percentual}% do total planejado`,
@@ -94,7 +94,7 @@ export default function VisaoGeral() {
     },
     {
       label: 'Treinamentos pendentes', valor: hoje.treinamentosPendentes, sub: `${hoje.treinamentosConcluidos} já concluídos`,
-      icon: CheckCircle2, corIcone: '#0EA5E9', corFundo: '#F0F9FF', corNumero: '#0EA5E9',
+      icon: CheckCircle2, corIcone: '#8B5CF6', corFundo: '#EDE9FE', corNumero: '#8B5CF6',
     },
   ] : [];
 
@@ -170,11 +170,11 @@ export default function VisaoGeral() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' }}>Progresso do dia</span>
               <span style={{ fontSize: 13, color: 'var(--pagina-texto-2)' }}>
-                <b style={{ color: '#2563EB' }}>{hoje.concluidas}</b> de {hoje.planejadas} rotinas concluídas
+                <b style={{ color: '#7C3AED' }}>{hoje.concluidas}</b> de {hoje.planejadas} rotinas concluídas
               </span>
             </div>
             <div style={{ height: 12, borderRadius: 999, background: 'var(--pagina-borda-suave)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${hoje.percentual}%`, background: '#2563EB', borderRadius: 999, transition: 'width .2s' }} />
+              <div style={{ height: '100%', width: `${hoje.percentual}%`, background: '#7C3AED', borderRadius: 999, transition: 'width .2s' }} />
             </div>
           </div>
 
@@ -201,14 +201,14 @@ export default function VisaoGeral() {
 
             <div style={styles.listCard}>
               <div style={styles.listCardHeader}>
-                <Clock size={15} color="#2563EB" />
+                <Clock size={15} color="#7C3AED" />
                 <span style={styles.listCardTitulo}>Próximas rotinas</span>
               </div>
               <div style={{ borderTop: '1px solid #EEF1F4' }}>
                 {hoje.proximas.length === 0 && <div style={styles.listaVazia}>Nada agendado depois de agora.</div>}
                 {hoje.proximas.map((r) => (
                   <div key={r.id} style={styles.listItem}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2563EB', flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7C3AED', flexShrink: 0 }} />
                     <span style={styles.listItemNome}>
                       {r.title}
                       {r.count > 1 && <span style={{ color: '#98A2B3', fontWeight: 400 }}> · {r.count} pessoas</span>}
@@ -223,7 +223,7 @@ export default function VisaoGeral() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
             <div style={styles.listCard}>
               <div style={styles.listCardHeader}>
-                <Users size={15} color="#2563EB" />
+                <Users size={15} color="#7C3AED" />
                 <span style={styles.listCardTitulo}>Desempenho da equipe</span>
               </div>
               <div style={{ borderTop: '1px solid #EEF1F4', padding: '4px 18px', maxHeight: 340, overflowY: 'auto' }}>
@@ -241,14 +241,14 @@ export default function VisaoGeral() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: MEDALHAS[i]?.bg || 'var(--pagina-borda-suave)', color: MEDALHAS[i]?.fg || 'var(--pagina-texto-2)',
                     }}>{i + 1}</span>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: r.color || '#2563EB' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: r.color || '#7C3AED' }}>
                       {r.avatar_url && <img src={fileUrl(r.avatar_url)} alt={r.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', flex: 1, minWidth: 0 }}>{r.name}</span>
                     <div style={{ width: 70, height: 6, borderRadius: 999, background: 'var(--pagina-borda-suave)', overflow: 'hidden', flexShrink: 0 }}>
-                      <div style={{ width: `${r.percentual}%`, height: '100%', background: '#2563EB' }} />
+                      <div style={{ width: `${r.percentual}%`, height: '100%', background: '#7C3AED' }} />
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2563EB', width: 34, textAlign: 'right', flexShrink: 0 }}>{r.percentual}%</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', width: 34, textAlign: 'right', flexShrink: 0 }}>{r.percentual}%</span>
                   </button>
                 ))}
               </div>
@@ -256,7 +256,7 @@ export default function VisaoGeral() {
 
             <div style={styles.listCard}>
               <div style={styles.listCardHeader}>
-                <Activity size={15} color="#2563EB" />
+                <Activity size={15} color="#7C3AED" />
                 <span style={styles.listCardTitulo}>Atividade recente</span>
               </div>
               <div style={{ borderTop: '1px solid #EEF1F4' }}>
@@ -316,7 +316,7 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
       <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={modalStyles.header}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: pessoa.color || '#2563EB', flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: pessoa.color || '#7C3AED', flexShrink: 0 }}>
               {pessoa.avatar_url && <img src={fileUrl(pessoa.avatar_url)} alt={pessoa.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
             </div>
             <div>
@@ -346,7 +346,7 @@ function ResumoPessoaModal({ pessoa, periodo, dataDe, dataAte, onClose }) {
                   <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Pendentes</div>
                 </div>
                 <div style={modalStyles.kpi}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#2563EB' }}>{dados.percentual}%</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#7C3AED' }}>{dados.percentual}%</div>
                   <div style={{ fontSize: 11, color: 'var(--pagina-texto-2)' }}>Cumprimento</div>
                 </div>
               </div>
@@ -402,7 +402,7 @@ const styles = {
     fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   filtroAtivo: {
-    height: 38, padding: '0 18px', borderRadius: 7, border: 'none', background: '#2563EB',
+    height: 38, padding: '0 18px', borderRadius: 7, border: 'none', background: '#7C3AED',
     fontSize: 13, color: 'var(--pagina-cartao)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center',
   },
   selectAdm: {
@@ -415,7 +415,7 @@ const styles = {
   },
   calendarioLabel: { fontSize: 11, fontWeight: 600, color: 'var(--pagina-texto-2)', display: 'block', marginBottom: 4 },
   calendarioInput: { padding: '7px 10px', borderRadius: 7, border: '1px solid #DDE3EA', fontSize: 13 },
-  calendarioBtn: { padding: '8px 16px', borderRadius: 7, border: 'none', background: '#2563EB', color: 'var(--pagina-cartao)', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  calendarioBtn: { padding: '8px 16px', borderRadius: 7, border: 'none', background: '#7C3AED', color: 'var(--pagina-cartao)', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   kpiCard: {
     minHeight: 140, background: 'var(--pagina-cartao)', border: '1px solid #E4E8EE', borderRadius: 12,
     boxShadow: '0 1px 3px rgba(16,24,40,0.06)', padding: 20, display: 'flex', alignItems: 'center', gap: 16,
