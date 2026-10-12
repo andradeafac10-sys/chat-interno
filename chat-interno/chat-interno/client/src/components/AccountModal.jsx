@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { X, ShieldCheck, Camera, Trash2, AlertTriangle } from "lucide-react";
 import { api, fileUrl } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useLogo, recarregarLogo } from "../branding";
 
 export default function AccountModal({ onClose }) {
   const { user, updateUser } = useAuth();
@@ -14,6 +15,44 @@ export default function AccountModal({ onClose }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [cleaning, setCleaning] = useState("");
   const [cleanMsg, setCleanMsg] = useState("");
+  const logoAtual = useLogo();
+  const logoInputRef = useRef(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoMsg, setLogoMsg] = useState("");
+
+  const enviarLogo = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLogoBusy(true);
+    setLogoMsg("");
+    try {
+      const form = new FormData();
+      form.append("logo", file);
+      await api.post("/branding/logo", form, { headers: { "Content-Type": "multipart/form-data" } });
+      await recarregarLogo();
+      setLogoMsg("Logo atualizada.");
+    } catch (err) {
+      setLogoMsg(err.response?.data?.error || "Não foi possível enviar a logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const removerLogo = async () => {
+    if (!window.confirm("Remover a logo do sistema?")) return;
+    setLogoBusy(true);
+    setLogoMsg("");
+    try {
+      await api.delete("/branding/logo");
+      await recarregarLogo();
+      setLogoMsg("Logo removida.");
+    } catch (err) {
+      setLogoMsg(err.response?.data?.error || "Não foi possível remover a logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
 
   // Só o usuário "admin" (dono do sistema) vê as ações de limpeza
   const isSuperAdmin = user.role === "admin" && user.username === "admin";
@@ -113,7 +152,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
           />
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
@@ -121,7 +160,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
             minLength={6}
           />
@@ -130,7 +169,7 @@ export default function AccountModal({ onClose }) {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
             minLength={6}
           />
@@ -142,11 +181,37 @@ export default function AccountModal({ onClose }) {
             type="submit"
             disabled={saving}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: "#2563EB" }}
+            style={{ background: "#7C3AED" }}
           >
             {saving ? "Salvando..." : "Trocar senha"}
           </button>
         </form>
+
+        {isSuperAdmin && (
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <div className="text-[12px] font-semibold text-slate-700 mb-1">Logo do sistema</div>
+            <p className="text-[11px] text-slate-500 mb-2">
+              Aparece no topo do menu e na tela de login. Use PNG com fundo transparente e letras brancas (até 2MB).
+            </p>
+            <div className="rounded-lg p-3 mb-2 flex items-center justify-center min-h-[56px]" style={{ background: "#2E1065" }}>
+              {logoAtual ? <img src={logoAtual} alt="Logo" className="max-h-12 max-w-full object-contain" /> : <span className="text-[12px] text-white/70">Nenhuma logo enviada</span>}
+            </div>
+            <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={enviarLogo} className="hidden" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => logoInputRef.current?.click()} disabled={logoBusy}
+                className="flex-1 rounded-lg py-2 text-[13px] font-medium text-white disabled:opacity-50" style={{ background: "#7C3AED" }}>
+                {logoBusy ? "Enviando..." : logoAtual ? "Trocar logo" : "Enviar logo"}
+              </button>
+              {logoAtual && (
+                <button type="button" onClick={removerLogo} disabled={logoBusy}
+                  className="rounded-lg px-3 py-2 text-[13px] font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+                  Remover
+                </button>
+              )}
+            </div>
+            {logoMsg && <div className="text-[12px] mt-2 text-slate-500">{logoMsg}</div>}
+          </div>
+        )}
 
         {isSuperAdmin && (
           <div className="mt-6 pt-5 border-t border-slate-200">
