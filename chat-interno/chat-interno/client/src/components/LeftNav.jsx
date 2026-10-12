@@ -94,7 +94,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
         <>
           <Icon size={17} />
           {badge > 0 && (
-            <span className="absolute top-1 right-1/2 translate-x-3 w-2 h-2 rounded-full" style={{ background: "#EF4444" }} />
+            <span className="absolute top-1 right-1/2 translate-x-3 w-2 h-2 rounded-full" style={{ background: "#FFFFFF" }} />
           )}
         </>
       ) : (
@@ -124,14 +124,14 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
         <>
           <Icon size={15} />
           {badge > 0 && (
-            <span className="absolute top-0.5 right-1/2 translate-x-3 w-2 h-2 rounded-full" style={{ background: "#EF4444" }} />
+            <span className="absolute top-0.5 right-1/2 translate-x-3 w-2 h-2 rounded-full" style={{ background: "#FFFFFF" }} />
           )}
         </>
       ) : (
         <>
           <span className="flex items-center gap-1.5"><Icon size={12} /> {label}</span>
           {badge > 0 && (
-            <span className="text-white font-bold rounded-full px-1.5 min-w-[15px] text-center" style={{ background: "#EF4444", fontSize: 9.5 }}>
+            <span className="font-bold rounded-full px-1.5 min-w-[15px] text-center" style={{ background: "#FFFFFF", color: "#6D28D9", fontSize: 9.5 }}>
               {badge}
             </span>
           )}
