@@ -194,7 +194,7 @@ export default function AccountModal({ onClose }) {
               Aparece no topo do menu e na tela de login. Use PNG com fundo transparente e letras brancas (até 2MB).
             </p>
             <div className="rounded-lg p-3 mb-2 flex items-center justify-center min-h-[56px]" style={{ background: "#2E1065" }}>
-              {logoAtual ? <img src={logoAtual} alt="Logo" className="max-h-12 max-w-full object-contain" /> : <span className="text-[12px] text-white/70">Nenhuma logo enviada</span>}
+              <img src={logoAtual || "/logo-painel-nacional.svg"} alt="Logo" className="max-h-12 max-w-full object-contain rounded-lg" />
             </div>
             <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={enviarLogo} className="hidden" />
             <div className="flex gap-2">
