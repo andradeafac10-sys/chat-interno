@@ -1,0 +1,331 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: #ECE8F6;
+  font-family: "Noto Sans", "Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Tema claro/escuro pras telas que não são o Chat em si (Gestão, Feedbacks,
+   Trilha do Conhecimento, Usuários, Monitoria). O Chat já tem seu próprio
+   esquema de cores via ThemeContext — essas variáveis cobrem o resto do
+   sistema, que até então ficava sempre claro não importa o tema escolhido. */
+:root {
+  --pagina-fundo: #F6F4FB;
+  --pagina-cartao: #FFFFFF;
+  --pagina-texto-1: #101828;
+  --pagina-texto-2: #667085;
+  --pagina-borda: #E7E2F3;
+  --pagina-borda-suave: #F3F0FA;
+}
+body.tema-escuro {
+  /* Tons calibrados a partir do resultado que ficou bom na prática:
+     preto com um leve toque de azul, cards um pouco acima do fundo e
+     texto secundário claro o bastante pra ler sem esforço. */
+  --pagina-fundo: #120C22;        /* fundo geral */
+  --pagina-cartao: #17102B;       /* cards e modais */
+  --pagina-texto-1: #EDE9FE;      /* títulos e texto principal */
+  --pagina-texto-2: #B4A5E0;      /* texto secundário */
+  --pagina-borda: #2A1D52;        /* bordas discretas */
+  --pagina-borda-suave: #241A40;  /* fundo de destaque leve (hover, chips) */
+  /* Avisa o navegador que a página é escura: barras de rolagem, menus de
+     select e outros controles nativos se ajustam sozinhos. */
+  color-scheme: dark;
+  /* Cor de texto padrão do tema escuro. Muito texto no sistema não define
+     cor nenhuma no código (ex: nomes numa lista) — sem isso, esses herdam o
+     preto padrão do navegador e somem no fundo escuro. */
+  color: var(--pagina-texto-1);
+}
+
+
+/* Sobrescreve as classes do Tailwind usadas direto nessas telas (bg-white,
+   text-slate-*, border-slate-*) — assim não precisa trocar toda classe de
+   cada arquivo, uma por uma, pra funcionar no escuro. */
+body.tema-escuro .bg-white { background-color: var(--pagina-cartao) !important; }
+body.tema-escuro [class*="text-slate-9"],
+body.tema-escuro [class*="text-slate-8"],
+body.tema-escuro [class*="text-slate-7"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-slate-6"],
+body.tema-escuro [class*="text-slate-5"],
+body.tema-escuro [class*="text-slate-4"],
+body.tema-escuro [class*="text-slate-3"] { color: var(--pagina-texto-2) !important; }
+body.tema-escuro [class*="border-slate"] { border-color: var(--pagina-borda) !important; }
+body.tema-escuro [class*="bg-slate-50"],
+body.tema-escuro [class*="bg-slate-100"],
+body.tema-escuro [class*="bg-slate-200"] { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="hover:bg-slate-50"]:hover,
+body.tema-escuro [class*="hover:bg-slate-100"]:hover { background-color: var(--pagina-borda-suave) !important; }
+body.tema-escuro [class*="divide-slate"] > * + * { border-color: var(--pagina-borda) !important; }
+
+/* Campos de formulário: no escuro precisam de fundo escuro e texto claro,
+   senão ficam brancos gritando no meio da tela. Cobre também os selects e
+   áreas de texto que usam cor fixa nos arquivos. */
+body.tema-escuro input:not([type="checkbox"]):not([type="radio"]),
+body.tema-escuro textarea,
+body.tema-escuro select {
+  background-color: var(--pagina-borda-suave) !important;
+  border-color: var(--pagina-borda) !important;
+  color: var(--pagina-texto-1) !important;
+}
+body.tema-escuro input::placeholder,
+body.tema-escuro textarea::placeholder { color: var(--pagina-texto-2) !important; }
+/* O calendário/relógio nativo dos campos de data vem preto e some no escuro */
+body.tema-escuro input[type="date"]::-webkit-calendar-picker-indicator,
+body.tema-escuro input[type="time"]::-webkit-calendar-picker-indicator,
+body.tema-escuro input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.6);
+}
+
+/* Chips, badges e círculos de ícone usavam fundos bem claros (azul-clarinho,
+   verde-clarinho...) com texto escuro por cima — feitos pra tela clara. No
+   escuro o fundo precisa escurecer E o texto precisa clarear junto, senão
+   fica texto escuro sobre fundo escuro (invisível).
+   Cada família de cor vira um véu translúcido da própria cor + texto claro. */
+
+/* Azul (informativo, chips de pessoa, tipo "interna") */
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background:#EDE9FE"] {
+  background-color: rgba(167, 139, 250, 0.18) !important;
+  color: var(--pagina-texto-1) !important;
+  border-color: rgba(167, 139, 250, 0.40) !important;
+}
+
+/* Verde (concluído, assinado, presente) */
+body.tema-escuro [style*="background: #ECFDF3"],
+body.tema-escuro [style*="background: #F0FDF4"],
+body.tema-escuro [style*="background: #DCFCE7"],
+body.tema-escuro [style*="background: #E1F5EE"] {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  color: var(--pagina-texto-1) !important;
+  border-color: rgba(34, 197, 94, 0.45) !important;
+}
+
+/* Vermelho (pendente, atrasado, alerta) */
+body.tema-escuro [style*="background: #FEF2F2"],
+body.tema-escuro [style*="background: #FEE2E2"] {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: var(--pagina-texto-1) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+/* Laranja/amarelo (atenção, tipo "externa") */
+body.tema-escuro [style*="background: #FFF4ED"],
+body.tema-escuro [style*="background: #FAEEDA"],
+body.tema-escuro [style*="background: #FEF3C7"],
+body.tema-escuro [style*="background: #FFEDD5"] {
+  background-color: rgba(249, 115, 22, 0.18) !important;
+  color: var(--pagina-texto-1) !important;
+  border-color: rgba(249, 115, 22, 0.45) !important;
+}
+
+/* Roxo */
+body.tema-escuro [style*="background: #F5F3FF"] {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+  color: var(--pagina-texto-1) !important;
+}
+
+/* Cinza neutro (fundo de destaque leve) */
+body.tema-escuro [style*="background: #F1F5F9"],
+body.tema-escuro [style*="background: #F8FAFC"] {
+  background-color: var(--pagina-borda-suave) !important;
+  color: var(--pagina-texto-1) !important;
+}
+
+/* O texto dentro desses chips herda a cor certa, mesmo quando o filho tem
+   cor própria definida no código (ex: <span style="color: #4C1D95">) */
+body.tema-escuro [style*="background: #EDE9FE"] *,
+body.tema-escuro [style*="background: #EDE9FE"] *,
+body.tema-escuro [style*="background: #EDE9FE"] *,
+body.tema-escuro [style*="background: #ECFDF3"] *,
+body.tema-escuro [style*="background: #F0FDF4"] *,
+body.tema-escuro [style*="background: #DCFCE7"] *,
+body.tema-escuro [style*="background: #E1F5EE"] *,
+body.tema-escuro [style*="background: #FEF2F2"] *,
+body.tema-escuro [style*="background: #FEE2E2"] *,
+body.tema-escuro [style*="background: #FAEEDA"] *,
+body.tema-escuro [style*="background: #FEF3C7"] *,
+body.tema-escuro [style*="background: #FFEDD5"] * {
+  color: inherit !important;
+}
+
+/* Texto em azul/verde/vermelho escuro solto na página (sem fundo colorido)
+   também precisa clarear pra ter contraste no preto. */
+body.tema-escuro [style*="color: #4C1D95"],
+body.tema-escuro [style*="color: #7C3AED"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #085041"],
+body.tema-escuro [style*="color: #16A34A"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #633806"],
+body.tema-escuro [style*="color: #854F0B"],
+body.tema-escuro [style*="color: #B45309"],
+body.tema-escuro [style*="color: #C2410C"],
+body.tema-escuro [style*="color: #EA4E1B"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #DC2626"],
+body.tema-escuro [style*="color: #791F1F"] { color: var(--pagina-texto-1) !important; }
+
+/* Classes do Tailwind com cor forte: no preto elas ficam escuras demais.
+   Aqui clareiam pra manter o significado (vermelho = alerta, verde = ok)
+   mas com contraste legível. */
+body.tema-escuro [class*="bg-red-50"] { background-color: rgba(239, 68, 68, 0.15) !important; }
+body.tema-escuro [class*="bg-emerald-50"],
+body.tema-escuro [class*="bg-green-50"] { background-color: rgba(34, 197, 94, 0.15) !important; }
+body.tema-escuro [class*="bg-amber-50"],
+body.tema-escuro [class*="bg-orange-50"] { background-color: rgba(249, 115, 22, 0.15) !important; }
+body.tema-escuro [class*="bg-violet-50"],
+body.tema-escuro [class*="bg-violet-50"] { background-color: rgba(167, 139, 250, 0.14) !important; }
+
+body.tema-escuro [class*="text-red-6"],
+body.tema-escuro [class*="text-red-7"],
+body.tema-escuro [class*="text-red-8"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-emerald-6"],
+body.tema-escuro [class*="text-emerald-7"],
+body.tema-escuro [class*="text-green-6"],
+body.tema-escuro [class*="text-green-7"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-amber-6"],
+body.tema-escuro [class*="text-amber-7"],
+body.tema-escuro [class*="text-orange-6"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-violet-6"],
+body.tema-escuro [class*="text-violet-7"],
+body.tema-escuro [class*="text-violet-6"] { color: var(--pagina-texto-1) !important; }
+
+/* Mesmas cores escritas em minúsculo nos arquivos (CSS diferencia maiúscula
+   de minúscula em seletores de atributo, então precisam estar aqui também). */
+body.tema-escuro [style*="color: #111827"],
+body.tema-escuro [style*="color: #374151"],
+body.tema-escuro [style*="color: #4C1D95"],
+body.tema-escuro [style*="color: #4C1D95"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #6b7280"],
+body.tema-escuro [style*="color: #9ca3af"],
+body.tema-escuro [style*="color: #cbd5e1"],
+body.tema-escuro [style*="color: #d1d5db"] { color: var(--pagina-texto-2) !important; }
+body.tema-escuro [style*="color: #ef4444"],
+body.tema-escuro [style*="color: #dc2626"],
+body.tema-escuro [style*="color: #E5484D"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #16a34a"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #f59e0b"] { color: var(--pagina-texto-1) !important; }
+
+/* Botões azuis sólidos (fundo #7C3AED) mantêm o texto branco — a regra de
+   "color" acima não pode clarear o texto deles pra azul claro. */
+body.tema-escuro [style*="background: #7C3AED"],
+body.tema-escuro [style*="background:#7C3AED"],
+body.tema-escuro [style*="background: #DC2626"],
+body.tema-escuro [style*="background: #EA4E1B"],
+body.tema-escuro [style*="background: #EF4444"] { color: #FFFFFF !important; }
+body.tema-escuro [style*="background: #7C3AED"] *,
+body.tema-escuro [style*="background: #DC2626"] *,
+body.tema-escuro [style*="background: #EF4444"] * { color: #FFFFFF !important; }
+
+/* Fundo branco escrito por extenso em estilo inline (ex: background: "white")
+   escapa da regra acima, que só pega códigos tipo #FFF. Sem isso, campos e
+   alternativas de prova ficavam brancos com texto branco — ilegíveis. */
+body.tema-escuro [style*="background: white"],
+body.tema-escuro [style*="background:white"],
+body.tema-escuro [style*="background: #fff"],
+body.tema-escuro [style*="background: #FFF"],
+body.tema-escuro [style*="background: #ffffff"],
+body.tema-escuro [style*="background: #FFFFFF"] {
+  background-color: var(--pagina-cartao) !important;
+  color: var(--pagina-texto-1) !important;
+}
+
+/* Barra de rolagem com a cor do sistema (azul-marinho), em vez do cinza padrão
+   do navegador — mais discreta e combinando com o resto da interface. */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #7C3AED transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #7C3AED;
+  border-radius: 999px;
+  opacity: 0.5;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #5B21B6;
+}
+
+/* No tema escuro o texto é sempre branco — cor fica só nos ícones.
+   Os ícones (lucide-react vira <svg>) mantêm o azul claro; como eles usam
+   currentColor, basta definir a cor no próprio svg. */
+body.tema-escuro svg { color: #A78BFA; }
+
+/* Ícone dentro de botão sólido (azul/vermelho) continua branco, senão
+   sumiria no fundo colorido. */
+body.tema-escuro [style*="background: #7C3AED"] svg,
+body.tema-escuro [style*="background:#7C3AED"] svg,
+body.tema-escuro [style*="background: #DC2626"] svg,
+body.tema-escuro [style*="background: #EF4444"] svg,
+body.tema-escuro [style*="background: #EA4E1B"] svg,
+body.tema-escuro [class*="bg-violet-6"] svg,
+body.tema-escuro [class*="bg-red-6"] svg { color: #FFFFFF !important; }
+
+/* No escuro a barra de rolagem fica mais discreta, como nos outros apps */
+body.tema-escuro * { scrollbar-color: #30363D transparent; }
+body.tema-escuro *::-webkit-scrollbar-thumb { background-color: #30363D; }
+body.tema-escuro *::-webkit-scrollbar-thumb:hover { background-color: #3F4650; }
+
+/* Modais e painéis que usam fundo branco fixo via classe do Tailwind
+   (bg-white) já estão cobertos acima; aqui garantimos que o overlay atrás
+   deles fique mais escuro no tema escuro, pra dar o mesmo destaque. */
+body.tema-escuro [class*="bg-black/40"] { background-color: rgba(0, 0, 0, 0.65) !important; }
+
+/* Divisores e linhas finas que usam cinza claro direto na classe */
+body.tema-escuro [class*="divide-slate-50"] > * + *,
+body.tema-escuro [class*="divide-slate-100"] > * + * { border-color: var(--pagina-borda) !important; }
+
+/* Fundo do comunicado geral piscando em vermelho pra chamar atenção —
+   mais rápido que antes (0.9s -> 0.45s) porque a ideia é chamar atenção
+   de verdade, não só um alerta suave. */
+@keyframes announcement-alert {
+  0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
+  50% { background-color: rgba(190, 18, 18, 0.75); }
+}
+.announcement-alert {
+  animation: announcement-alert 0.45s ease-in-out infinite;
+}
+
+/* Borda do card do comunicado pulsando — também mais rápida (1.2s -> 0.6s) */
+@keyframes announcement-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  50% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
+}
+.announcement-card-pulse {
+  animation: announcement-card-pulse 0.6s ease-out infinite;
+}
+
+/* Mesma ideia do alerta de comunicado, só que roxa — usada no aviso de
+   reunião chegando (1h e 5min antes). */
+@keyframes reuniao-alert {
+  0%, 100% { background-color: rgba(0, 0, 0, 0.75); }
+  50% { background-color: rgba(109, 40, 217, 0.75); }
+}
+.reuniao-alert {
+  animation: reuniao-alert 0.45s ease-in-out infinite;
+}
+
+@keyframes reuniao-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7); }
+  50% { box-shadow: 0 0 0 14px rgba(124, 58, 237, 0); }
+}
+.reuniao-card-pulse {
+  animation: reuniao-card-pulse 0.6s ease-out infinite;
+}
+
+/* Balão de aviso de online/offline entrando pela direita */
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-slide-in {
+  animation: toast-slide-in 0.25s ease-out;
+}
