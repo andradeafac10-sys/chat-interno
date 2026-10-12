@@ -8,6 +8,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { api, fileUrl } from "../api";
 import { getSocket } from "../socket";
+import { useLogo } from "../branding";
 import { useTheme } from "../context/ThemeContext";
 
 // Coluna de navegação fixa, única pro sistema inteiro — substitui o antigo
@@ -18,6 +19,7 @@ import { useTheme } from "../context/ThemeContext";
 export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
+  const logo = useLogo();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdm = user.role === "admin";
@@ -147,9 +149,17 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
     <div className={colapsado ? "w-[64px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
       <div className={colapsado ? "px-0 pt-3.5 pb-3 flex items-center justify-center" : "px-4 pt-3.5 pb-3 flex items-center"}>
         {colapsado ? (
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[17px] font-bold" style={{ background: colors.sidebarActive }}>N</div>
+          logo ? (
+            <img src={logo} alt="Nacional" className="w-9 h-9 object-contain" />
+          ) : (
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[17px] font-bold" style={{ background: colors.sidebarActive }}>N</div>
+          )
         ) : (
-          <img src="/logo-nacional-branco.png" alt="Nacional" className="w-full h-auto" />
+          logo ? (
+            <img src={logo} alt="Nacional" className="w-full h-auto max-h-14 object-contain" />
+          ) : (
+            <div className="text-white text-[22px] font-extrabold tracking-tight leading-none">NACIONAL</div>
+          )
         )}
       </div>
 
