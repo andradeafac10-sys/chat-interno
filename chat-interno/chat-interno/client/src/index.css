@@ -85,14 +85,14 @@ body.tema-escuro input[type="datetime-local"]::-webkit-calendar-picker-indicator
    Cada família de cor vira um véu translúcido da própria cor + texto claro. */
 
 /* Azul (informativo, chips de pessoa, tipo "interna") */
-body.tema-escuro [style*="background: #EEF4FF"],
 body.tema-escuro [style*="background: #EDE9FE"],
-body.tema-escuro [style*="background: #E6F1FB"],
-body.tema-escuro [style*="background: #F0F9FF"],
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background: #EDE9FE"],
+body.tema-escuro [style*="background: #EDE9FE"],
 body.tema-escuro [style*="background:#EDE9FE"] {
   background-color: rgba(167, 139, 250, 0.18) !important;
   color: var(--pagina-texto-1) !important;
-  border-color: rgba(88, 166, 255, 0.40) !important;
+  border-color: rgba(167, 139, 250, 0.40) !important;
 }
 
 /* Verde (concluído, assinado, presente) */
@@ -137,10 +137,10 @@ body.tema-escuro [style*="background: #F8FAFC"] {
 }
 
 /* O texto dentro desses chips herda a cor certa, mesmo quando o filho tem
-   cor própria definida no código (ex: <span style="color: #0C447C">) */
-body.tema-escuro [style*="background: #EEF4FF"] *,
+   cor própria definida no código (ex: <span style="color: #4C1D95">) */
 body.tema-escuro [style*="background: #EDE9FE"] *,
-body.tema-escuro [style*="background: #E6F1FB"] *,
+body.tema-escuro [style*="background: #EDE9FE"] *,
+body.tema-escuro [style*="background: #EDE9FE"] *,
 body.tema-escuro [style*="background: #ECFDF3"] *,
 body.tema-escuro [style*="background: #F0FDF4"] *,
 body.tema-escuro [style*="background: #DCFCE7"] *,
@@ -155,7 +155,7 @@ body.tema-escuro [style*="background: #FFEDD5"] * {
 
 /* Texto em azul/verde/vermelho escuro solto na página (sem fundo colorido)
    também precisa clarear pra ter contraste no preto. */
-body.tema-escuro [style*="color: #0C447C"],
+body.tema-escuro [style*="color: #4C1D95"],
 body.tema-escuro [style*="color: #7C3AED"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [style*="color: #085041"],
 body.tema-escuro [style*="color: #16A34A"] { color: var(--pagina-texto-1) !important; }
@@ -175,8 +175,8 @@ body.tema-escuro [class*="bg-emerald-50"],
 body.tema-escuro [class*="bg-green-50"] { background-color: rgba(34, 197, 94, 0.15) !important; }
 body.tema-escuro [class*="bg-amber-50"],
 body.tema-escuro [class*="bg-orange-50"] { background-color: rgba(249, 115, 22, 0.15) !important; }
-body.tema-escuro [class*="bg-blue-50"],
-body.tema-escuro [class*="bg-indigo-50"] { background-color: rgba(88, 166, 255, 0.14) !important; }
+body.tema-escuro [class*="bg-violet-50"],
+body.tema-escuro [class*="bg-violet-50"] { background-color: rgba(167, 139, 250, 0.14) !important; }
 
 body.tema-escuro [class*="text-red-6"],
 body.tema-escuro [class*="text-red-7"],
@@ -188,16 +188,16 @@ body.tema-escuro [class*="text-green-7"] { color: var(--pagina-texto-1) !importa
 body.tema-escuro [class*="text-amber-6"],
 body.tema-escuro [class*="text-amber-7"],
 body.tema-escuro [class*="text-orange-6"] { color: var(--pagina-texto-1) !important; }
-body.tema-escuro [class*="text-blue-6"],
-body.tema-escuro [class*="text-blue-7"],
-body.tema-escuro [class*="text-indigo-6"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [class*="text-violet-6"],
+body.tema-escuro [class*="text-violet-7"],
+body.tema-escuro [class*="text-violet-6"] { color: var(--pagina-texto-1) !important; }
 
 /* Mesmas cores escritas em minúsculo nos arquivos (CSS diferencia maiúscula
    de minúscula em seletores de atributo, então precisam estar aqui também). */
 body.tema-escuro [style*="color: #111827"],
 body.tema-escuro [style*="color: #374151"],
-body.tema-escuro [style*="color: #1c4270"],
-body.tema-escuro [style*="color: #1C4270"] { color: var(--pagina-texto-1) !important; }
+body.tema-escuro [style*="color: #4C1D95"],
+body.tema-escuro [style*="color: #4C1D95"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [style*="color: #6b7280"],
 body.tema-escuro [style*="color: #9ca3af"],
 body.tema-escuro [style*="color: #cbd5e1"],
@@ -251,13 +251,13 @@ body.tema-escuro [style*="background: #FFFFFF"] {
   opacity: 0.5;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #1e4fa0;
+  background-color: #5B21B6;
 }
 
 /* No tema escuro o texto é sempre branco — cor fica só nos ícones.
    Os ícones (lucide-react vira <svg>) mantêm o azul claro; como eles usam
    currentColor, basta definir a cor no próprio svg. */
-body.tema-escuro svg { color: #58A6FF; }
+body.tema-escuro svg { color: #A78BFA; }
 
 /* Ícone dentro de botão sólido (azul/vermelho) continua branco, senão
    sumiria no fundo colorido. */
@@ -266,7 +266,7 @@ body.tema-escuro [style*="background:#7C3AED"] svg,
 body.tema-escuro [style*="background: #DC2626"] svg,
 body.tema-escuro [style*="background: #EF4444"] svg,
 body.tema-escuro [style*="background: #EA4E1B"] svg,
-body.tema-escuro [class*="bg-blue-6"] svg,
+body.tema-escuro [class*="bg-violet-6"] svg,
 body.tema-escuro [class*="bg-red-6"] svg { color: #FFFFFF !important; }
 
 /* No escuro a barra de rolagem fica mais discreta, como nos outros apps */
