@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import LeftNav from "../components/LeftNav";
 import AccountModal from "../components/AccountModal";
+import { AvisosBarra, AlertasTelaCheia } from "../components/GlobalAlerts";
 import { useTheme } from "../context/ThemeContext";
 
 /**
@@ -15,9 +16,13 @@ export default function GestaoApp() {
   return (
     <div className="w-screen h-screen flex overflow-hidden p-2 gap-2" style={{ background: colors.canvas }}>
       <LeftNav onOpenAccount={() => setShowAccount(true)} />
-      <div className="flex-1 flex flex-col overflow-y-auto rounded-2xl" style={{ background: "var(--pagina-fundo)" }}>
-        <Outlet />
+      <div className="flex-1 flex flex-col overflow-hidden gap-2">
+        <AvisosBarra />
+        <div className="flex-1 flex flex-col overflow-y-auto rounded-2xl" style={{ background: "var(--pagina-fundo)" }}>
+          <Outlet />
+        </div>
       </div>
+      <AlertasTelaCheia />
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
     </div>
   );
