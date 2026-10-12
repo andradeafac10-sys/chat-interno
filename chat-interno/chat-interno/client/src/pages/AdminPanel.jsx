@@ -6,6 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 import { api, fileUrl } from "../api";
 import UsersPage from "./Users";
 import MonitoringPage from "./Monitoring";
+import { useLogo, recarregarLogo } from "../branding";
 
 const ABAS = [
   { id: "conta", label: "Minha conta", icon: UserCog },
@@ -26,7 +27,7 @@ export default function AdminPanel({ onBack }) {
 
   return (
     <div className="flex-1 flex flex-col" style={{ background: colors.chatBg }}>
-      <div className="h-14 flex items-center gap-3 px-4 border-b shrink-0" style={{ background: "#0f2a4a" }}>
+      <div className="h-14 flex items-center gap-3 px-4 border-b shrink-0" style={{ background: "#2E1065" }}>
         <button onClick={onBack} className="text-white">
           <ArrowLeft size={19} />
         </button>
@@ -41,7 +42,7 @@ export default function AdminPanel({ onBack }) {
               onClick={() => setAba(id)}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium text-left"
               style={{
-                background: aba === id ? "#0f2a4a" : "transparent",
+                background: aba === id ? "#2E1065" : "transparent",
                 color: aba === id ? "#fff" : colors.textSecondary,
               }}
             >
@@ -53,7 +54,7 @@ export default function AdminPanel({ onBack }) {
           <button
             onClick={() => navigate("/gestao")}
             className="mt-auto flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium border"
-            style={{ borderColor: "#2563EB", color: "#2563EB" }}
+            style={{ borderColor: "#7C3AED", color: "#7C3AED" }}
           >
             <LayoutDashboard size={14} className="shrink-0" />
             Abrir gestão completa
@@ -82,6 +83,44 @@ function MinhaContaTab() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [cleaning, setCleaning] = useState("");
+  const logoAtual = useLogo();
+  const logoInputRef = useRef(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoMsg, setLogoMsg] = useState("");
+
+  const enviarLogo = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLogoBusy(true);
+    setLogoMsg("");
+    try {
+      const form = new FormData();
+      form.append("logo", file);
+      await api.post("/branding/logo", form, { headers: { "Content-Type": "multipart/form-data" } });
+      await recarregarLogo();
+      setLogoMsg("Logo atualizada.");
+    } catch (err) {
+      setLogoMsg(err.response?.data?.error || "Não foi possível enviar a logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const removerLogo = async () => {
+    if (!window.confirm("Remover a logo do sistema?")) return;
+    setLogoBusy(true);
+    setLogoMsg("");
+    try {
+      await api.delete("/branding/logo");
+      await recarregarLogo();
+      setLogoMsg("Logo removida.");
+    } catch (err) {
+      setLogoMsg(err.response?.data?.error || "Não foi possível remover a logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
   const [cleanMsg, setCleanMsg] = useState("");
 
   const isSuperAdmin = user.role === "admin" && user.username === "admin";
@@ -171,21 +210,21 @@ function MinhaContaTab() {
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Senha atual</label>
         <input
           type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required
         />
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Nova senha</label>
         <input
           type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required minLength={6}
         />
         <label className="text-xs font-medium mb-1 block" style={{ color: colors.textSecondary }}>Confirmar nova senha</label>
         <input
           type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           style={{ borderColor: colors.border, background: colors.inputFieldBg, color: colors.textPrimary }}
           required minLength={6}
         />
@@ -194,11 +233,37 @@ function MinhaContaTab() {
         <button
           type="submit" disabled={saving}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: "#2563EB" }}
+          style={{ background: "#7C3AED" }}
         >
           {saving ? "Salvando..." : "Trocar senha"}
         </button>
       </form>
+
+      {isSuperAdmin && (
+        <div className="mt-6 rounded-xl border p-3" style={{ borderColor: colors.border }}>
+          <div className="text-[12px] font-semibold mb-1" style={{ color: colors.textPrimary }}>Logo do sistema</div>
+          <p className="text-[11px] mb-2" style={{ color: colors.textSecondary }}>
+            Aparece no topo do menu e na tela de login. Use PNG com fundo transparente e letras brancas (até 2MB).
+          </p>
+          <div className="rounded-lg p-3 mb-2 flex items-center justify-center min-h-[56px]" style={{ background: "#2E1065" }}>
+            {logoAtual ? <img src={logoAtual} alt="Logo" className="max-h-12 max-w-full object-contain" /> : <span className="text-[12px] text-white/70">Nenhuma logo enviada</span>}
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={enviarLogo} className="hidden" />
+          <div className="flex gap-2">
+            <button onClick={() => logoInputRef.current?.click()} disabled={logoBusy}
+              className="flex-1 rounded-lg py-2 text-[13px] font-medium text-white disabled:opacity-50" style={{ background: "#7C3AED" }}>
+              {logoBusy ? "Enviando..." : logoAtual ? "Trocar logo" : "Enviar logo"}
+            </button>
+            {logoAtual && (
+              <button onClick={removerLogo} disabled={logoBusy}
+                className="rounded-lg px-3 py-2 text-[13px] font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+                Remover
+              </button>
+            )}
+          </div>
+          {logoMsg && <div className="text-[12px] mt-2" style={{ color: colors.textSecondary }}>{logoMsg}</div>}
+        </div>
+      )}
 
       {isSuperAdmin && (
         <div className="mt-6">
