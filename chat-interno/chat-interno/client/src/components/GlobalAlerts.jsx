@@ -5,6 +5,7 @@ import { getSocket } from "../socket";
 import AnnouncementOverlay from "./AnnouncementOverlay";
 import ReuniaoAlertOverlay from "./ReuniaoAlertOverlay";
 import AvisosPendentesBanner from "./AvisosPendentesBanner";
+import PerfilObrigatorio from "./PerfilObrigatorio";
 
 const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
@@ -66,6 +67,7 @@ export function AlertasTelaCheia() {
 
   return (
     <>
+      <PerfilObrigatorio />
       <AnnouncementOverlay
         key={announcement?.id || "nenhum"}
         announcement={announcement}
