@@ -4,7 +4,7 @@ import { MessageSquareText, Plus, X, Search, Paperclip, Check, ChevronDown, Chev
 import PageHeader from '../PageHeader';
 import { api, fileUrl } from '../../api';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 export default function Feedbacks() {
   const [aba, setAba] = useState('lista'); // 'lista' | 'ranking' | 'calendario'
@@ -88,7 +88,7 @@ export default function Feedbacks() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por pessoa ou texto do feedback..."
-            className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
         </div>
         <button
@@ -153,21 +153,21 @@ export default function Feedbacks() {
         <button
           onClick={() => setAba('lista')}
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
-          style={{ background: aba === 'lista' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'lista' ? 'var(--pagina-cartao)' : '#64748B' }}
+          style={{ background: aba === 'lista' ? '#2E1065' : 'var(--pagina-borda-suave)', color: aba === 'lista' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
           Feedbacks
         </button>
         <button
           onClick={() => setAba('ranking')}
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
-          style={{ background: aba === 'ranking' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'ranking' ? 'var(--pagina-cartao)' : '#64748B' }}
+          style={{ background: aba === 'ranking' ? '#2E1065' : 'var(--pagina-borda-suave)', color: aba === 'ranking' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
           Ranking
         </button>
         <button
           onClick={() => setAba('calendario')}
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3 flex items-center gap-1.5"
-          style={{ background: aba === 'calendario' ? '#081328' : 'var(--pagina-borda-suave)', color: aba === 'calendario' ? 'var(--pagina-cartao)' : '#64748B' }}
+          style={{ background: aba === 'calendario' ? '#2E1065' : 'var(--pagina-borda-suave)', color: aba === 'calendario' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
           <Calendar size={12} /> Calendário
         </button>
@@ -181,7 +181,7 @@ export default function Feedbacks() {
       <>
       <div className="px-6 pt-3 bg-white border-b flex items-center gap-2" style={{ borderColor: 'var(--pagina-borda)' }}>
         {[
-          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#081328', corTexto: 'var(--pagina-cartao)' },
+          { key: 'todos', label: `Todos (${contagem.todos})`, corBg: '#2E1065', corTexto: 'var(--pagina-cartao)' },
           { key: 'assinados', label: `Assinados (${contagem.assinados})`, corBg: '#F0FDF4', corTexto: '#16A34A' },
           { key: 'pendentes', label: `Pendentes (${contagem.pendentes})`, corBg: '#FEF2F2', corTexto: '#DC2626' },
         ].map((op) => (
@@ -395,7 +395,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
           {pessoasEscolhidas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {pessoasEscolhidas.map((u) => (
-                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EFF4FF', color: NAVY }}>
+                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EDE9FE', color: NAVY }}>
                   {u.name}
                   <button type="button" onClick={() => remover(u.id)}><X size={12} /></button>
                 </span>
@@ -406,7 +406,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
             value={filtroPessoa}
             onChange={(e) => setFiltroPessoa(e.target.value)}
             placeholder="Buscar pessoa pra adicionar..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
           {filtroPessoa && (
             <div className="max-h-32 overflow-y-auto border border-slate-100 rounded-lg mb-3 divide-y divide-slate-50">
@@ -432,7 +432,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Ex: Feedback sobre atendimento"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
           />
 
@@ -442,7 +442,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
             onChange={(e) => setContent(e.target.value)}
             placeholder="Escreva aqui o resumo da conversa, pontos combinados, etc."
             rows={5}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
           />
 
@@ -625,23 +625,23 @@ function CalendarioAlinhamentos({ feedbacks }) {
               <button
                 key={i}
                 onClick={() => itens.length > 0 && setDiaAberto(dia)}
-                className="min-h-[70px] rounded-md p-1.5 text-left border transition-colors hover:border-[#2563EB]"
+                className="min-h-[70px] rounded-md p-1.5 text-left border transition-colors hover:border-[#7C3AED]"
                 style={{
-                  borderColor: ehHoje ? '#2563EB' : 'var(--pagina-borda)',
+                  borderColor: ehHoje ? '#7C3AED' : 'var(--pagina-borda)',
                   borderWidth: ehHoje ? 2 : 1,
                   opacity: doMes ? 1 : 0.4,
-                  background: ehHoje ? '#EFF4FF' : 'transparent',
+                  background: ehHoje ? '#EDE9FE' : 'transparent',
                   cursor: itens.length > 0 ? 'pointer' : 'default',
                 }}
               >
-                <span className="text-[11px] font-medium" style={{ color: ehHoje ? '#2563EB' : 'var(--pagina-texto-2)' }}>
+                <span className="text-[11px] font-medium" style={{ color: ehHoje ? '#7C3AED' : 'var(--pagina-texto-2)' }}>
                   {dia.getDate()}{ehHoje ? ' hoje' : ''}
                 </span>
                 {itens.length > 0 && (
                   <div className="mt-1.5 flex items-center gap-1">
                     <span
                       className="text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
-                      style={{ background: '#EFF4FF', color: '#2563EB' }}
+                      style={{ background: '#EDE9FE', color: '#7C3AED' }}
                     >
                       {itens.length}
                     </span>
