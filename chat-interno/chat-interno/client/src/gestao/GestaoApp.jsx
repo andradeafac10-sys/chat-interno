@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import LeftNav from "../components/LeftNav";
 import AccountModal from "../components/AccountModal";
 import { AvisosBarra, AlertasTelaCheia } from "../components/GlobalAlerts";
+import UpdateBanner from "../components/UpdateBanner";
 import { useTheme } from "../context/ThemeContext";
 
 /**
@@ -23,6 +24,7 @@ export default function GestaoApp() {
         </div>
       </div>
       <AlertasTelaCheia />
+      <UpdateBanner />
       {showAccount && <AccountModal onClose={() => setShowAccount(false)} />}
     </div>
   );
