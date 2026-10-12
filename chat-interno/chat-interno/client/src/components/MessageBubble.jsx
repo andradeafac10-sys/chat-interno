@@ -43,7 +43,7 @@ function formatarTexto(texto) {
   while ((m = regex.exec(texto)) !== null) {
     if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
     if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2563EB]">{m[1]}</span>);
+      partes.push(<span key={key++} className="font-semibold text-[#7C3AED]">{m[1]}</span>);
     } else if (m[2] !== undefined) {
       partes.push(<strong key={key++}>{m[2]}</strong>);
     } else if (m[3] !== undefined) {
@@ -63,7 +63,7 @@ function formatarTexto(texto) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2563EB] break-all"
+          className="underline text-[#7C3AED] break-all"
         >
           {url}
         </a>
@@ -117,7 +117,7 @@ export default function MessageBubble({
       {!mine && (
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden mt-0.5"
-          style={{ background: primeira.sender_color || "#2563EB" }}
+          style={{ background: primeira.sender_color || "#7C3AED" }}
         >
           {primeira.sender_avatar_url ? (
             <img src={fileUrl(primeira.sender_avatar_url)} alt={primeira.sender_name} className="w-full h-full object-cover" />
@@ -270,10 +270,10 @@ function MessageLine({
         {m.reply_id && (
           <button
             onClick={() => onJumpToMessage?.(m.reply_id)}
-            className="block w-full text-left mb-1 pl-2 border-l-2 border-[#2563EB] rounded px-2 py-1 hover:brightness-95"
+            className="block w-full text-left mb-1 pl-2 border-l-2 border-[#7C3AED] rounded px-2 py-1 hover:brightness-95"
             style={{ background: colors.inputFieldBg }}
           >
-            <div className="text-[11px] font-medium text-[#2563EB]">{m.reply_sender_name}</div>
+            <div className="text-[11px] font-medium text-[#7C3AED]">{m.reply_sender_name}</div>
             <div className="text-[12px] truncate max-w-[380px]" style={{ color: colors.textSecondary }}>
               {replyPreviewText(m.reply_type, m.reply_content, m.reply_deleted)}
             </div>
@@ -287,7 +287,7 @@ function MessageLine({
           >
             {soEmojis ? m.content.trim() : formatarTexto(m.content)}
             {m.edited && <span className="text-[10px] italic ml-1.5 align-middle" style={{ color: colors.textSecondary }}>(editado)</span>}
-            {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#2563EB]" />}
+            {m.pinned && <Pin size={11} className="inline align-middle ml-1.5 text-[#7C3AED]" />}
           </div>
         )}
 
@@ -312,7 +312,7 @@ function MessageLine({
               style={{ background: colors.inputFieldBg, borderColor: colors.border }}
             >
               <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: colors.panelBg }}>
-                <FileIcon size={16} color="#2563EB" />
+                <FileIcon size={16} color="#7C3AED" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium truncate" style={{ color: colors.textPrimary }}>{m.file_name}</div>
@@ -343,7 +343,7 @@ function MessageLine({
               className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
               style={{ background: colors.panelBg }}
             >
-              {playingId === m.id ? <Pause size={14} color="#2563EB" /> : <Play size={14} color="#2563EB" />}
+              {playingId === m.id ? <Pause size={14} color="#7C3AED" /> : <Play size={14} color="#7C3AED" />}
             </button>
             <div className="flex items-center gap-[2px] flex-1 h-5">
               {Array.from({ length: 20 }).map((_, i) => (
@@ -371,9 +371,6 @@ function MessageLine({
 
         <div className="text-[10px] text-right mt-0.5 flex items-center justify-end gap-1" style={{ color: colors.textSecondary, opacity: 0.8 }}>
           {fmtHora(m.created_at)}
-          {/* Só faz sentido mostrar "Enviado"/"Lido" nas MINHAS mensagens — igual
-              o tique do WhatsApp, ninguém vê esse status na mensagem dos outros. */}
-          {mine && <span>· {m.read ? "Lido" : "Enviado"}</span>}
         </div>
       </div>
 
@@ -386,7 +383,7 @@ function MessageLine({
               key={emoji}
               title={nomes}
               className="text-[12px] rounded-full px-2 py-0.5 border flex items-center gap-1 cursor-default"
-              style={{ background: colors.panelBg, borderColor: myReaction === emoji ? "#2563EB" : colors.border, color: colors.textPrimary }}
+              style={{ background: colors.panelBg, borderColor: myReaction === emoji ? "#7C3AED" : colors.border, color: colors.textPrimary }}
             >
               <span>{emoji}</span> <span className="text-[10px]">{count}</span>
             </span>
