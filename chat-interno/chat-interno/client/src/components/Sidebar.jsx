@@ -4,6 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { fileUrl } from "../api";
 
+function previaUltima(m, meuId) {
+  if (!m) return "";
+  let t = m.type === "image" ? "Foto" : m.type === "audio" ? "Áudio" : m.type === "file" ? "Arquivo" : (m.content || "").replace(/\s+/g, " ");
+  return (m.sender_id === meuId ? "Você: " : "") + t;
+}
+
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenUsers, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, onMarkUnread, escondidoNoMobile }) {
@@ -123,7 +129,8 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full" style={{ background: colors.success || "#22C55E", border: `2px solid ${colors.panelBg}` }} />
                 )}
               </div>
-              <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+              <div className="min-w-0 flex items-center justify-between gap-2">
                 <span className="min-w-0 flex items-center gap-1">
                   {c.pinned && <Pin size={11} className="shrink-0" style={{ color: colors.accent }} />}
                   <span
@@ -139,15 +146,21 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
                   </span>
                 )}
               </div>
-              {naoLida && (
-                <span
-                  className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-bold shrink-0 flex items-center justify-center"
-                  style={{ background: colors.badgeBg || "#6D28D9", color: colors.badgeText || "#fff" }}
-                  title={`${unreadCounts[c.id]} não lida(s)`}
-                >
-                  {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
+              <div className="min-w-0 flex items-center justify-between gap-2">
+                <span className="text-[12.5px] truncate" style={{ color: naoLida ? colors.textPrimary : colors.textSecondary, fontWeight: naoLida ? 500 : 400 }}>
+                  {previaUltima(c.lastMessage, user.id)}
                 </span>
-              )}
+                {naoLida && (
+                  <span
+                    className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] font-bold shrink-0 flex items-center justify-center"
+                    style={{ background: colors.badgeBg || "#6D28D9", color: colors.badgeText || "#fff" }}
+                    title={`${unreadCounts[c.id]} não lida(s)`}
+                  >
+                    {unreadCounts[c.id] > 99 ? "99+" : unreadCounts[c.id]}
+                  </span>
+                )}
+              </div>
+              </div>
             </div>
           );
         })}
