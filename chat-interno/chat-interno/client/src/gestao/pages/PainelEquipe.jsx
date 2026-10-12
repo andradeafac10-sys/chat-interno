@@ -6,11 +6,11 @@ import { gestaoApi } from '../gestaoApi';
 import TaskFormModal from '../components/TaskFormModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const STATUS_LABELS = { pending: 'Pendente', in_progress: 'Em andamento', done: 'Concluída', canceled: 'Cancelada' };
 const STATUS_CORES = {
   pending: { bg: '#F1F5F9', cor: '#475569' },
-  in_progress: { bg: '#EFF4FF', cor: NAVY },
+  in_progress: { bg: '#EDE9FE', cor: NAVY },
   done: { bg: '#ECFDF3', cor: '#16A34A' },
   canceled: { bg: '#F1F5F9', cor: '#94A3B8' },
 };
@@ -47,7 +47,7 @@ function foiNoPrazo(t) {
 const CARDS = [
   { key: '', label: 'Total de tarefas', icone: ListTodo, cor: '#334155', bg: '#F1F5F9' },
   { key: 'done', label: 'Concluídas', icone: CheckCircle2, cor: '#16A34A', bg: '#ECFDF3' },
-  { key: 'in_progress', label: 'Em andamento', icone: Clock3, cor: NAVY, bg: '#EFF4FF' },
+  { key: 'in_progress', label: 'Em andamento', icone: Clock3, cor: NAVY, bg: '#EDE9FE' },
   { key: 'overdue', label: 'Atrasadas', icone: AlertTriangle, cor: '#DC2626', bg: '#FEF2F2' },
   { key: 'on_time', label: 'Feitas no prazo', icone: CalendarCheck2, cor: '#16A34A', bg: '#ECFDF3' },
   { key: 'late', label: 'Feitas atrasadas', icone: TimerOff, cor: '#CA8A04', bg: '#FEFCE8' },
@@ -171,7 +171,7 @@ export default function PainelEquipe() {
                   key={a.id}
                   onClick={() => setFiltroResponsavel(ativo ? '' : String(a.id))}
                   className="shrink-0 rounded-xl border px-4 py-3 text-left min-w-[170px] transition-colors"
-                  style={{ borderColor: ativo ? NAVY : 'var(--pagina-borda)', background: ativo ? '#EFF4FF' : 'transparent' }}
+                  style={{ borderColor: ativo ? NAVY : 'var(--pagina-borda)', background: ativo ? '#EDE9FE' : 'transparent' }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12.5px] font-semibold text-slate-800 truncate">{a.name}</span>
@@ -262,8 +262,8 @@ export default function PainelEquipe() {
                     <td className="px-3 py-2 text-slate-500 max-w-[180px] truncate" title={t.description}>{t.description || '—'}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setOpenTaskId(t.id)} className="text-slate-400 hover:text-[#2563EB]" title="Ver"><Eye size={14} /></button>
-                        <button onClick={() => setEditingTask(t)} className="text-slate-400 hover:text-[#2563EB]" title="Editar"><Pencil size={14} /></button>
+                        <button onClick={() => setOpenTaskId(t.id)} className="text-slate-400 hover:text-[#7C3AED]" title="Ver"><Eye size={14} /></button>
+                        <button onClick={() => setEditingTask(t)} className="text-slate-400 hover:text-[#7C3AED]" title="Editar"><Pencil size={14} /></button>
                         <button onClick={() => apagar(t.id)} className="text-slate-400 hover:text-red-500" title="Apagar"><Trash2 size={14} /></button>
                       </div>
                     </td>
@@ -286,7 +286,7 @@ export default function PainelEquipe() {
                     <button
                       key={t.id}
                       onClick={() => setOpenTaskId(t.id)}
-                      className="text-left border rounded-lg p-2.5 hover:border-[#2563EB] transition-colors"
+                      className="text-left border rounded-lg p-2.5 hover:border-[#7C3AED] transition-colors"
                       style={{ borderColor: 'var(--pagina-borda)' }}
                     >
                       <div className="text-[12.5px] font-medium text-slate-800">{t.title}</div>
@@ -324,7 +324,7 @@ export default function PainelEquipe() {
                     <span className="text-[11px] font-medium" style={{ color: ehHoje ? NAVY : 'var(--pagina-texto-2)' }}>{dia.getDate()}</span>
                     <div className="flex flex-col gap-0.5 mt-1">
                       {doDia.slice(0, 3).map((t) => (
-                        <button key={t.id} onClick={() => setOpenTaskId(t.id)} className="text-[10px] rounded px-1 py-0.5 truncate block text-left" style={{ background: t.is_overdue ? '#FEE2E2' : '#EFF4FF', color: t.is_overdue ? '#DC2626' : '#0C447C' }}>
+                        <button key={t.id} onClick={() => setOpenTaskId(t.id)} className="text-[10px] rounded px-1 py-0.5 truncate block text-left" style={{ background: t.is_overdue ? '#FEE2E2' : '#EDE9FE', color: t.is_overdue ? '#DC2626' : '#4C1D95' }}>
                           {t.title}
                         </button>
                       ))}
