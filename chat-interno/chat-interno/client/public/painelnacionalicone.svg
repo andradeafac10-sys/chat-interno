@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="310" height="310" viewBox="0 0 310 310" role="img" aria-label="Painel Nacional"><defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#5B21B6"/></linearGradient>
+  </defs>
+    <rect x="0" y="0" width="310" height="310" rx="76" fill="url(#g)"/>
+    <path d="M70 115 155 68l85 47v18H70z" fill="#fff"/>
+    <path d="M82 143h146v16H82z" fill="#EDE9FE"/>
+    <path d="M93 162h22v77H93zm51 0h22v77h-22zm51 0h22v77h-22z" fill="#fff"/>
+    <path d="M75 244h160v20H75z" fill="#DDD6FE"/>
+    <path d="M70 277h170" stroke="#C4B5FD" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="248" cy="64" r="26" fill="#C4B5FD"/>
+    <path d="m237 64 8 8 15-17" fill="none" stroke="#5B21B6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
