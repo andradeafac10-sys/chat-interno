@@ -49,7 +49,7 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
         style={{ opacity: apagado ? 0.5 : 1 }}
       >
         <div className="relative w-7 h-7 shrink-0">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden" style={{ background: u.color || "#2563EB" }}>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden" style={{ background: u.color || "#7C3AED" }}>
             {u.avatar_url ? <img src={fileUrl(u.avatar_url)} alt={u.name} className="w-full h-full object-cover" /> : initials}
           </div>
           {!apagado && (
@@ -58,14 +58,14 @@ export default function OnlinePanel({ onlineUsers, onOpenConversation }) {
         </div>
         <span className="text-sm truncate flex items-center gap-1" style={{ color: colors.textPrimary }}>
           {u.name}
-          {u.role === "admin" && <ShieldCheck size={11} className="text-[#2563EB] shrink-0" />}
+          {u.role === "admin" && <ShieldCheck size={11} className="text-[#7C3AED] shrink-0" />}
         </span>
       </button>
     );
   };
 
   return (
-    <div className="hidden lg:block w-[200px] shrink-0 border-l overflow-y-auto py-3" style={{ background: colors.panelBg, borderColor: colors.border }}>
+    <div className="hidden lg:block w-[200px] shrink-0 rounded-2xl overflow-y-auto py-3" style={{ background: colors.panelBg, borderColor: colors.border }}>
       <div className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide" style={{ color: colors.textSecondary }}>
         ONLINE — {online.length}
       </div>
