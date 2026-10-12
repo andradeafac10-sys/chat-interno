@@ -1,255 +1,246 @@
-// client/src/gestao/components/RecurrenceFormModal.jsx
+  // client/src/gestao/components/ReuniaoDetalheModal.jsx
 import { useEffect, useState } from 'react';
-import { gestaoApi } from '../gestaoApi';
+import { X, Trash2, Pencil, CheckCircle2, History } from 'lucide-react';
+import { api } from '../../api';
+import ReuniaoFormModal from './ReuniaoFormModal';
 
-const PRIORITY_LABELS = { low: 'Baixa', medium: 'Média', high: 'Alta' };
-const RECURRENCE_LABELS = {
-  daily: 'Todos os dias',
-  weekdays: 'Dias úteis (seg a sex)',
-  specific_days: 'Dias específicos da semana',
-  monthly: 'Todo mês (mesmo dia)',
-};
-const DIAS_SEMANA = [
-  { valor: 0, label: 'D' }, { valor: 1, label: 'S' }, { valor: 2, label: 'T' },
-  { valor: 3, label: 'Q' }, { valor: 4, label: 'Q' }, { valor: 5, label: 'S' }, { valor: 6, label: 'S' },
-];
+const NAVY = '#7C3AED';
 
-export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
-  const editando = !!recurrence;
+export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
+  const [reuniao, setReuniao] = useState(null);
+  const [ataHoje, setAtaHoje] = useState('');
+  const [presencas, setPresencas] = useState({});
+  const [salvando, setSalvando] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false); // fechado por padrão — clica pra ver
+  const [erro, setErro] = useState('');
 
-  const [title, setTitle] = useState(recurrence?.title || '');
-  const [description, setDescription] = useState(recurrence?.description || '');
-  const [priority, setPriority] = useState(recurrence?.priority || 'medium');
-  const [recurrenceType, setRecurrenceType] = useState(recurrence?.recurrence_type || 'daily');
-  const [daysOfWeek, setDaysOfWeek] = useState(recurrence?.days_of_week || []);
-  const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
-  const [startTime, setStartTime] = useState(recurrence?.start_time?.slice(0, 5) || '');
-  const [startDate, setStartDate] = useState(recurrence?.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(recurrence?.end_date?.slice(0, 10) || '');
-  const [assignees, setAssignees] = useState([]);
-  const [assigneeIds, setAssigneeIds] = useState((recurrence?.assignees || []).map((a) => a.id));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    gestaoApi.assignableUsers().then((data) => setAssignees(data.users || [])).catch(() => {});
-  }, []);
-
-  const toggleAssignee = (id) => {
-    setAssigneeIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-  const toggleDia = (dia) => {
-    setDaysOfWeek((prev) => (prev.includes(dia) ? prev.filter((x) => x !== dia) : [...prev, dia]));
+  const load = () => {
+    api.get(`/reunioes/${reuniaoId}`)
+      .then(({ data }) => {
+        setReuniao(data.reuniao);
+        const p = {};
+        data.reuniao.participantes.forEach((x) => { if (x.presente != null) p[x.userId] = x.presente; });
+        setPresencas(p);
+      })
+      .catch((err) => setErro(err.response?.data?.error || 'Não deu pra abrir essa reunião.'));
   };
 
-  async function submit(e) {
-    e.preventDefault();
-    if (!title.trim()) { setError('Escreva um título pra rotina.'); return; }
-    if (recurrenceType === 'specific_days' && daysOfWeek.length === 0) { setError('Escolha pelo menos um dia da semana.'); return; }
-    if (assigneeIds.length === 0) { setError('Escolha ao menos um responsável.'); return; }
-    setSaving(true);
-    setError('');
+  useEffect(() => { load(); }, [reuniaoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Salva como uma NOVA entrada do histórico — não apaga o que já tinha sido
+  // escrito antes (nas reuniões anteriores da série, por exemplo).
+  const salvarAta = async () => {
+    if (!ataHoje.trim()) return;
+    setSalvando(true);
     try {
-      const payload = {
-        title: title.trim(),
-        description: description.trim() || null,
-        priority,
-        recurrence_type: recurrenceType,
-        days_of_week: recurrenceType === 'specific_days' ? daysOfWeek : [],
-        day_of_month: recurrenceType === 'monthly' ? Number(dayOfMonth) : null,
-        start_time: startTime || null,
-        start_date: startDate,
-        end_date: endDate || null,
-        assignee_ids: assigneeIds,
-      };
-      if (editando) {
-        await gestaoApi.updateRecurrence(recurrence.id, payload);
-      } else {
-        await gestaoApi.createRecurrence(payload);
-      }
-      onSaved();
+      await api.post(`/reunioes/${reuniaoId}/ata-entradas`, { texto: ataHoje });
+      setAtaHoje('');
+      onChanged?.();
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra salvar a ata.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const salvarPresencas = async () => {
+    try {
+      await api.put(`/reunioes/${reuniaoId}/ata`, { ata: reuniao?.ata || '', presencas });
+      onChanged?.();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra salvar a presença.');
+    }
+  };
+
+  const alternarConcluida = async () => {
+    try {
+      await api.patch(`/reunioes/${reuniaoId}/concluir`, { concluida: !reuniao.concluida });
+      onChanged?.();
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Não deu pra atualizar.');
+    }
+  };
+
+  const apagarReuniao = async () => {
+    let apagarSerie = false;
+    if (reuniao?.serie_id) {
+      const escolha = confirm(
+        'Essa reunião se repete.\n\nOK = apagar TODAS as próximas da série (as que já aconteceram ficam, com a ata preservada).\nCancelar = apagar só essa data.'
+      );
+      apagarSerie = escolha;
+      if (!escolha && !confirm('Apagar só essa data então?')) return;
+    } else if (!confirm('Apagar essa reunião? Essa ação não tem volta.')) {
+      return;
+    }
+    try {
+      await api.delete(`/reunioes/${reuniaoId}${apagarSerie ? '?serie=1' : ''}`);
+      onChanged?.();
       onClose();
     } catch (err) {
-      setError(err.message || 'Não consegui salvar a rotina.');
-    } finally {
-      setSaving(false);
+      alert(err.response?.data?.error || 'Não deu pra apagar.');
     }
+  };
+
+  if (erro) {
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+        <div className="bg-white rounded-xl p-5 w-[360px]" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[13px] text-red-500 mb-3">{erro}</p>
+          <button onClick={onClose} className="text-[13px] font-medium" style={{ color: NAVY }}>Fechar</button>
+        </div>
+      </div>
+    );
+  }
+  if (!reuniao) return null;
+
+  if (editando) {
+    return (
+      <ReuniaoFormModal
+        reuniaoParaEditar={reuniao}
+        onClose={() => setEditando(false)}
+        onSaved={() => { setEditando(false); load(); onChanged?.(); }}
+      />
+    );
   }
 
+  const inicio = new Date(reuniao.inicio);
+  const fim = new Date(reuniao.fim);
+  const jaPassou = fim < new Date();
+  const souDono = reuniao.souDono;
+  const souParticipante = reuniao.souParticipante ?? souDono;
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>{editando ? 'Editar rotina' : 'Nova rotina'}</h2>
-          <button type="button" style={styles.closeBtn} onClick={onClose}>✕</button>
-        </div>
-
-        <div style={styles.body}>
-          <label style={styles.label}>Título</label>
-          <input
-            style={styles.input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Ligar os computadores"
-            autoFocus
-          />
-
-          <label style={styles.label}>Descrição / observação (opcional)</label>
-          <textarea
-            style={styles.textarea}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Detalhes da rotina..."
-            rows={2}
-          />
-
-          <div style={styles.row2}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Prioridade</label>
-              <select style={styles.input} value={priority} onChange={(e) => setPriority(e.target.value)}>
-                {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto py-[4vh] px-4">
+      <div className="bg-white rounded-xl w-[480px] max-w-full p-5 my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 mb-3 pb-3 border-b" style={{ borderColor: 'var(--pagina-borda)' }}>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[15.5px] font-semibold text-slate-800 truncate">{reuniao.titulo}</span>
+              <span className="text-[10px] rounded-full px-2 py-0.5 shrink-0"
+                style={reuniao.tipo === 'externa' ? { background: '#FAEEDA', color: '#633806' } : { background: '#EDE9FE', color: '#4C1D95' }}>
+                {reuniao.tipo === 'externa' ? 'Externa' : 'Interna'}
+              </span>
+              {reuniao.concluida && (
+                <span className="text-[10px] rounded-full px-2 py-0.5 shrink-0" style={{ background: '#E1F5EE', color: '#085041' }}>
+                  Concluída
+                </span>
+              )}
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Horário (opcional)</label>
-              <input type="time" style={styles.input} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <div className="text-[12px] text-slate-500 mt-0.5">
+              {inicio.toLocaleDateString('pt-BR')} · {inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} às {fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              {reuniao.local ? ` · ${reuniao.local}` : ''}
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5">
+              Criada por {reuniao.criado_por_nome}
+              {reuniao.serie_id ? ' · reunião que se repete (ata única pra série toda)' : ''}
             </div>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {souParticipante && (
+              <button onClick={alternarConcluida} className="hover:opacity-70" style={{ color: reuniao.concluida ? '#16A34A' : '#94A3B8' }} title={reuniao.concluida ? 'Desmarcar como concluída' : 'Marcar como concluída'}>
+                <CheckCircle2 size={17} />
+              </button>
+            )}
+            {souDono && (
+              <button onClick={() => setEditando(true)} className="text-slate-400 hover:text-[#7C3AED]" title="Editar reunião">
+                <Pencil size={15} />
+              </button>
+            )}
+            {souDono && <button onClick={apagarReuniao} className="text-slate-400 hover:text-red-500" title="Apagar reunião"><Trash2 size={15} /></button>}
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          </div>
+        </div>
 
-          <label style={styles.label}>Repetir</label>
-          <select style={styles.input} value={recurrenceType} onChange={(e) => setRecurrenceType(e.target.value)}>
-            {Object.entries(RECURRENCE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+        {reuniao.descricao && (
+          <div className="mb-3">
+            <div className="text-[11px] font-medium text-slate-500 mb-1">Pauta</div>
+            <div className="text-[12.5px] text-slate-600 whitespace-pre-wrap">{reuniao.descricao}</div>
+          </div>
+        )}
 
-          {recurrenceType === 'specific_days' && (
-            <div style={styles.diasRow}>
-              {DIAS_SEMANA.map((d) => (
-                <button
-                  key={d.valor}
-                  type="button"
-                  onClick={() => toggleDia(d.valor)}
-                  style={daysOfWeek.includes(d.valor) ? styles.diaBtnAtivo : styles.diaBtn}
-                >
-                  {d.label}
-                </button>
+        <div className="text-[11px] font-medium text-slate-500 mb-1.5">
+          Participantes {jaPassou && souParticipante ? '— marque quem esteve presente' : ''}
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {reuniao.participantes.map((p) => {
+            const presente = presencas[p.userId];
+            return (
+              <button
+                key={p.userId}
+                type="button"
+                disabled={!souParticipante || !jaPassou}
+                onClick={() => setPresencas((prev) => ({ ...prev, [p.userId]: !prev[p.userId] }))}
+                onBlur={salvarPresencas}
+                className="text-[11.5px] font-medium rounded-full px-2.5 py-1 border disabled:cursor-default"
+                style={presente === true
+                  ? { background: '#E1F5EE', borderColor: '#5DCAA5', color: '#085041' }
+                  : presente === false
+                    ? { background: 'transparent', borderColor: 'var(--pagina-borda)', color: 'var(--pagina-texto-2)' }
+                    : { background: '#EDE9FE', borderColor: '#DDD6FE', color: NAVY }}
+              >
+                {p.name}{presente === true ? ' ✓' : presente === false ? ' — ausente' : ''}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="text-[13px] font-semibold text-slate-800 mb-1.5">
+          Ata de hoje {reuniao.serie_id ? '(compartilhada por toda a série)' : ''}
+        </div>
+        {souParticipante ? (
+          <>
+            <textarea
+              value={ataHoje}
+              onChange={(e) => setAtaHoje(e.target.value)}
+              rows={4}
+              placeholder="Escreva o que foi conversado hoje..."
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED] mb-2"
+            />
+            <button onClick={salvarAta} disabled={salvando || !ataHoje.trim()}
+              className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mb-4" style={{ background: NAVY }}>
+              {salvando ? 'Salvando...' : 'Salvar ata de hoje'}
+            </button>
+          </>
+        ) : (
+          <div className="text-[10.5px] text-slate-400 mb-4">Só participantes dessa reunião podem escrever a ata.</div>
+        )}
+
+        <button
+          onClick={() => setHistoricoAberto((v) => !v)}
+          className="w-full flex items-center gap-1.5 text-[13px] font-semibold text-slate-800 mb-2"
+        >
+          <History size={14} style={{ color: 'var(--pagina-texto-2)' }} />
+          Histórico da série
+          {(reuniao.historicoAta || []).length > 0 && (
+            <span className="text-[10.5px] font-normal" style={{ color: 'var(--pagina-texto-2)' }}>
+              ({reuniao.historicoAta.length})
+            </span>
+          )}
+          <span className="ml-auto text-[11px]" style={{ color: 'var(--pagina-texto-2)' }}>
+            {historicoAberto ? '▲ esconder' : '▼ mostrar'}
+          </span>
+        </button>
+        {historicoAberto && (
+          <>
+            {(!reuniao.historicoAta || reuniao.historicoAta.length === 0) && (
+              <p className="text-[12px] text-slate-400">Nenhuma ata registrada ainda.</p>
+            )}
+            <div className="flex flex-col gap-3 pl-3 max-h-[220px] overflow-y-auto" style={{ borderLeft: '2px solid var(--pagina-borda)' }}>
+              {(reuniao.historicoAta || []).map((h) => (
+                <div key={h.id}>
+                  <div className="text-[10.5px] font-bold" style={{ color: NAVY }}>
+                    {new Date(h.criado_em).toLocaleDateString('pt-BR')} · {h.autor_nome}
+                  </div>
+                  <div className="text-[12px] text-slate-600 whitespace-pre-wrap mt-0.5">{h.texto}</div>
+                </div>
               ))}
             </div>
-          )}
-
-          {recurrenceType === 'monthly' && (
-            <>
-              <label style={styles.label}>Dia do mês</label>
-              <input
-                type="number" min={1} max={31}
-                style={styles.input}
-                value={dayOfMonth}
-                onChange={(e) => setDayOfMonth(e.target.value)}
-              />
-            </>
-          )}
-
-          <div style={styles.row2}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Começa em</label>
-              <input type="date" style={styles.input} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Termina em (opcional)</label>
-              <input type="date" style={styles.input} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-          </div>
-
-          <label style={styles.label}>Responsáveis</label>
-          <div style={styles.assigneesBox}>
-            {assignees.length === 0 && <p style={styles.hint}>Carregando...</p>}
-            {assignees.map((u) => (
-              <label key={u.id} style={styles.assigneeRow}>
-                <input
-                  type="checkbox"
-                  checked={assigneeIds.includes(u.id)}
-                  onChange={() => toggleAssignee(u.id)}
-                />
-                {u.name}
-              </label>
-            ))}
-          </div>
-
-          {error && <p style={styles.error}>{error}</p>}
-        </div>
-
-        <div style={styles.footer}>
-          <button type="button" style={styles.cancelBtn} onClick={onClose}>Cancelar</button>
-          <button type="submit" style={styles.saveBtn} disabled={saving}>
-            {saving ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar rotina'}
-          </button>
-        </div>
-      </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }
-
-const NAVY = '#2563EB';
-
-const styles = {
-  overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-    overflowY: 'auto', padding: '4vh 16px', zIndex: 1000,
-  },
-  modal: {
-    background: 'var(--pagina-cartao)', borderRadius: 12, width: '92%', maxWidth: 480,
-    boxShadow: '0 10px 40px rgba(0,0,0,0.3)', margin: 'auto',
-  },
-  header: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '16px 20px', borderBottom: '1px solid #E4E8EE', background: NAVY,
-    borderRadius: '12px 12px 0 0',
-  },
-  title: { margin: 0, color: 'var(--pagina-cartao)', fontSize: 17 },
-  closeBtn: { background: 'none', border: 'none', color: 'var(--pagina-cartao)', fontSize: 18, cursor: 'pointer' },
-  body: { padding: 20, display: 'flex', flexDirection: 'column' },
-  label: { fontSize: 13, fontWeight: 600, color: 'var(--pagina-texto-1)', marginTop: 12, marginBottom: 6 },
-  input: {
-    padding: '9px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)',
-    fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
-    background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-1)',
-  },
-  textarea: {
-    padding: '9px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)',
-    fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', resize: 'vertical',
-    background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-1)',
-  },
-  row2: { display: 'flex', gap: 12 },
-  diasRow: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
-  diaBtn: {
-    padding: '7px 10px', borderRadius: 8, border: '1px solid var(--pagina-borda)', background: 'var(--pagina-cartao)',
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-texto-1)',
-  },
-  diaBtnAtivo: {
-    padding: '7px 10px', borderRadius: 8, border: `1px solid ${NAVY}`, background: NAVY,
-    fontSize: 12, cursor: 'pointer', color: 'var(--pagina-cartao)', fontWeight: 600,
-  },
-  assigneesBox: {
-    border: '1px solid var(--pagina-borda)', borderRadius: 8, padding: '8px 10px',
-    maxHeight: 140, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6,
-  },
-  assigneeRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--pagina-texto-1)', cursor: 'pointer' },
-  hint: { fontSize: 13, color: 'var(--pagina-texto-2)', margin: 0 },
-  error: { fontSize: 13, color: '#ef4444', marginTop: 12 },
-  footer: {
-    display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px',
-    borderTop: '1px solid #E4E8EE',
-  },
-  cancelBtn: {
-    background: 'none', border: '1px solid var(--pagina-borda)', color: 'var(--pagina-texto-1)',
-    padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
-  },
-  saveBtn: {
-    background: NAVY, border: 'none', color: 'var(--pagina-cartao)',
-    padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-  },
-};
