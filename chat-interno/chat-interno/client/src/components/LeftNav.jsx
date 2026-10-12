@@ -150,15 +150,15 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
       <div className={colapsado ? "px-0 pt-3.5 pb-3 flex items-center justify-center" : "px-4 pt-3.5 pb-3 flex items-center"}>
         {colapsado ? (
           logo ? (
-            <img src={logo} alt="Nacional" className="w-9 h-9 object-contain" />
+            <img src={logo} alt="Painel Nacional" className="w-9 h-9 object-contain" />
           ) : (
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[17px] font-bold" style={{ background: colors.sidebarActive }}>N</div>
+            <img src="/logo-painel-nacional-icone.svg" alt="Painel Nacional" className="w-9 h-9" />
           )
         ) : (
           logo ? (
-            <img src={logo} alt="Nacional" className="w-full h-auto max-h-14 object-contain" />
+            <img src={logo} alt="Painel Nacional" className="w-full h-auto max-h-14 object-contain" />
           ) : (
-            <div className="text-white text-[22px] font-extrabold tracking-tight leading-none">NACIONAL</div>
+            <img src="/logo-painel-nacional.svg" alt="Painel Nacional" className="w-full h-auto rounded-xl" />
           )
         )}
       </div>
