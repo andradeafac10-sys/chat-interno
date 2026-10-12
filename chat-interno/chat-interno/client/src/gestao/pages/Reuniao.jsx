@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import ReuniaoFormModal from '../components/ReuniaoFormModal';
 import ReuniaoDetalheModal from '../components/ReuniaoDetalheModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -105,7 +105,7 @@ export default function Reuniao() {
         <div className="flex-1" />
         <div className="flex items-center gap-3 mr-2">
           <span className="flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#85B7EB' }} /> Interna
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#A78BFA' }} /> Interna
           </span>
           <span className="flex items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--pagina-texto-2)' }}>
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#EF9F27' }} /> Externa
@@ -136,12 +136,12 @@ export default function Reuniao() {
                 <button
                   key={i}
                   onClick={() => doDia.length > 0 && setDiaAberto(dia)}
-                  className="min-h-[78px] rounded-md p-1.5 text-left border transition-colors hover:border-[#2563EB]"
+                  className="min-h-[78px] rounded-md p-1.5 text-left border transition-colors hover:border-[#7C3AED]"
                   style={{
                     borderColor: ehHoje ? NAVY : 'var(--pagina-borda)',
                     borderWidth: ehHoje ? 2 : 1,
                     opacity: doMes ? 1 : 0.4,
-                    background: ehHoje ? '#EFF4FF' : 'transparent',
+                    background: ehHoje ? '#EDE9FE' : 'transparent',
                     cursor: doDia.length > 0 ? 'pointer' : 'default',
                   }}
                 >
@@ -156,7 +156,7 @@ export default function Reuniao() {
                         className="text-[10px] rounded px-1 py-0.5 truncate block"
                         style={r.tipo === 'externa'
                           ? { background: '#FAEEDA', color: '#633806' }
-                          : { background: '#E6F1FB', color: '#0C447C' }}
+                          : { background: '#EDE9FE', color: '#4C1D95' }}
                       >
                         {new Date(r.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} {r.titulo}
                       </span>
@@ -195,14 +195,14 @@ export default function Reuniao() {
                   <button
                     key={r.id}
                     onClick={() => { setDiaAberto(null); setReuniaoAberta(r.id); }}
-                    className="text-left border rounded-lg p-3 hover:border-[#2563EB] transition-colors"
+                    className="text-left border rounded-lg p-3 hover:border-[#7C3AED] transition-colors"
                     style={{ borderColor: 'var(--pagina-borda)' }}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold text-slate-800">{r.titulo}</span>
                       <span
                         className="text-[9.5px] rounded-full px-1.5 py-0.5 shrink-0"
-                        style={r.tipo === 'externa' ? { background: '#FAEEDA', color: '#633806' } : { background: '#E6F1FB', color: '#0C447C' }}
+                        style={r.tipo === 'externa' ? { background: '#FAEEDA', color: '#633806' } : { background: '#EDE9FE', color: '#4C1D95' }}
                       >
                         {r.tipo === 'externa' ? 'Externa' : 'Interna'}
                       </span>
