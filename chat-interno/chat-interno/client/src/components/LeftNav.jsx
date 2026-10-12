@@ -81,12 +81,11 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
     <button
       onClick={() => irPara(view)}
       title={colapsado ? label : undefined}
-      className={colapsado ? "w-full flex items-center justify-center py-2.5 relative transition-colors" : "w-full flex items-center justify-between gap-2.5 px-4 py-2.5 text-[12.5px] transition-colors"}
+      className={colapsado ? "w-full flex items-center justify-center py-2.5 relative transition-colors" : "w-[calc(100%-16px)] mx-2 mb-0.5 rounded-xl flex items-center justify-between gap-2.5 px-3 py-2.5 text-[12.5px] transition-colors"}
       style={{
         color: itemChatAtivo(view) ? colors.sidebarText : colors.sidebarTextSecondary,
         background: itemChatAtivo(view) ? colors.sidebarActive : "transparent",
-        borderLeft: itemChatAtivo(view) ? "3px solid #2563EB" : "3px solid transparent",
-        fontWeight: itemChatAtivo(view) ? 600 : 400,
+                fontWeight: itemChatAtivo(view) ? 600 : 400,
       }}
     >
       {colapsado ? (
@@ -100,7 +99,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
         <>
           <span className="flex items-center gap-2.5"><Icon size={15} /> {label}</span>
           {badge > 0 && (
-            <span className="text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[17px] text-center shrink-0" style={{ background: "#EF4444" }}>
+            <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[17px] text-center shrink-0" style={{ background: "#FFFFFF", color: "#6D28D9" }}>
               {badge}
             </span>
           )}
@@ -145,12 +144,13 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   });
 
   return (
-    <div className={colapsado ? "w-[64px] h-full shrink-0 flex flex-col overflow-y-auto transition-all" : "w-[210px] h-full shrink-0 flex flex-col overflow-y-auto transition-all"} style={{ background: colors.sidebarBg }}>
-      <div className={colapsado ? "px-0 pt-3.5 pb-3 flex items-center justify-center" : "px-4 pt-3.5 pb-3 flex items-center gap-2"}>
-        <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: "#2563EB" }}>
-          <MessageCircle size={13} className="text-white" />
-        </div>
-        {!colapsado && <span className="text-white text-[12.5px] font-semibold truncate">Chat Nacional</span>}
+    <div className={colapsado ? "w-[64px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
+      <div className={colapsado ? "px-0 pt-3.5 pb-3 flex items-center justify-center" : "px-4 pt-3.5 pb-3 flex items-center"}>
+        {colapsado ? (
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[17px] font-bold" style={{ background: colors.sidebarActive }}>N</div>
+        ) : (
+          <img src="/logo-nacional-branco.png" alt="Nacional" className="w-full h-auto" />
+        )}
       </div>
 
       <ItemChat view="chat" icon={MessageCircle} label="Chat" badge={unreadTotal} />
