@@ -5,7 +5,6 @@ import { getSocket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import LeftNav from "../components/LeftNav";
-import AvisosPendentesBanner from "../components/AvisosPendentesBanner";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import ChatWindow from "../components/ChatWindow";
@@ -17,10 +16,8 @@ import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
-import AnnouncementOverlay from "../components/AnnouncementOverlay";
-import ReuniaoAlertOverlay from "../components/ReuniaoAlertOverlay";
+import { AvisosBarra, AlertasTelaCheia } from "../components/GlobalAlerts";
 import HiddenGroupsModal from "../components/HiddenGroupsModal";
-import OnlinePanel from "../components/OnlinePanel";
 import UpdateBanner from "../components/UpdateBanner";
 import { playNotificationSound, playFeedbackSound, playTrilhaSound } from "../sound";
 import { pedirPermissaoNotificacao, mostrarNotificacaoDesktop } from "../notifications";
@@ -34,7 +31,6 @@ function previaDaMensagem(m) {
   if (m.type === "audio") return "🎤 Áudio";
   return "📎 Arquivo";
 }
-const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
 export default function Chat() {
   const { user } = useAuth();
@@ -57,11 +53,9 @@ export default function Chat() {
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
   const [hiddenGroupsCount, setHiddenGroupsCount] = useState(0);
-  const [announcement, setAnnouncement] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
   const [unreadCounts, setUnreadCounts] = useState(() => ({})); // { conversationId: quantidade }
   const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
-  const [reuniaoAlerta, setReuniaoAlerta] = useState(null); // alerta de tela cheia (1h/5min antes)
 
   // Grupos em que sou membro DE VERDADE (o servidor manda ao conectar). null =
   // ainda não chegou. Só serve pra decidir som/notificação — o ADM continua
@@ -224,25 +218,6 @@ export default function Chat() {
     return () => clearInterval(intervalo);
   }, [loadConversations]);
 
-  // Além de escutar em tempo real (socket), confere sozinho de tempos em tempos
-  // se saiu um comunicado novo — assim ninguém depende só da conexão em tempo real
-  // continuar funcionando pra saber que tem um comunicado esperando.
-  useEffect(() => {
-    let cancelado = false;
-    const checar = () => {
-      api.get("/announcements/latest").then(({ data }) => {
-        if (cancelado) return;
-        const a = data.announcement;
-        if (!a) return;
-        const dismissedId = localStorage.getItem(DISMISSED_KEY);
-        if (String(a.id) === dismissedId) return;
-        setAnnouncement((prev) => (prev?.id === a.id ? prev : a));
-      });
-    };
-    checar();
-    const intervalo = setInterval(checar, 20000);
-    return () => { cancelado = true; clearInterval(intervalo); };
-  }, []);
 
   useEffect(() => {
     const socket = getSocket();
@@ -347,15 +322,10 @@ export default function Chat() {
       });
     };
 
-    const onAnnouncementNew = (a) => setAnnouncement(a);
-    const onAnnouncementDeleted = ({ id }) => {
-      setAnnouncement((prev) => (prev && prev.id === id ? null : prev));
-    };
     const onMessagesCleared = () => {
       setMessagesByConv({});
       loadConversations();
     };
-    const onAnnouncementsCleared = () => setAnnouncement(null);
 
     const onPinned = (message) => {
       setMessagesByConv((prev) => {
@@ -417,12 +387,6 @@ export default function Chat() {
       mostrarNotificacaoDesktop({ titulo, corpo });
     };
 
-    // Alerta de tela cheia piscando roxo — sempre 1h e 5min antes, pra quem
-    // participa, independente dos lembretes configurados na criação.
-    const onReuniaoAlertaTela = (alerta) => {
-      setReuniaoAlerta(alerta);
-    };
-
     // Lista de grupos em que sou membro de verdade (decide som/notificação)
     const onGruposQueParticipo = (ids) => {
       gruposQueParticipoRef.current = new Set(ids);
@@ -449,16 +413,12 @@ export default function Chat() {
     socket.on("feedback:novo", onFeedbackNovo);
     socket.on("trilha:novo", onTrilhaNovo);
     socket.on("reuniao:lembrete", onReuniaoLembrete);
-    socket.on("reuniao:alerta-tela", onReuniaoAlertaTela);
     socket.on("grupos:participo", onGruposQueParticipo);
     socket.on("message:pinned", onPinned);
     socket.on("message:edited", onEdited);
     socket.on("message:deleted", onDeleted);
     socket.on("message:reaction", onReaction);
-    socket.on("announcement:new", onAnnouncementNew);
-    socket.on("announcement:deleted", onAnnouncementDeleted);
     socket.on("maintenance:messages-cleared", onMessagesCleared);
-    socket.on("maintenance:announcements-cleared", onAnnouncementsCleared);
     socket.on("group:created", onGroupCreated);
     socket.on("group:removed", onGroupRemoved);
     socket.on("group:updated", onGroupUpdatedEvent);
@@ -473,17 +433,13 @@ export default function Chat() {
       socket.off("feedback:novo", onFeedbackNovo);
       socket.off("trilha:novo", onTrilhaNovo);
       socket.off("reuniao:lembrete", onReuniaoLembrete);
-      socket.off("reuniao:alerta-tela", onReuniaoAlertaTela);
       socket.off("grupos:participo", onGruposQueParticipo);
       socket.off("connect", onConnect);
       socket.off("message:pinned", onPinned);
       socket.off("message:edited", onEdited);
       socket.off("message:deleted", onDeleted);
       socket.off("message:reaction", onReaction);
-      socket.off("announcement:new", onAnnouncementNew);
-      socket.off("announcement:deleted", onAnnouncementDeleted);
       socket.off("maintenance:messages-cleared", onMessagesCleared);
-      socket.off("maintenance:announcements-cleared", onAnnouncementsCleared);
       socket.off("group:created", onGroupCreated);
       socket.off("group:removed", onGroupRemoved);
       socket.off("group:updated", onGroupUpdatedEvent);
@@ -553,15 +509,7 @@ export default function Chat() {
         pendingRoutinesCount={pendingRoutinesCount}
       />
       )}
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
-        <AvisosPendentesBanner
-          onVerTreinamentos={() => navigate("/?view=trilha")}
-          onVerFeedbacks={() => navigate("/?view=feedbacks")}
-          onVerRotinas={() => navigate("/gestao/minha-rotina")}
-          onVerTarefas={() => navigate("/gestao/tarefas")}
-          onVerReunioes={() => navigate("/gestao/reuniao")}
-        />
-      )}
+      <AvisosBarra />
       <div className="flex-1 flex overflow-hidden gap-2 min-h-0">
       {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
       <Sidebar
@@ -614,7 +562,6 @@ export default function Chat() {
               {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
             </div>
           )}
-          <OnlinePanel onlineUsers={onlineUsers} onOpenConversation={openFromOnlinePanel} />
         </>
       )}
       </div>
@@ -650,24 +597,7 @@ export default function Chat() {
         />
       )}
 
-      <AnnouncementOverlay
-        key={announcement?.id || "nenhum"}
-        announcement={announcement}
-        onClose={() => {
-          if (announcement) localStorage.setItem(DISMISSED_KEY, String(announcement.id));
-          setAnnouncement(null);
-        }}
-      />
-
-      {/* Só mostra o alerta de reunião se não tiver comunicado geral na tela
-          — os dois são de tela cheia, não dá pra empilhar os dois juntos. */}
-      {!announcement && (
-        <ReuniaoAlertOverlay
-          key={reuniaoAlerta ? `${reuniaoAlerta.reuniaoId}-${reuniaoAlerta.faltam}` : "nenhum"}
-          alerta={reuniaoAlerta}
-          onClose={() => setReuniaoAlerta(null)}
-        />
-      )}
+      <AlertasTelaCheia />
 
       <UpdateBanner />
     </div>
