@@ -100,7 +100,7 @@ router.get("/", requireAuth, async (req, res) => {
   // busca última mensagem de cada conversa
   for (const conv of conversations) {
     const { rows } = await pool.query(
-      `SELECT type, content, created_at FROM messages WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      `SELECT type, content, created_at, sender_id FROM messages WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 1`,
       [conv.id]
     );
     conv.lastMessage = rows[0] || null;
