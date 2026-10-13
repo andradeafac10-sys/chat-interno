@@ -64,6 +64,23 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
     });
   };
 
+  // Ctrl+V com uma imagem copiada (print, etc.) já anexa direto
+  useEffect(() => {
+    const aoColar = (e) => {
+      const item = Array.from(e.clipboardData?.items || []).find((i) => i.type.startsWith("image/"));
+      if (!item) return;
+      const blob = item.getAsFile();
+      if (!blob) return;
+      e.preventDefault();
+      const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
+      const file = new File([blob], `imagem-colada.${ext}`, { type: blob.type });
+      setImage(file);
+      setImagePreview((antiga) => { if (antiga) URL.revokeObjectURL(antiga); return URL.createObjectURL(file); });
+    };
+    document.addEventListener("paste", aoColar);
+    return () => document.removeEventListener("paste", aoColar);
+  }, []);
+
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,7 +133,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
       <div className="bg-white rounded-2xl w-[94vw] max-w-lg shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-base">
-            <Megaphone size={18} className="text-[#2563EB]" /> Nova notificação
+            <Megaphone size={18} className="text-[#7C3AED]" /> Nova notificação
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={19} />
@@ -160,7 +177,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Escreva a notificação..."
             rows={5}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
 
           <label className="text-xs font-medium text-slate-500 mt-4 mb-1.5 block">Imagem (opcional)</label>
@@ -181,7 +198,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 text-sm text-slate-500 border border-dashed border-slate-300 rounded-lg px-3 py-2 hover:bg-slate-50"
             >
-              <ImageIcon size={15} /> Anexar imagem
+              <ImageIcon size={15} /> Anexar imagem (ou Ctrl+V)
             </button>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -199,7 +216,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
                 onClick={() => { setAudience(opt.id); setFilter(""); }}
                 className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
                   audience === opt.id
-                    ? "bg-[#EFF4FF] border-[#2563EB] text-[#2563EB]"
+                    ? "bg-[#EDE9FE] border-[#7C3AED] text-[#7C3AED]"
                     : "border-slate-200 text-slate-500 hover:bg-slate-50"
                 }`}
               >
@@ -216,7 +233,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   placeholder={audience === "users" ? "Buscar pessoa..." : "Buscar grupo..."}
-                  className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                 />
               </div>
               <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-lg divide-y divide-slate-50">
@@ -254,7 +271,7 @@ export default function NewAnnouncementModal({ onClose, onSent }) {
             onClick={enviar}
             disabled={!podeEnviar}
             className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: "#2563EB" }}
+            style={{ background: "#7C3AED" }}
           >
             {sending ? "Enviando..." : "Enviar notificação"}
           </button>
