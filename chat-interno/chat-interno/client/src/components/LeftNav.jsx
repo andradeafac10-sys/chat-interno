@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   MessageCircle, Bell, MessageSquareText, GraduationCap, UserCog, Eye,
-  LayoutDashboard, LayoutGrid, CalendarCheck, ClipboardList, Repeat, Trophy, Users2,
+  ListChecks, LayoutDashboard, LayoutGrid, CalendarCheck, ClipboardList, Repeat, Trophy, Users2,
   Video, Settings, LogOut, ShieldCheck, Sun, Moon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -185,6 +185,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
             <ItemGestao to="/gestao" end icon={LayoutGrid} label="Dashboard Rotinas" />
             <ItemGestao to="/gestao/minha-rotina" icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} />
             <ItemGestao to="/gestao/tarefas" icon={ClipboardList} label="Tarefas" badge={pendingTasks} />
+            <ItemGestao to="/gestao/demandas" icon={ListChecks} label="Demandas" />
             <ItemGestao to="/gestao/tarefas-equipe" icon={Users2} label="Dashboard Tarefas" />
             <ItemGestao to="/gestao/rotinas" icon={Repeat} label="Rotinas" />
             <ItemGestao to="/gestao/feedbacks" icon={MessageSquareText} label="Alinhamento" />
