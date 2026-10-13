@@ -136,4 +136,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Erro interno no servidor. Tente novamente." });
 });
 
+// Garante que TODAS as tabelas/colunas do schema existam (idempotente — só cria o que falta).
+// Evita erro 500 em telas novas quando o "npm run seed" não foi rodado depois de uma atualização.
+(async () => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const { pool } = require("./db");
+    await pool.query(fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
+    console.log("[schema] tabelas verificadas/atualizadas.");
+  } catch (err) {
+    console.error("[schema] erro ao aplicar schema:", err.message);
+  }
+})();
+
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
