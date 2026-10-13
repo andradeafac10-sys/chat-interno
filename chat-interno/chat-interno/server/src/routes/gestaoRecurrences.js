@@ -45,11 +45,34 @@ function diaCombina(recorrencia, date) {
 }
 
 /**
- * Gera as linhas de "a fazer" (routine_completions) dos próximos dias, uma por
+ * Limpa "a fazer" que não fazem mais sentido: de pessoas que saíram da rotina,
+ * de rotinas desativadas e, se pedido, as pendentes de hoje em diante (quando
+ * dia/horário/período mudou — depois elas são geradas de novo certinho).
+ * Nunca mexe no que já foi marcado como feito (histórico).
+ */
+async function limparOcorrenciasObsoletas(recurrenceId = null, refazerFuturas = false) {
+  const filtro = recurrenceId ? 'AND rc.recurrence_id = $1' : '';
+  const params = recurrenceId ? [recurrenceId] : [];
+  await pool.query(
+    `DELETE FROM routine_completions rc
+     WHERE rc.done = FALSE ${filtro}
+       AND (
+         NOT EXISTS (SELECT 1 FROM recurrence_assignees ra WHERE ra.recurrence_id = rc.recurrence_id AND ra.user_id = rc.user_id)
+         OR NOT EXISTS (SELECT 1 FROM task_recurrences r WHERE r.id = rc.recurrence_id AND r.active = TRUE)
+         OR NOT EXISTS (SELECT 1 FROM users u WHERE u.id = rc.user_id AND u.active = TRUE)
+         OR EXISTS (SELECT 1 FROM task_recurrences r WHERE r.id = rc.recurrence_id AND r.end_date IS NOT NULL AND rc.occurrence_date > r.end_date)
+         ${refazerFuturas ? 'OR rc.occurrence_date >= CURRENT_DATE' : ''}
+       )`,
+    params
+  );
+}
+
+/** Gera as linhas de "a fazer" (routine_completions) dos próximos dias, uma por
  * responsável, pra cada dia que a rotina deveria acontecer. Pode rodar quantas
  * vezes for — o índice único (recurrence_id, user_id, occurrence_date) impede duplicar.
  */
 async function gerarOcorrenciasDaRotina(recorrencia) {
+  await limparOcorrenciasObsoletas(recorrencia.id);
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const inicio = new Date(recorrencia.start_date) > hoje ? new Date(recorrencia.start_date) : hoje;
@@ -83,6 +106,7 @@ async function gerarOcorrenciasDaRotina(recorrencia) {
 
 /** Gera ocorrências de TODAS as rotinas ativas. Chamada pelo servidor sozinho e também sob demanda. */
 async function gerarTodasAsOcorrencias() {
+  await limparOcorrenciasObsoletas();
   const { rows } = await pool.query('SELECT * FROM task_recurrences WHERE active = TRUE');
   let total = 0;
   for (const r of rows) total += await gerarOcorrenciasDaRotina(r);
@@ -220,6 +244,8 @@ router.patch('/:id', async (req, res) => {
     }
 
     const { rows: atualizada } = await pool.query('SELECT * FROM task_recurrences WHERE id = $1', [id]);
+    const mudouAgenda = [recurrence_type, days_of_week, day_of_month, start_time, start_date, end_date].some((v) => v !== undefined);
+    await limparOcorrenciasObsoletas(id, mudouAgenda);
     if (atualizada[0].active) await gerarOcorrenciasDaRotina(atualizada[0]);
 
     res.json({ recurrence: await hydrateRecurrence(id) });
@@ -654,4 +680,4 @@ async function verificarLembretesRotinas(io) {
   }
 }
 
-module.exports = { router, gerarTodasAsOcorrencias, gerarOcorrenciasDaRotina, verificarLembretesRotinas };
+module.exports = { router, limparOcorrenciasObsoletas, gerarTodasAsOcorrencias, gerarOcorrenciasDaRotina, verificarLembretesRotinas };
