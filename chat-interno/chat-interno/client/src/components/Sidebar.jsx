@@ -38,6 +38,10 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
       return true;
     })
     .sort((a, b) => {
+      // Não lidas sempre em primeiro (as fixadas vêm logo depois)
+      const au = unreadCounts?.[a.id] > 0, bu = unreadCounts?.[b.id] > 0;
+      if (au && !bu) return -1;
+      if (!au && bu) return 1;
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       const at = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
