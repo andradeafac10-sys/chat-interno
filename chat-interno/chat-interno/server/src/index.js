@@ -90,7 +90,7 @@ app.use("/api/gestao", gestaoRoutes);
 const gestaoTasksRoutes = require("./routes/gestaoTasks");
 app.use("/api/gestao/tasks", gestaoTasksRoutes);
 const { verificarLembretesTarefas } = gestaoTasksRoutes;
-const { router: gestaoRecurrencesRoutes, gerarTodasAsOcorrencias, verificarLembretesRotinas } = require("./routes/gestaoRecurrences");
+const { router: gestaoRecurrencesRoutes, limparOcorrenciasObsoletas, gerarTodasAsOcorrencias, verificarLembretesRotinas } = require("./routes/gestaoRecurrences");
 app.use("/api/gestao/recurrences", gestaoRecurrencesRoutes);
 const { router: reunioesRoutes, verificarLembretesReunioes, verificarAlertasTelaReuniao } = require("./routes/reunioes");
 app.use("/api/reunioes", reunioesRoutes);
@@ -109,6 +109,12 @@ setInterval(() => {
     .then((n) => n > 0 && console.log(`[rotinas] ${n} ocorrência(s) gerada(s).`))
     .catch((err) => console.error("[rotinas] erro ao gerar ocorrências:", err));
 }, 6 * 60 * 60 * 1000);
+
+// Faxina das rotinas a cada 10 min: tira "a fazer" de quem saiu da rotina, de rotinas
+// desativadas e de usuários inativos (só o que ainda não foi feito).
+setInterval(() => {
+  limparOcorrenciasObsoletas().catch((err) => console.error("[rotinas] erro na faxina:", err));
+}, 10 * 60 * 1000);
 
 // Confere lembretes de tarefa/rotina a cada minuto — janela de 14-16min e 4-6min
 // é o suficiente pra pegar mesmo rodando só uma vez por minuto, sem duplicar aviso.
