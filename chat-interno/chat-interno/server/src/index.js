@@ -84,6 +84,7 @@ app.use("/api/trilha", require("./routes/trilha"));
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/branding", require("./routes/branding"));
+app.use("/api/demandas", require("./routes/demandas"));
 app.use("/api/perfil", require("./routes/perfil"));
 app.use("/api/gestao", gestaoRoutes);
 const gestaoTasksRoutes = require("./routes/gestaoTasks");
