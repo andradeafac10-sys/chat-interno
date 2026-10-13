@@ -6,7 +6,7 @@
 // e só atualizar "por baixo dos panos" fazia a pessoa nunca ver a mudança na
 // primeira vez que recarregava — só a versão anterior. Agora só usa o que está
 // guardado se a pessoa estiver sem internet.
-const CACHE_NAME = "chat-nacional-v2";
+const CACHE_NAME = "painel-nacional-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
