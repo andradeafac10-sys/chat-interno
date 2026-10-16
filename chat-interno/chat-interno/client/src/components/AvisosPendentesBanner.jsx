@@ -88,7 +88,7 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
 
   return (
     <div
-      className="flex items-center gap-2 flex-wrap px-4 py-2.5 w-full rounded-2xl"
+      className="avisos-barra flex items-center gap-2 flex-wrap px-4 py-2.5 w-full rounded-2xl"
       style={{ background: "#5B21B6" }}
     >
       <Bell size={16} className="shrink-0" style={{ color: "#FFFFFF" }} />
