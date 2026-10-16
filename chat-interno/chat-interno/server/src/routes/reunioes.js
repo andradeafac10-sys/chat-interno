@@ -90,7 +90,7 @@ router.get("/hoje", async (req, res) => {
        FROM reunioes r
        JOIN reuniao_participantes rp ON rp.reuniao_id = r.id
        WHERE rp.user_id = $1
-         AND r.inicio::date = CURRENT_DATE
+         AND (r.inicio AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
          AND r.fim > now()
          AND r.concluida = false
        ORDER BY r.inicio`,
@@ -614,7 +614,7 @@ async function verificarLembretesReunioes(io) {
        WHERE rl.enviado_em IS NULL
          AND r.inicio > now()
          AND (
-           (rl.minutos_antes = 0 AND r.inicio::date = CURRENT_DATE)
+           (rl.minutos_antes = 0 AND (r.inicio AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date)
            OR (rl.minutos_antes > 0 AND r.inicio - (rl.minutos_antes || ' minutes')::interval <= now())
          )`
     );
