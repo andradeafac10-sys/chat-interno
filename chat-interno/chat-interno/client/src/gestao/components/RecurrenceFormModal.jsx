@@ -14,6 +14,9 @@ const DIAS_SEMANA = [
   { valor: 3, label: 'Q' }, { valor: 4, label: 'Q' }, { valor: 5, label: 'S' }, { valor: 6, label: 'S' },
 ];
 
+// Data de hoje no fuso do usuário (toISOString usa UTC e, à noite, já viraria amanhã)
+const hojeLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
 export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   const editando = !!recurrence;
 
@@ -24,7 +27,7 @@ export default function RecurrenceFormModal({ recurrence, onClose, onSaved }) {
   const [daysOfWeek, setDaysOfWeek] = useState(recurrence?.days_of_week || []);
   const [dayOfMonth, setDayOfMonth] = useState(recurrence?.day_of_month || 1);
   const [startTime, setStartTime] = useState(recurrence?.start_time?.slice(0, 5) || '');
-  const [startDate, setStartDate] = useState(recurrence?.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(recurrence?.start_date?.slice(0, 10) || hojeLocal());
   const [endDate, setEndDate] = useState(recurrence?.end_date?.slice(0, 10) || '');
   const [assignees, setAssignees] = useState([]);
   const [assigneeIds, setAssigneeIds] = useState((recurrence?.assignees || []).map((a) => a.id));
