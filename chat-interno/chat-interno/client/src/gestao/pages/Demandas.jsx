@@ -5,7 +5,7 @@ import { api } from "../../api";
 import { getSocket } from "../../socket";
 
 const P = "#7C3AED";
-const hoje = () => new Date().toISOString().slice(0, 10);
+const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const fmt = (d) => (d ? d.split("-").reverse().join("/") : "—");
 const card = { background: "var(--pagina-cartao)" };
 
