@@ -15,7 +15,7 @@ export default function GestaoApp() {
   const [showAccount, setShowAccount] = useState(false);
   const { colors } = useTheme();
   return (
-    <div className="w-screen h-screen flex overflow-hidden p-2 gap-2" style={{ background: colors.canvas }}>
+    <div className="app-shell w-screen h-screen flex overflow-hidden p-2 gap-2" style={{ background: colors.canvas }}>
       <LeftNav onOpenAccount={() => setShowAccount(true)} />
       <div className="flex-1 flex flex-col overflow-hidden gap-2">
         <AvisosBarra />
