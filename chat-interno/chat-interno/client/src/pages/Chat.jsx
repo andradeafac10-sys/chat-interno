@@ -136,7 +136,8 @@ export default function Chat() {
   const loadConversations = useCallback(async () => {
     const { data } = await api.get("/conversations");
     setConversations(data.conversations);
-    setActiveConvId((prev) => prev || data.conversations[0]?.id || null);
+    // No celular começa na lista de conversas (não abre a primeira sozinha)
+    setActiveConvId((prev) => prev || (window.innerWidth >= 768 ? data.conversations[0]?.id : null) || null);
     // A contagem de não lidas vem do servidor (sobrevive a F5) — mas só conta
     // conversas que são realmente "minhas" (DM ou grupo que participo de verdade),
     // não grupos que o ADM só enxerga pra poder monitorar.
@@ -482,8 +483,9 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
-    <div className="w-screen h-screen flex overflow-hidden p-2 gap-2" style={{ background: colors.canvas }}>
+    <div className={`app-shell w-screen h-screen flex overflow-hidden p-2 gap-2 ${activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks ? "app-shell-sem-nav" : ""}`} style={{ background: colors.canvas }}>
       <LeftNav
+        escondeNavMobile={!!activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks}
         unreadTotal={Object.values(unreadCounts).reduce((soma, n) => soma + n, 0)}
         onOpenAccount={() => setShowAccount(true)}
       />
@@ -558,7 +560,7 @@ export default function Chat() {
               onJumpHandled={() => setPendingJumpMessageId(null)}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+            <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 text-sm">
               {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
             </div>
           )}
