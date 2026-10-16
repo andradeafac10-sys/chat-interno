@@ -27,7 +27,7 @@ export default function Rotinas() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filtroNome, setFiltroNome] = useState('');
+  const [filtroResp, setFiltroResp] = useState(''); // id do responsável ('' = todos)
 
   async function load() {
     setLoading(true);
@@ -81,6 +81,17 @@ export default function Rotinas() {
 
   // Ordena por horário (quem não tem horário cadastrado vai pro final, por
   // ordem de título) e filtra por nome de responsável, se a pessoa buscou algo.
+  // Lista de responsáveis (quem tem ao menos uma rotina) com a quantidade de rotinas de cada um
+  const responsaveis = (() => {
+    const mapa = new Map();
+    recurrences.forEach((r) => (r.assignees || []).forEach((a) => {
+      const atual = mapa.get(a.id) || { id: a.id, name: a.name, total: 0 };
+      atual.total += 1;
+      mapa.set(a.id, atual);
+    }));
+    return [...mapa.values()].sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
   const recurrencesOrdenadasEFiltradas = [...recurrences]
     .sort((a, b) => {
       if (!a.start_time && !b.start_time) return a.title.localeCompare(b.title);
@@ -89,9 +100,8 @@ export default function Rotinas() {
       return a.start_time.localeCompare(b.start_time);
     })
     .filter((r) => {
-      const alvo = filtroNome.trim().toLowerCase();
-      if (!alvo) return true;
-      return (r.assignees || []).some((a) => a.name.toLowerCase().includes(alvo));
+      if (!filtroResp) return true;
+      return (r.assignees || []).some((a) => String(a.id) === filtroResp);
     });
 
   return (
@@ -100,12 +110,16 @@ export default function Rotinas() {
 
       <div style={{ padding: '0 24px 32px' }}>
         <div style={styles.topRow}>
-          <input
-            value={filtroNome}
-            onChange={(e) => setFiltroNome(e.target.value)}
-            placeholder="Filtrar por pessoa (ver rotinas de alguém)..."
+          <select
+            value={filtroResp}
+            onChange={(e) => setFiltroResp(e.target.value)}
             style={styles.filtroInput}
-          />
+          >
+            <option value="">Todos os responsáveis</option>
+            {responsaveis.map((p) => (
+              <option key={p.id} value={String(p.id)}>{p.name} ({p.total})</option>
+            ))}
+          </select>
           <div style={{ display: 'flex', gap: 10 }}>
             <button style={styles.deleteAllBtn} onClick={apagarTodas} disabled={recurrences.length === 0}>
               Apagar todas
