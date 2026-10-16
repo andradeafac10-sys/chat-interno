@@ -711,4 +711,48 @@ router.get("/admin/progresso", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/trilha/admin/erros -> perguntas que a equipe mais errou (pra treinamento direcionado).
+// "Errou" = errou na 1ª tentativa (mesmo que tenha acertado na 2ª) ou errou de vez.
+router.get("/admin/erros", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT m.id AS modulo_id, m.title AS modulo, m.order_index AS modulo_ordem,
+              p.id AS pergunta_id, p.question, p.order_index AS pergunta_ordem,
+              (SELECT text FROM trilha_opcoes o WHERE o.pergunta_id = p.id AND o.is_correct LIMIT 1) AS resposta_correta,
+              u.id AS user_id, u.name AS user_name,
+              t.tentativas, t.acertou, t.finalizada
+       FROM trilha_pergunta_tentativas t
+       JOIN trilha_perguntas p ON p.id = t.pergunta_id
+       JOIN trilha_modulos m ON m.id = p.modulo_id
+       JOIN users u ON u.id = t.user_id AND u.active = true
+       WHERE t.tentativas > 0
+       ORDER BY m.order_index, m.id, p.order_index, p.id, u.name`
+    );
+    const mapa = new Map();
+    for (const r of rows) {
+      if (!mapa.has(r.pergunta_id)) {
+        mapa.set(r.pergunta_id, {
+          perguntaId: r.pergunta_id, moduloId: r.modulo_id, modulo: r.modulo, pergunta: r.question,
+          respostaCorreta: r.resposta_correta, respondentes: 0, erraram: 0, pessoas: [],
+        });
+      }
+      const q = mapa.get(r.pergunta_id);
+      q.respondentes++;
+      const errou = !r.acertou || r.tentativas > 1;
+      if (errou) {
+        q.erraram++;
+        q.pessoas.push({ id: r.user_id, name: r.user_name, errouDeVez: !r.acertou && r.finalizada, tentativas: r.tentativas });
+      }
+    }
+    const perguntas = [...mapa.values()]
+      .map((q) => ({ ...q, taxaErro: q.respondentes ? Math.round((q.erraram / q.respondentes) * 100) : 0 }))
+      .filter((q) => q.erraram > 0)
+      .sort((a, b) => b.erraram - a.erraram || b.taxaErro - a.taxaErro);
+    res.json({ perguntas });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao carregar as perguntas mais erradas." });
+  }
+});
+
 module.exports = router;
