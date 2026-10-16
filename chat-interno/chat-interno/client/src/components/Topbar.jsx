@@ -20,7 +20,7 @@ function previaMensagem(m) {
  * Configurações, Monitoria, Gestão, Usuários, Feedbacks, Trilha e Sair saíram
  * daqui e foram morar na coluna de navegação (LeftNav), fixa e sempre visível.
  */
-export default function Topbar({ conversations, onOpenConversation, onSelectConversationId, onJumpToMessage }) {
+export default function Topbar({ onOpenAccount, conversations, onOpenConversation, onSelectConversationId, onJumpToMessage }) {
   const { user } = useAuth();
   const { colors } = useTheme();
 
@@ -88,8 +88,9 @@ export default function Topbar({ conversations, onOpenConversation, onSelectConv
   const temResultados = pessoas.length > 0 || conversasFiltradas.length > 0 || mensagens.length > 0;
 
   return (
-    <div className="h-12 shrink-0 flex items-center gap-4">
-      <div className="flex-1 max-w-[420px] relative" ref={buscaRef}>
+    <div className="h-12 shrink-0 flex items-center gap-2 md:gap-4">
+      <img src="/logo-painel-nacional-icone.svg" alt="Painel Nacional" className="md:hidden h-9 w-9 shrink-0" />
+      <div className="flex-1 md:max-w-[420px] relative" ref={buscaRef}>
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
           <input
@@ -182,7 +183,10 @@ export default function Topbar({ conversations, onOpenConversation, onSelectConv
           </div>
         )}
       </div>
-      <div className="flex-1" />
+      <div className="flex-1 hidden md:block" />
+      <button onClick={onOpenAccount} aria-label="Minha conta" className="md:hidden shrink-0 rounded-full flex items-center justify-center text-white text-[12px] font-bold overflow-hidden" style={{ background: user.color, width: 36, height: 36 }}>
+        {user.avatar_url ? <img src={fileUrl(user.avatar_url)} alt={user.name} className="w-full h-full object-cover" /> : user.name.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase()}
+      </button>
     </div>
   );
 }
