@@ -26,8 +26,8 @@ body.tema-escuro {
      texto secundário claro o bastante pra ler sem esforço. */
   --pagina-fundo: #120C22;        /* fundo geral */
   --pagina-cartao: #17102B;       /* cards e modais */
-  --pagina-texto-1: #EDE9FE;      /* títulos e texto principal */
-  --pagina-texto-2: #B4A5E0;      /* texto secundário */
+  --pagina-texto-1: #FFFFFF;      /* títulos e texto principal */
+  --pagina-texto-2: #DDD5F7;      /* texto secundário */
   --pagina-borda: #2A1D52;        /* bordas discretas */
   --pagina-borda-suave: #241A40;  /* fundo de destaque leve (hover, chips) */
   /* Avisa o navegador que a página é escura: barras de rolagem, menus de
@@ -46,8 +46,8 @@ body.tema-escuro {
 body.tema-escuro .bg-white { background-color: var(--pagina-cartao) !important; }
 body.tema-escuro [class*="text-slate-9"],
 body.tema-escuro [class*="text-slate-8"],
-body.tema-escuro [class*="text-slate-7"] { color: var(--pagina-texto-1) !important; }
-body.tema-escuro [class*="text-slate-6"],
+body.tema-escuro [class*="text-slate-7"],
+body.tema-escuro [class*="text-slate-6"] { color: var(--pagina-texto-1) !important; }
 body.tema-escuro [class*="text-slate-5"],
 body.tema-escuro [class*="text-slate-4"],
 body.tema-escuro [class*="text-slate-3"] { color: var(--pagina-texto-2) !important; }
