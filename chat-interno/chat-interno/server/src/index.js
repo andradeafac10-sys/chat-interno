@@ -1,3 +1,5 @@
+// Horário de Brasília em todo o servidor (datas/horas de rotinas, tarefas e reuniões)
+process.env.TZ = process.env.TZ || "America/Sao_Paulo";
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
