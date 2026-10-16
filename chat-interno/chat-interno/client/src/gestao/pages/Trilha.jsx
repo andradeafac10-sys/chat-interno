@@ -4,7 +4,7 @@ import { GraduationCap, Plus, X, Trash2, Pencil, CheckCircle2, XCircle, Circle, 
 import PageHeader from '../PageHeader';
 import { api } from '../../api';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 export default function Trilha() {
   const [aba, setAba] = useState('conteudo'); // 'conteudo' | 'acompanhamento'
@@ -17,6 +17,7 @@ export default function Trilha() {
         {[
           { key: 'conteudo', label: 'Conteúdo' },
           { key: 'acompanhamento', label: 'Acompanhamento' },
+          { key: 'erros', label: 'Perguntas erradas' },
         ].map((op) => (
           <button
             key={op.key}
@@ -30,7 +31,7 @@ export default function Trilha() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
-        {aba === 'conteudo' ? <AbaConteudo /> : <AbaAcompanhamento />}
+        {aba === 'conteudo' ? <AbaConteudo /> : aba === 'erros' ? <AbaErros /> : <AbaAcompanhamento />}
       </div>
     </div>
   );
@@ -80,7 +81,7 @@ function AbaConteudo() {
               <button
                 onClick={() => setModuloAberto(m)}
                 className="h-[70px] flex items-center justify-center shrink-0"
-                style={{ background: m.tipo === 'avaliacao' ? '#7C3AED' : '#0B1F3A' }}
+                style={{ background: m.tipo === 'avaliacao' ? '#7C3AED' : '#2E1065' }}
               >
                 {m.tipo === 'avaliacao' ? <FileQuestion size={26} className="text-white/70" /> : <PlayCircle size={26} className="text-white/70" />}
               </button>
@@ -97,7 +98,7 @@ function AbaConteudo() {
                   <button
                     onClick={() => setModuloParaEditar(m)}
                     className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium rounded-lg py-1.5"
-                    style={{ background: '#EFF4FF', color: NAVY }}
+                    style={{ background: '#EDE9FE', color: NAVY }}
                   >
                     <Pencil size={11} /> Editar
                   </button>
@@ -140,7 +141,7 @@ function PerguntaBuilder({ pergunta, onChange, onRemover, indice }) {
           value={pergunta.question}
           onChange={(e) => atualizarPergunta(e.target.value)}
           placeholder={`Pergunta ${indice + 1}`}
-          className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
         />
         <button type="button" onClick={onRemover} className="text-slate-400 hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
       </div>
@@ -149,12 +150,12 @@ function PerguntaBuilder({ pergunta, onChange, onRemover, indice }) {
         {pergunta.opcoes.map((o, oi) => (
           <div key={oi} className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-slate-400 w-4 shrink-0">{String.fromCharCode(65 + oi)}</span>
-            <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(oi)} className="accent-[#2563EB] shrink-0" />
+            <input type="radio" checked={o.isCorrect} onChange={() => marcarCorreta(oi)} className="accent-[#7C3AED] shrink-0" />
             <input
               value={o.text}
               onChange={(e) => atualizarOpcaoTexto(oi, e.target.value)}
               placeholder={`Alternativa ${String.fromCharCode(65 + oi)}`}
-              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             />
           </div>
         ))}
@@ -256,10 +257,10 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
         </div>
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" required />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" required />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Descrição (opcional)</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
 
           {tipo === 'video' && (
             <>
@@ -280,7 +281,7 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
           {pessoasEscolhidas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {pessoasEscolhidas.map((u) => (
-                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EFF4FF', color: NAVY }}>
+                <span key={u.id} className="flex items-center gap-1.5 text-[12px] font-medium rounded-full pl-2.5 pr-1.5 py-1" style={{ background: '#EDE9FE', color: NAVY }}>
                   {u.name}
                   <button type="button" onClick={() => setUserIds((prev) => prev.filter((id) => id !== u.id))}><X size={12} /></button>
                 </span>
@@ -291,7 +292,7 @@ function NovoModuloModal({ moduloParaEditar, onClose, onSaved }) {
             value={filtroPessoa}
             onChange={(e) => setFiltroPessoa(e.target.value)}
             placeholder="Buscar pessoa, equipe..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
           {filtroPessoa && (
             <div className="max-h-28 overflow-y-auto border border-slate-100 rounded-lg mb-4 divide-y divide-slate-50">
@@ -406,7 +407,7 @@ function PerguntasModulo({ modulo, onVoltar }) {
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="text-[13.5px] font-medium text-slate-800">{i + 1}. {p.question}</div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => setPerguntaParaEditar(p)} className="text-slate-400 hover:text-[#2563EB]" title="Editar pergunta"><Pencil size={14} /></button>
+                  <button onClick={() => setPerguntaParaEditar(p)} className="text-slate-400 hover:text-[#7C3AED]" title="Editar pergunta"><Pencil size={14} /></button>
                   <button onClick={() => apagar(p.id)} className="text-slate-400 hover:text-red-500" title="Apagar pergunta"><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -562,7 +563,7 @@ function AbaAcompanhamento() {
           <button
             key={m.id}
             onClick={() => setModuloSelecionado(m.id)}
-            className="bg-white rounded-xl border p-4 text-left hover:border-[#2563EB] transition-colors"
+            className="bg-white rounded-xl border p-4 text-left hover:border-[#7C3AED] transition-colors"
             style={{ borderColor: 'var(--pagina-borda)' }}
           >
             <div className="text-[11px] font-semibold text-slate-400">TREINAMENTO {i + 1}</div>
@@ -577,6 +578,74 @@ function AbaAcompanhamento() {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// Perguntas mais erradas — base pra treinamento direcionado: quais perguntas
+// a equipe erra e QUEM errou cada uma.
+function AbaErros() {
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState('');
+  const [modulo, setModulo] = useState('todos');
+  const [aberta, setAberta] = useState(null);
+
+  useEffect(() => {
+    api.get('/trilha/admin/erros').then(({ data }) => setDados(data.perguntas)).catch(() => setErro('Não foi possível carregar as perguntas erradas.'));
+  }, []);
+
+  if (erro) return <p className="text-sm text-red-500">{erro}</p>;
+  if (!dados) return <p className="text-sm text-slate-400">Carregando...</p>;
+
+  const modulos = [...new Map(dados.map((q) => [q.moduloId, q.modulo])).entries()];
+  const lista = dados.filter((q) => modulo === 'todos' || String(q.moduloId) === modulo);
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="flex items-center gap-3 mb-4">
+        <select value={modulo} onChange={(e) => setModulo(e.target.value)} className="text-[12.5px] rounded-lg px-3 py-2"
+          style={{ background: 'var(--pagina-cartao)', border: '1px solid var(--pagina-borda)', color: 'var(--pagina-texto-1)' }}>
+          <option value="todos">Todos os treinamentos</option>
+          {modulos.map(([id, titulo]) => <option key={id} value={id}>{titulo}</option>)}
+        </select>
+        <span className="text-[12px]" style={{ color: 'var(--pagina-texto-2)' }}>{lista.length} pergunta(s) com erro · ordenadas pelas mais erradas</span>
+      </div>
+
+      {lista.length === 0 && <p className="text-sm text-slate-400">Ninguém errou nenhuma pergunta ainda.</p>}
+
+      <div className="flex flex-col gap-3">
+        {lista.map((q) => (
+          <div key={q.perguntaId} className="rounded-xl border" style={{ background: 'var(--pagina-cartao)', borderColor: 'var(--pagina-borda)' }}>
+            <button className="w-full text-left p-4" onClick={() => setAberta(aberta === q.perguntaId ? null : q.perguntaId)}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase" style={{ color: 'var(--pagina-texto-2)' }}>{q.modulo}</div>
+                  <div className="text-[14px] font-semibold mt-0.5" style={{ color: 'var(--pagina-texto-1)' }}>{q.pergunta}</div>
+                  {q.respostaCorreta && <div className="text-[12px] mt-1 text-emerald-600">Resposta certa: {q.respostaCorreta}</div>}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[18px] font-bold" style={{ color: q.taxaErro >= 50 ? '#DC2626' : '#EA4E1B' }}>{q.taxaErro}%</div>
+                  <div className="text-[11px]" style={{ color: 'var(--pagina-texto-2)' }}>{q.erraram} de {q.respondentes} erraram</div>
+                </div>
+              </div>
+            </button>
+            {aberta === q.perguntaId && (
+              <div className="px-4 pb-4 border-t pt-3" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
+                <div className="text-[11px] font-semibold uppercase mb-2" style={{ color: 'var(--pagina-texto-2)' }}>Quem errou (treinar)</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {q.pessoas.map((p) => (
+                    <span key={p.id} className="text-[12px] rounded-full px-2.5 py-1"
+                      style={{ background: p.errouDeVez ? 'rgba(220,38,38,.15)' : 'rgba(234,78,27,.12)', color: p.errouDeVez ? '#DC2626' : '#EA4E1B' }}
+                      title={p.errouDeVez ? 'Errou as tentativas e não acertou' : 'Errou a 1ª tentativa e acertou na 2ª'}>
+                      {p.name}{p.errouDeVez ? '' : ' (acertou na 2ª)'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
