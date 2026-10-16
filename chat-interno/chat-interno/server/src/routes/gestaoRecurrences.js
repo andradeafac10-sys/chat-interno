@@ -61,7 +61,7 @@ async function limparOcorrenciasObsoletas(recurrenceId = null, refazerFuturas = 
          OR NOT EXISTS (SELECT 1 FROM task_recurrences r WHERE r.id = rc.recurrence_id AND r.active = TRUE)
          OR NOT EXISTS (SELECT 1 FROM users u WHERE u.id = rc.user_id AND u.active = TRUE)
          OR EXISTS (SELECT 1 FROM task_recurrences r WHERE r.id = rc.recurrence_id AND r.end_date IS NOT NULL AND rc.occurrence_date > r.end_date)
-         ${refazerFuturas ? 'OR rc.occurrence_date >= CURRENT_DATE' : ''}
+         ${refazerFuturas ? "OR rc.occurrence_date >= (NOW() AT TIME ZONE 'America/Sao_Paulo')::date" : ''}
        )`,
     params
   );
@@ -403,7 +403,7 @@ router.get('/equipe-hoje', async (req, res) => {
               COUNT(rc.id) FILTER (WHERE rc.done)::int AS feitas
        FROM users u
        LEFT JOIN routine_completions rc
-         ON rc.user_id = u.id AND rc.occurrence_date = CURRENT_DATE
+         ON rc.user_id = u.id AND rc.occurrence_date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
        WHERE u.active = true
        GROUP BY u.id, u.name, u.avatar_url, u.color
        HAVING COUNT(rc.id) > 0
@@ -416,7 +416,7 @@ router.get('/equipe-hoje', async (req, res) => {
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date = CURRENT_DATE AND rc.done = false
+       WHERE rc.occurrence_date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AND rc.done = false
        ORDER BY r.start_time NULLS LAST, u.name`
     );
 
@@ -458,7 +458,7 @@ router.get('/visao-geral-hoje', async (req, res) => {
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date = CURRENT_DATE
+       WHERE rc.occurrence_date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
          AND ($1::int IS NULL OR rc.user_id = $1)
        ORDER BY r.start_time NULLS LAST, r.title`,
       [assigneeId]
