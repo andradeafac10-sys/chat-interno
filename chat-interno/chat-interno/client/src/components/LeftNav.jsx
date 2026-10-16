@@ -10,13 +10,14 @@ import { api, fileUrl } from "../api";
 import { getSocket } from "../socket";
 import { useLogo } from "../branding";
 import { useTheme } from "../context/ThemeContext";
+import MobileNav from "./MobileNav";
 
 // Coluna de navegação fixa, única pro sistema inteiro — substitui o antigo
 // menu suspenso do canto superior direito e o menu lateral que só existia
 // dentro da Gestão. Aparece igual em qualquer tela (Chat ou Gestão), porque
 // usa navegação de verdade (react-router) pros itens da Gestão, e um parâmetro
 // na URL (?view=) pros itens do Chat, que não são rotas separadas.
-export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
+export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobile = false }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
   const logo = useLogo();
@@ -146,7 +147,13 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
   });
 
   return (
-    <div className={colapsado ? "w-[64px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
+    <>
+    <MobileNav
+      isAdm={isAdm} unreadTotal={unreadTotal} pendingFeedback={pendingFeedback} pendingTrilha={pendingTrilha}
+      pendingRoutines={pendingRoutines} pendingTasks={pendingTasks} reunioesHoje={reunioesHoje}
+      onOpenAccount={onOpenAccount} onLogout={logout} escondido={escondeNavMobile}
+    />
+    <div className={colapsado ? "w-[64px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
       <div className={colapsado ? "px-0 pt-3.5 pb-3 flex items-center justify-center" : "px-4 pt-3.5 pb-3 flex items-center"}>
         {colapsado ? (
           logo ? (
@@ -231,5 +238,6 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount }) {
         <LogOut size={14} /> {!colapsado && "Sair"}
       </button>
     </div>
+    </>
   );
 }
