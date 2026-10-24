@@ -34,6 +34,19 @@ async function setResp(id, ids) {
     await pool.query("INSERT INTO chamado_responsaveis(chamado_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [id, uid]);
   }
 }
+// Avisa (em tempo real) quem acabou de virar responsável, exceto quem fez a ação
+async function avisar(req, ids, titulo, prazo) {
+  try {
+    const io = req.app.get("io");
+    for (const uid of ids) {
+      if (uid === req.user.id) continue;
+      io?.to(`user-${uid}`).emit("chamado:novo", {
+        titulo: "Novo chamado para você",
+        corpo: `${req.user.name}: ${titulo}`,
+      });
+    }
+  } catch {}
+}
 const um = async (id) => (await pool.query(SELECT + " WHERE c.id=$1", [id])).rows[0];
 const emitir = (req) => { try { req.app.get("io")?.emit("chamados:updated"); } catch {} };
 const PRIO = ["alta", "media", "baixa"];
@@ -70,6 +83,7 @@ router.post("/", async (req, res) => {
     [String(titulo).trim(), obrigacao || "", prioridade || "media", prazo || null, req.user.id]);
   await setResp(rows[0].id, responsaveis);
   emitir(req);
+  avisar(req, [...new Set((responsaveis || []).map(Number).filter(Boolean))], String(titulo).trim());
   res.json(await um(rows[0].id));
 });
 
@@ -90,9 +104,15 @@ router.patch("/:id", async (req, res) => {
   sets.push("updated_at=now()");
   vals.push(id);
   await pool.query(`UPDATE chamados SET ${sets.join(",")} WHERE id=$${vals.length}`, vals);
-  if (b.responsaveis !== undefined) await setResp(id, b.responsaveis);
+  let novos = [];
+  if (b.responsaveis !== undefined) {
+    const antes = (await pool.query("SELECT user_id FROM chamado_responsaveis WHERE chamado_id=$1", [id])).rows.map((r) => r.user_id);
+    await setResp(id, b.responsaveis);
+    novos = [...new Set(b.responsaveis.map(Number).filter(Boolean))].filter((u) => !antes.includes(u));
+  }
   emitir(req);
   const c = await um(id);
+  if (c && novos.length) avisar(req, novos, c.titulo);
   if (!c) return res.status(404).json({ error: "Chamado não encontrado." });
   res.json(c);
 });

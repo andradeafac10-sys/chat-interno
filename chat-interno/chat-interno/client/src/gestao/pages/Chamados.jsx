@@ -59,13 +59,15 @@ function Form({ inicial, pessoas, onSalvar, onClose }) {
       <div className="space-y-3 text-sm">
         <div>
           <label className="text-xs opacity-70">Responsável(eis)</label>
-          <div className="flex flex-wrap gap-1.5 mt-1">
+          <div className="mt-1 rounded-lg max-h-44 overflow-y-auto" style={inp}>
             {pessoas.map((p) => {
               const on = f.responsaveis.includes(p.id);
               return (
-                <button type="button" key={p.id} onClick={() => setF({ ...f, responsaveis: on ? f.responsaveis.filter((x) => x !== p.id) : [...f.responsaveis, p.id] })}
-                  className="px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={on ? { background: P, color: "#fff" } : { color: "var(--pagina-texto-2)", border: "1px solid var(--pagina-borda)" }}>{p.name}</button>
+                <label key={p.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm" style={{ borderBottom: "1px solid var(--pagina-borda-suave)" }}>
+                  <input type="checkbox" checked={on} className="w-4 h-4" style={{ accentColor: P }}
+                    onChange={() => setF({ ...f, responsaveis: on ? f.responsaveis.filter((x) => x !== p.id) : [...f.responsaveis, p.id] })} />
+                  {p.name}
+                </label>
               );
             })}
           </div>

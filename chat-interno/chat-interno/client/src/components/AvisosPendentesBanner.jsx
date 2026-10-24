@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Bell, Video, MessageSquareText, GraduationCap, Clock, AlertTriangle, LifeBuoy } from "lucide-react";
+import { mostrarNotificacaoDesktop } from "../notifications";
+import { getSocket } from "../socket";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -36,11 +38,14 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
     const intervalo = setInterval(carregar, 30000);
     window.addEventListener("rotina:atualizada", carregar);
     window.addEventListener("chamado:atualizado", carregar);
+    let sock; const onNovo = (d) => { carregar(); mostrarNotificacaoDesktop({ titulo: d.titulo, corpo: d.corpo }); };
+    try { sock = getSocket(); sock?.on("chamado:novo", onNovo); } catch {}
     window.addEventListener("feedback:atualizado", carregar);
     return () => {
       clearInterval(intervalo);
       window.removeEventListener("rotina:atualizada", carregar);
       window.removeEventListener("chamado:atualizado", carregar);
+      try { sock?.off("chamado:novo", onNovo); } catch {}
       window.removeEventListener("feedback:atualizado", carregar);
     };
   }, [isAdm]); // eslint-disable-line react-hooks/exhaustive-deps
