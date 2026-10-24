@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Video, MessageSquareText, GraduationCap, Clock, AlertTriangle } from "lucide-react";
+import { Bell, Video, MessageSquareText, GraduationCap, Clock, AlertTriangle, LifeBuoy } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 // Faixa fina e única no topo do chat, com um "pill" clicável pra cada aviso
 // pendente (reunião hoje, treinamento, alinhamento, rotina e tarefa
 // atrasada). Cada um some sozinho quando zera. Rotina e tarefa só pra ADM.
-export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedbacks, onVerRotinas, onVerTarefas, onVerReunioes }) {
+export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedbacks, onVerRotinas, onVerTarefas, onVerReunioes, onVerChamados }) {
   const { user } = useAuth();
   const isAdm = user?.role === "admin";
-  const [contagens, setContagens] = useState({ treinamentos: 0, feedbacks: 0, rotinas: 0, tarefas: 0 });
+  const [contagens, setContagens] = useState({ treinamentos: 0, feedbacks: 0, rotinas: 0, tarefas: 0, chamados: 0 });
   const [reunioesHoje, setReunioesHoje] = useState([]);
 
   const carregar = () => {
@@ -22,6 +22,8 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
         .then(({ data }) => setContagens((c) => ({ ...c, rotinas: data.count }))).catch(() => {});
       api.get("/gestao/tasks/minhas/atrasadas-count")
         .then(({ data }) => setContagens((c) => ({ ...c, tarefas: data.count }))).catch(() => {});
+      api.get("/chamados/vencendo-count")
+        .then(({ data }) => setContagens((c) => ({ ...c, chamados: data.count }))).catch(() => {});
       api.get("/reunioes/hoje")
         .then(({ data }) => setReunioesHoje(data.reunioes)).catch(() => {});
     }
@@ -33,10 +35,12 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
     // relógio passar, sem ninguém fazer nada.
     const intervalo = setInterval(carregar, 30000);
     window.addEventListener("rotina:atualizada", carregar);
+    window.addEventListener("chamado:atualizado", carregar);
     window.addEventListener("feedback:atualizado", carregar);
     return () => {
       clearInterval(intervalo);
       window.removeEventListener("rotina:atualizada", carregar);
+      window.removeEventListener("chamado:atualizado", carregar);
       window.removeEventListener("feedback:atualizado", carregar);
     };
   }, [isAdm]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -81,6 +85,12 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
       icone: AlertTriangle,
       texto: `${contagens.tarefas} tarefa${contagens.tarefas > 1 ? "s" : ""} atrasada${contagens.tarefas > 1 ? "s" : ""}`,
       acao: onVerTarefas,
+    },
+    contagens.chamados > 0 && {
+      chave: "chamados",
+      icone: LifeBuoy,
+      texto: `${contagens.chamados} chamado${contagens.chamados > 1 ? "s" : ""} vencendo`,
+      acao: onVerChamados,
     },
   ].filter(Boolean);
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   MessageCircle, Bell, MessageSquareText, GraduationCap, UserCog, Eye,
-  ListChecks, LayoutDashboard, LayoutGrid, CalendarCheck, ClipboardList, Repeat, Trophy, Users2,
+  ListChecks, LifeBuoy, LayoutDashboard, LayoutGrid, CalendarCheck, ClipboardList, Repeat, Trophy, Users2,
   Video, Settings, LogOut, ShieldCheck, Sun, Moon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +30,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
   const [pendingTasks, setPendingTasks] = useState(0);
   const [pendingTrilha, setPendingTrilha] = useState(0);
   const [reunioesHoje, setReunioesHoje] = useState(0);
+  const [chamadosVencendo, setChamadosVencendo] = useState(0);
 
   // Recolher o menu (só ícones) — guardado no navegador, então continua do
   // jeito que a pessoa deixou mesmo depois de fechar e abrir de novo.
@@ -45,6 +46,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
       api.get("/gestao/recurrences/minhas/pendentes-count").then(({ data }) => setPendingRoutines(data.count)).catch(() => {});
       api.get("/gestao/tasks/minhas/atrasadas-count").then(({ data }) => setPendingTasks(data.count)).catch(() => {});
       api.get("/reunioes/hoje").then(({ data }) => setReunioesHoje(data.count)).catch(() => {});
+      api.get("/chamados/vencendo-count").then(({ data }) => setChamadosVencendo(data.count)).catch(() => {});
     }
   };
 
@@ -57,6 +59,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
     window.addEventListener("rotina:atualizada", onRotina);
     window.addEventListener("tarefa:atualizada", onTarefa);
     window.addEventListener("feedback:atualizado", onFeedbackAtualizado);
+    window.addEventListener("chamado:atualizado", onFeedbackAtualizado);
 
     const socket = getSocket();
     const onFeedbackNovo = () => setPendingFeedback((n) => n + 1);
@@ -67,6 +70,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
       window.removeEventListener("rotina:atualizada", onRotina);
       window.removeEventListener("tarefa:atualizada", onTarefa);
       window.removeEventListener("feedback:atualizado", onFeedbackAtualizado);
+      window.removeEventListener("chamado:atualizado", onFeedbackAtualizado);
       socket?.off("feedback:novo", onFeedbackNovo);
     };
   }, [isAdm]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -150,7 +154,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
     <>
     <MobileNav
       isAdm={isAdm} unreadTotal={unreadTotal} pendingFeedback={pendingFeedback} pendingTrilha={pendingTrilha}
-      pendingRoutines={pendingRoutines} pendingTasks={pendingTasks} reunioesHoje={reunioesHoje}
+      pendingRoutines={pendingRoutines} pendingTasks={pendingTasks} reunioesHoje={reunioesHoje} chamadosVencendo={chamadosVencendo}
       onOpenAccount={onOpenAccount} onLogout={logout} escondido={escondeNavMobile}
     />
     <div className={colapsado ? "w-[64px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
@@ -193,6 +197,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
             <ItemGestao to="/gestao/minha-rotina" icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} />
             <ItemGestao to="/gestao/tarefas" icon={ClipboardList} label="Tarefas" badge={pendingTasks} />
             <ItemGestao to="/gestao/demandas" icon={ListChecks} label="Demandas" />
+            <ItemGestao to="/gestao/chamados" icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} />
             <ItemGestao to="/gestao/tarefas-equipe" icon={Users2} label="Dashboard Tarefas" />
             <ItemGestao to="/gestao/rotinas" icon={Repeat} label="Rotinas" />
             <ItemGestao to="/gestao/feedbacks" icon={MessageSquareText} label="Alinhamento" />

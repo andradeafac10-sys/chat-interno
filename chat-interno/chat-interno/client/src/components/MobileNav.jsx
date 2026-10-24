@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   MessageCircle, Bell, MessageSquareText, GraduationCap, UserCog, Eye, LayoutGrid, CalendarCheck,
-  ClipboardList, ListChecks, Users2, Repeat, Video, Settings, LogOut, Sun, Moon, X, MoreHorizontal, LayoutDashboard,
+  ClipboardList, ListChecks, LifeBuoy, Users2, Repeat, Video, Settings, LogOut, Sun, Moon, X, MoreHorizontal, LayoutDashboard,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 // Navegação do CELULAR: barra fixa embaixo + folha "Mais" com todos os itens
 // da lateral. No computador isso não aparece (o LeftNav normal continua igual).
-export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pendingTrilha, pendingRoutines, pendingTasks, reunioesHoje, onOpenAccount, onLogout, escondido }) {
+export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pendingTrilha, pendingRoutines, pendingTasks, reunioesHoje, chamadosVencendo = 0, onOpenAccount, onLogout, escondido }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -17,7 +17,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
   const params = new URLSearchParams(location.search);
   const noGestao = location.pathname.startsWith("/gestao");
   const view = location.pathname === "/" ? params.get("view") || "chat" : null;
-  const gestaoBadge = pendingRoutines + pendingTasks + reunioesHoje;
+  const gestaoBadge = pendingRoutines + pendingTasks + reunioesHoje + chamadosVencendo;
 
   const ir = (destino) => { setMaisAberto(false); navigate(destino); };
 
@@ -59,6 +59,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
                   <Botao icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} onClick={() => ir("/gestao/minha-rotina")} />
                   <Botao icon={ClipboardList} label="Tarefas" badge={pendingTasks} onClick={() => ir("/gestao/tarefas")} />
                   <Botao icon={ListChecks} label="Demandas" onClick={() => ir("/gestao/demandas")} />
+                  <Botao icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} onClick={() => ir("/gestao/chamados")} />
                   <Botao icon={Users2} label="Dashboard Tarefas" onClick={() => ir("/gestao/tarefas-equipe")} />
                   <Botao icon={Repeat} label="Rotinas" onClick={() => ir("/gestao/rotinas")} />
                   <Botao icon={MessageSquareText} label="Alinhamento" badge={pendingFeedback} onClick={() => ir("/gestao/feedbacks")} />
