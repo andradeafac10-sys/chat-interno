@@ -103,7 +103,7 @@ export default function Announcements({ onBack }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col" style={{ background: "var(--pagina-fundo)" }}>
+    <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden" style={{ background: "var(--pagina-fundo)" }}>
       <div className="h-16 flex items-center gap-3 px-4 border-b border-[#D1D7DB] bg-white shrink-0">
         <button onClick={onBack} className="text-slate-500 hover:text-slate-700">
           <ArrowLeft size={20} />
@@ -122,7 +122,7 @@ export default function Announcements({ onBack }) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 min-w-0">
         {loading ? (
           <div className="text-slate-400 text-sm">Carregando...</div>
         ) : error ? (
@@ -132,17 +132,17 @@ export default function Announcements({ onBack }) {
         ) : (
           <div className="flex flex-col gap-3">
             {announcements.map((a) => (
-              <div key={a.id} className="bg-white rounded-xl border border-[#D1D7DB] overflow-hidden">
-                <button onClick={() => toggleExpand(a.id)} className="w-full text-left p-4 flex gap-3">
+              <div key={a.id} className="bg-white rounded-xl border border-[#D1D7DB] overflow-hidden min-w-0 max-w-full">
+                <button onClick={() => toggleExpand(a.id)} className="w-full min-w-0 text-left p-3 sm:p-4 flex gap-3">
                   {a.image_url && (
                     <img src={fileUrl(a.image_url)} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-slate-800 line-clamp-2 select-text">{formatarTexto(a.message)}</p>
+                    <p className={`text-sm text-slate-800 select-text break-words [overflow-wrap:anywhere] ${expandedId === a.id ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{formatarTexto(a.message)}</p>
                     <div className="text-[11px] text-slate-400 mt-1">
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString("pt-BR")}
                     </div>
-                    <div className="flex items-center gap-3 mt-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                       {isAdm && (
                         <div className="text-[12px] font-medium text-[#2563EB] flex items-center gap-1">
                           <Check size={13} /> {a.ack_count} de {a.target_count} confirmaram
@@ -175,15 +175,28 @@ export default function Announcements({ onBack }) {
                     {!acks[a.id] ? (
                       <div className="text-xs text-slate-400">Carregando...</div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-4">
+                      <>
+                      <div>
+                        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-1">
+                          <div className="h-full bg-[#2563EB]" style={{ width: `${Math.round((a.ack_count / Math.max(a.target_count, 1)) * 100)}%` }} />
+                        </div>
+                        <div className="text-[11px] text-slate-500 mb-3">{Math.round((a.ack_count / Math.max(a.target_count, 1)) * 100)}% confirmaram</div>
+                        <button
+                          onClick={() => setViewingAnnouncement(a)}
+                          className="mb-3 text-xs font-medium rounded-lg px-3 py-1.5 border border-[#2563EB] text-[#2563EB]"
+                        >
+                          Ver como o operador vê
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <div className="text-[11px] font-semibold text-slate-500 mb-2 flex items-center gap-1">
                             <Check size={12} className="text-[#2563EB]" /> Confirmaram ({acks[a.id].acked.length})
                           </div>
                           <div className="flex flex-col gap-1">
                             {acks[a.id].acked.map((u) => (
-                              <div key={u.id} className="text-xs text-slate-700 flex items-center justify-between gap-2">
-                                <span>{u.name}</span>
+                              <div key={u.id} className="text-xs text-slate-700 flex items-center justify-between gap-2 min-w-0">
+                                <span className="min-w-0 break-words">{u.name}</span>
                                 <span className="text-[10px] text-slate-400 font-mono shrink-0">
                                   {new Date(u.acked_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                 </span>
@@ -198,12 +211,13 @@ export default function Announcements({ onBack }) {
                           </div>
                           <div className="flex flex-col gap-1">
                             {acks[a.id].pending.map((u) => (
-                              <div key={u.id} className="text-xs text-slate-500">{u.name}</div>
+                              <div key={u.id} className="text-xs text-slate-500 break-words">{u.name}</div>
                             ))}
                             {acks[a.id].pending.length === 0 && <div className="text-xs text-slate-400">Todo mundo já viu!</div>}
                           </div>
                         </div>
                       </div>
+                      </>
                     )}
                   </div>
                 )}
