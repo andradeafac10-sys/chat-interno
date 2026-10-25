@@ -10,7 +10,7 @@ import Topbar from "../components/Topbar";
 import ChatWindow from "../components/ChatWindow";
 import NewGroupModal from "../components/NewGroupModal";
 import AccountModal from "../components/AccountModal";
-import FeedbacksModal from "../components/FeedbacksModal";
+import FeedbacksPage from "./FeedbacksPage";
 import TrilhaConhecimento from "./TrilhaConhecimento";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
@@ -100,7 +100,10 @@ export default function Chat() {
   // Carrega quantos feedbacks eu ainda não confirmei, pra já mostrar a tarja
   // vermelha desde o primeiro carregamento (sem precisar receber um novo primeiro)
   useEffect(() => {
-    api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedbackCount(data.count)).catch(() => {});
+    const carregar = () => api.get("/feedbacks/mine/pending-count").then(({ data }) => setPendingFeedbackCount(data.count)).catch(() => {});
+    carregar();
+    window.addEventListener("feedback:atualizado", carregar);
+    return () => window.removeEventListener("feedback:atualizado", carregar);
   }, []);
 
   // Rotinas atrasadas — só ADM tem "Minha Rotina". Confere de novo a cada 60s
@@ -534,7 +537,9 @@ export default function Chat() {
         escondidoNoMobile={!!activeConv}
       />
       )}
-      {showUsers ? (
+      {showFeedbacks ? (
+        <div className="flex-1 flex overflow-hidden rounded-2xl"><FeedbacksPage /></div>
+      ) : showUsers ? (
         <div className="flex-1 flex overflow-hidden rounded-2xl"><UsersPage onBack={() => setShowUsers(false)} /></div>
       ) : showTrilha ? (
         <div className="flex-1 flex overflow-hidden rounded-2xl"><TrilhaConhecimento onBack={() => setShowTrilha(false)} /></div>
@@ -583,12 +588,6 @@ export default function Chat() {
           onClose={() => setShowAccount(false)}
           onOpenUsers={() => setShowUsers(true)}
           onOpenMonitoring={() => setShowMonitoring(true)}
-        />
-      )}
-      {showFeedbacks && (
-        <FeedbacksModal
-          onClose={() => setShowFeedbacks(false)}
-          onFeedbackAcked={() => setPendingFeedbackCount((n) => Math.max(0, n - 1))}
         />
       )}
 

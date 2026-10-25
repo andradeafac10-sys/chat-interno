@@ -62,12 +62,13 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
                   <Botao icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} onClick={() => ir("/gestao/chamados")} />
                   <Botao icon={Users2} label="Dashboard Tarefas" onClick={() => ir("/gestao/tarefas-equipe")} />
                   <Botao icon={Repeat} label="Rotinas" onClick={() => ir("/gestao/rotinas")} />
-                  <Botao icon={MessageSquareText} label="Alinhamento" badge={pendingFeedback} onClick={() => ir("/gestao/feedbacks")} />
+                  <Botao icon={MessageSquareText} label="Alinhamentos (equipe)" onClick={() => ir("/gestao/feedbacks")} />
                   <Botao icon={GraduationCap} label="Treinamentos" onClick={() => ir("/gestao/trilha")} />
                   <Botao icon={Video} label="Reuniões" badge={reunioesHoje} onClick={() => ir("/gestao/reuniao")} />
                 </div>
                 <div className="mobnav-sec">Painel</div>
                 <div className="mobnav-grid">
+                  <Botao icon={MessageSquareText} label="Meus alinhamentos" badge={pendingFeedback} onClick={() => ir("/?view=feedbacks")} />
                   <Botao icon={UserCog} label="Usuários" onClick={() => ir("/?view=users")} />
                   <Botao icon={Eye} label="Monitoria" onClick={() => ir("/?view=monitoring")} />
                 </div>
