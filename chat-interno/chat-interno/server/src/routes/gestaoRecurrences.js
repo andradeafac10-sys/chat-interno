@@ -437,14 +437,9 @@ router.get('/equipe-hoje', async (req, res) => {
 
     // "Atrasada" é a que já passou do horário marcado e continua sem fazer
     const agora = new Date();
-    const hojeChave = chaveDia(agora);
-    const diaDe = (r) => (r.occurrence_date instanceof Date ? chaveDia(r.occurrence_date) : String(r.occurrence_date).slice(0, 10));
-    // Atrasada: dia anterior a hoje não feito, ou hoje depois do horário marcado
-    const jaPassou = (r) => {
-      const dia = diaDe(r);
-      if (dia < hojeChave) return true;
-      if (dia > hojeChave || !r.start_time) return false;
-      const [h, m] = r.start_time.split(':').map(Number);
+    const jaPassou = (horaStr) => {
+      if (!horaStr) return false;
+      const [h, m] = horaStr.split(':').map(Number);
       const limite = new Date();
       limite.setHours(h, m, 0, 0);
       return agora > limite;
@@ -486,9 +481,14 @@ router.get('/visao-geral-hoje', async (req, res) => {
     );
 
     const agora = new Date();
-    const jaPassou = (horaStr) => {
-      if (!horaStr) return false;
-      const [h, m] = horaStr.split(':').map(Number);
+    const hojeChave = chaveDia(agora);
+    const diaDe = (r) => (r.occurrence_date instanceof Date ? chaveDia(r.occurrence_date) : String(r.occurrence_date).slice(0, 10));
+    // Atrasada: dia anterior a hoje não feito, ou hoje depois do horário marcado
+    const jaPassou = (r) => {
+      const dia = diaDe(r);
+      if (dia < hojeChave) return true;
+      if (dia > hojeChave || !r.start_time) return false;
+      const [h, m] = r.start_time.split(':').map(Number);
       const limite = new Date();
       limite.setHours(h, m, 0, 0);
       return agora > limite;
