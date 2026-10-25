@@ -18,7 +18,7 @@ export default function FeedbacksPage() {
   const carregar = () => {
     api.get("/feedbacks/mine")
       .then(({ data }) => setFeedbacks(data.feedbacks))
-      .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus feedbacks."));
+      .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus alinhamentos."));
   };
 
   useEffect(() => { carregar(); }, []);
@@ -50,7 +50,7 @@ export default function FeedbacksPage() {
           {feedbacks?.length === 0 && (
             <div className="text-center py-16">
               <MessageSquareText size={28} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum feedback ou alinhamento.</p>
+              <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum alinhamento.</p>
             </div>
           )}
 
@@ -103,7 +103,7 @@ export default function FeedbacksPage() {
                                 onChange={(e) => setLidos((prev) => ({ ...prev, [f.id]: e.target.checked }))}
                                 className="mt-0.5 accent-[#7C3AED]"
                               />
-                              <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste feedback</span>
+                              <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste alinhamento</span>
                             </label>
                             <button
                               onClick={() => confirmarCiente(f.id)}

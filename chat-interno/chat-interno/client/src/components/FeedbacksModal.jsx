@@ -13,7 +13,7 @@ export default function FeedbacksModal({ onClose, onFeedbackAcked }) {
   const carregar = () => {
     api.get("/feedbacks/mine")
       .then(({ data }) => setFeedbacks(data.feedbacks))
-      .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus feedbacks."));
+      .catch((err) => setErro(err.response?.data?.error || "Não deu pra carregar seus alinhamentos."));
   };
 
   useEffect(() => { carregar(); }, []);
@@ -35,7 +35,7 @@ export default function FeedbacksModal({ onClose, onFeedbackAcked }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl w-[380px] max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Feedbacks</h3>
+          <h3 className="text-slate-800 font-semibold text-base">Alinhamentos</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
@@ -44,7 +44,7 @@ export default function FeedbacksModal({ onClose, onFeedbackAcked }) {
         {feedbacks?.length === 0 && (
           <div className="text-center py-6">
             <MessageSquareText size={28} className="mx-auto text-slate-300 mb-2" />
-            <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum feedback.</p>
+            <p className="text-[13px] text-slate-400">Você ainda não recebeu nenhum alinhamento.</p>
           </div>
         )}
 
@@ -82,7 +82,7 @@ export default function FeedbacksModal({ onClose, onFeedbackAcked }) {
                           onChange={(e) => setLidos((prev) => ({ ...prev, [f.id]: e.target.checked }))}
                           className="mt-0.5 accent-[#7C3AED]"
                         />
-                        <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste feedback</span>
+                        <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste alinhamento</span>
                       </label>
                       <button
                         onClick={() => confirmarCiente(f.id)}

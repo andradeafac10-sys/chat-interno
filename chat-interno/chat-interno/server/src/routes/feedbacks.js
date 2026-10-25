@@ -23,7 +23,7 @@ router.get("/mine", requireAuth, async (req, res) => {
     res.json({ feedbacks: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao carregar seus feedbacks." });
+    res.status(500).json({ error: "Erro ao carregar seus alinhamentos." });
   }
 });
 
@@ -37,7 +37,7 @@ router.get("/mine/pending-count", requireAuth, async (req, res) => {
     res.json({ count: rows[0].count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao contar feedbacks pendentes." });
+    res.status(500).json({ error: "Erro ao contar alinhamentos pendentes." });
   }
 });
 
@@ -50,7 +50,7 @@ router.post("/:id/ack", requireAuth, async (req, res) => {
        RETURNING feedback_id`,
       [req.params.id, req.user.id]
     );
-    if (rows.length === 0) return res.status(404).json({ error: "Feedback não encontrado ou já confirmado." });
+    if (rows.length === 0) return res.status(404).json({ error: "Alinhamento não encontrado ou já confirmado." });
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -95,7 +95,7 @@ router.get("/", requireAuth, requireAdmin, async (req, res) => {
     res.json({ feedbacks: feedbacks.map((f) => ({ ...f, recipients: porFeedback[f.id] || [] })) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao carregar os feedbacks." });
+    res.status(500).json({ error: "Erro ao carregar os alinhamentos." });
   }
 });
 
@@ -137,7 +137,7 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
     const io = req.app.get("io");
     userIds.forEach((userId) => {
       io.to(`user-${userId}`).emit("feedback:novo", {
-        titulo: "Novo feedback recebido",
+        titulo: "Novo alinhamento recebido",
         corpo: title.trim(),
       });
     });
@@ -146,7 +146,7 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Erro ao registrar o feedback." });
+    res.status(500).json({ error: "Erro ao registrar o alinhamento." });
   } finally {
     client.release();
   }
@@ -160,12 +160,12 @@ router.post("/", requireAuth, requireAdmin, upload.single("attachment"), async (
 router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(`DELETE FROM feedbacks WHERE id = $1 RETURNING title`, [req.params.id]);
-    if (!rows[0]) return res.status(404).json({ error: "Feedback não encontrado." });
+    if (!rows[0]) return res.status(404).json({ error: "Alinhamento não encontrado." });
     console.log(`[feedback apagado] "${rows[0].title}" apagado por user_id=${req.user.id} em ${new Date().toISOString()}`);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao apagar o feedback." });
+    res.status(500).json({ error: "Erro ao apagar o alinhamento." });
   }
 });
 
@@ -217,7 +217,7 @@ router.post("/agendar-proximo", requireAuth, requireAdmin, async (req, res) => {
     const { rows: recRows } = await client.query(
       `INSERT INTO task_recurrences (title, description, priority, recurrence_type, start_time, start_date, end_date, active, created_by)
        VALUES ($1, $2, 'medium', 'daily', $3, $4, $4, true, $5) RETURNING *`,
-      [`Feedback de acompanhamento — ${nomeColaborador}`, [motivo.trim(), observacao?.trim()].filter(Boolean).join(" — "), horaSomente, dataSomente, req.user.id]
+      [`Alinhamento de acompanhamento — ${nomeColaborador}`, [motivo.trim(), observacao?.trim()].filter(Boolean).join(" — "), horaSomente, dataSomente, req.user.id]
     );
     const recurrence = recRows[0];
     await client.query(`INSERT INTO recurrence_assignees (recurrence_id, user_id) VALUES ($1, $2)`, [recurrence.id, responsavelId]);
@@ -234,14 +234,14 @@ router.post("/agendar-proximo", requireAuth, requireAdmin, async (req, res) => {
     await gerarOcorrenciasDaRotina(recurrence);
 
     const io = req.app.get("io");
-    io.to(`user-${responsavelId}`).emit("gestao:notify", { titulo: "Novo item na sua rotina", corpo: `Feedback de acompanhamento com ${nomeColaborador}: ${motivo.trim()}` });
+    io.to(`user-${responsavelId}`).emit("gestao:notify", { titulo: "Novo item na sua rotina", corpo: `Alinhamento de acompanhamento com ${nomeColaborador}: ${motivo.trim()}` });
     io.to(`user-${responsavelId}`).emit("rotina:atualizada", {});
 
     res.status(201).json({ id: rows[0].id });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Erro ao agendar o próximo feedback." });
+    res.status(500).json({ error: "Erro ao agendar o próximo alinhamento." });
   } finally {
     client.release();
   }

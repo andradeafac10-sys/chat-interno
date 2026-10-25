@@ -30,12 +30,12 @@ export default function Feedbacks() {
   useEffect(() => { load(); }, []);
 
   const apagarFeedback = async (id) => {
-    if (!confirm('Deseja realmente excluir este feedback?')) return;
+    if (!confirm('Deseja realmente excluir este alinhamento?')) return;
     try {
       await api.delete(`/feedbacks/${id}`);
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Não deu pra apagar o feedback.');
+      alert(err.response?.data?.error || 'Não deu pra apagar o alinhamento.');
     }
   };
 
@@ -87,7 +87,7 @@ export default function Feedbacks() {
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por pessoa ou texto do feedback..."
+            placeholder="Buscar por pessoa ou texto do alinhamento..."
             className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
         </div>
@@ -155,7 +155,7 @@ export default function Feedbacks() {
           className="text-[11.5px] font-semibold rounded-full px-3 py-1.5 mb-3"
           style={{ background: aba === 'lista' ? '#2E1065' : 'var(--pagina-borda-suave)', color: aba === 'lista' ? 'var(--pagina-cartao)' : '#64748B' }}
         >
-          Feedbacks
+          Alinhamentos
         </button>
         <button
           onClick={() => setAba('ranking')}
@@ -232,7 +232,7 @@ export default function Feedbacks() {
                   </span>
                   <button
                     onClick={() => apagarFeedback(f.id)}
-                    title="Apagar feedback"
+                    title="Apagar alinhamento"
                     className="text-slate-400 hover:text-red-500 shrink-0"
                   >
                     <Trash2 size={15} />
@@ -346,7 +346,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
       setFeedbackCriadoId(data.feedbackId);
       setEtapa('perguntar');
     } catch (err) {
-      setError(err.response?.data?.error || 'Não deu pra registrar o feedback.');
+      setError(err.response?.data?.error || 'Não deu pra registrar o alinhamento.');
     } finally {
       setSaving(false);
     }
@@ -390,7 +390,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
 
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">
-            Pra quem é esse feedback (pode marcar várias pessoas)
+            Pra quem é esse alinhamento (pode marcar várias pessoas)
           </label>
           {pessoasEscolhidas.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -431,7 +431,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex: Feedback sobre atendimento"
+            placeholder="Ex: Alinhamento sobre atendimento"
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             required
           />
@@ -469,7 +469,7 @@ function NewFeedbackModal({ onClose, onSaved }) {
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ background: NAVY }}
           >
-            {saving ? 'Salvando...' : `Registrar feedback${userIds.length > 1 ? ` (${userIds.length} pessoas)` : ''}`}
+            {saving ? 'Salvando...' : `Registrar alinhamento${userIds.length > 1 ? ` (${userIds.length} pessoas)` : ''}`}
           </button>
         </form>
       </div>
@@ -511,7 +511,7 @@ function AgendarProximoModal({ feedbackAnteriorId, colaboradores, onClose, onSav
       });
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.error || 'Não deu pra agendar o próximo feedback.');
+      setError(err.response?.data?.error || 'Não deu pra agendar o próximo alinhamento.');
     } finally {
       setSaving(false);
     }
@@ -521,7 +521,7 @@ function AgendarProximoModal({ feedbackAnteriorId, colaboradores, onClose, onSav
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-[400px] p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-slate-800 font-semibold text-base">Agendar próximo feedback</h3>
+          <h3 className="text-slate-800 font-semibold text-base">Agendar próximo alinhamento</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
         <form onSubmit={submit}>
@@ -703,7 +703,7 @@ function RankingFeedbacks() {
     <div className="flex-1 overflow-y-auto p-6" style={{ background: 'var(--pagina-fundo)' }}>
       <div className="max-w-xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[13px] font-semibold text-slate-700">Quem mais recebeu feedback</div>
+          <div className="text-[13px] font-semibold text-slate-700">Quem mais recebeu alinhamento</div>
           <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12.5px]">
             <option value="7">Últimos 7 dias</option>
             <option value="30">Últimos 30 dias</option>
