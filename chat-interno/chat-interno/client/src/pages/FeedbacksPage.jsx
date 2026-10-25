@@ -92,7 +92,7 @@ export default function FeedbacksPage() {
                           </a>
                         )}
                         <div className="text-[11px] text-slate-400 mt-2">
-                          {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")}
+                          {f.created_by_name} · {new Date(f.created_at).toLocaleDateString("pt-BR")} às {new Date(f.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </div>
                         {pendente ? (
                           <>

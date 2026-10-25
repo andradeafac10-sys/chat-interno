@@ -6,6 +6,12 @@ import { api, fileUrl } from '../../api';
 
 const NAVY = '#7C3AED';
 
+// 25/10/2026 às 14:32 (horário de Brasília)
+const dataHora = (iso) => {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+};
+
 export default function Feedbacks() {
   const [aba, setAba] = useState('lista'); // 'lista' | 'ranking' | 'calendario'
   const [feedbacks, setFeedbacks] = useState([]);
@@ -244,7 +250,7 @@ export default function Feedbacks() {
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11.5px] text-slate-500 mb-2 mt-3">
                   <span><b className="text-slate-500 font-semibold">Aplicador:</b> {f.created_by_name}</span>
                   <span className="text-slate-300">·</span>
-                  <span>{new Date(f.created_at).toLocaleDateString('pt-BR')}</span>
+                  <span>{dataHora(f.created_at)}</span>
                 </div>
                 <div className="text-[13px] text-slate-600 whitespace-pre-wrap">{f.content}</div>
                 {f.attachment_url && (
@@ -263,19 +269,11 @@ export default function Feedbacks() {
                   <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                     Operador{f.recipients.length > 1 ? "es" : ""}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col divide-y rounded-lg border" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                   {f.recipients.map((r) => (
-                    <span
-                      key={r.userId}
-                      className="flex items-center gap-1.5 text-[11px] font-medium rounded-full pl-1 pr-2.5 py-1"
-                      style={
-                        r.acknowledgedAt
-                          ? { background: '#F0FDF4', color: '#16A34A' }
-                          : { background: '#FEF2F2', color: '#DC2626' }
-                      }
-                    >
+                    <div key={r.userId} className="flex items-center gap-2.5 px-3 py-2 min-w-0" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                       <span
-                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-semibold overflow-hidden shrink-0"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0"
                         style={{ background: NAVY }}
                       >
                         {r.avatarUrl ? (
@@ -284,8 +282,15 @@ export default function Feedbacks() {
                           r.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
                         )}
                       </span>
-                      {r.name} {r.acknowledgedAt ? <Check size={11} /> : '· Aguardando ciente'}
-                    </span>
+                      <span className="text-[12.5px] font-medium text-slate-700 min-w-0 flex-1 break-words">{r.name}</span>
+                      {r.acknowledgedAt ? (
+                        <span className="text-[11.5px] font-medium text-right shrink-0" style={{ color: '#16A34A' }}>
+                          <Check size={11} className="inline -mt-0.5" /> Assinou em {dataHora(r.acknowledgedAt)}
+                        </span>
+                      ) : (
+                        <span className="text-[11.5px] font-medium shrink-0" style={{ color: '#DC2626' }}>Aguardando ciente</span>
+                      )}
+                    </div>
                   ))}
                   </div>
                 </div>
