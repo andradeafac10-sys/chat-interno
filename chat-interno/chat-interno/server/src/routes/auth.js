@@ -24,6 +24,8 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: "Usuário ou senha inválidos." });
 
+  pool.query("UPDATE users SET last_login_at = now(), last_seen_at = now() WHERE id = $1", [user.id]).catch(() => {});
+
   const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
   res.json({

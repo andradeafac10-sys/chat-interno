@@ -508,4 +508,5 @@ CREATE TABLE IF NOT EXISTS reuniao_encaminhamentos (
 -- Inativação automática por falta de acesso (3 dias úteis)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS auto_inativado_em TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 UPDATE users SET last_seen_at = now() WHERE last_seen_at IS NULL;

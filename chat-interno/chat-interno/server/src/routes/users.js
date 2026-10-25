@@ -26,7 +26,7 @@ router.get("/directory", requireAuth, async (req, res) => {
 // GET /api/users/manage -> lista TODOS os usuários (admins + operadores) para a tela de gestão de acessos
 router.get("/manage", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, name, username, role, color, avatar_url, active, created_at, last_seen_at, auto_inativado_em FROM users ORDER BY role DESC, name"
+    "SELECT id, name, username, role, color, avatar_url, active, created_at, last_seen_at, last_login_at, auto_inativado_em FROM users ORDER BY role DESC, name"
   );
   res.json({ users: rows });
 });
