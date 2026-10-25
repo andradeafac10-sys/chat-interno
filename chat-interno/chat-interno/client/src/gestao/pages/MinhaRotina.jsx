@@ -1,5 +1,5 @@
 // client/src/gestao/pages/MinhaRotina.jsx
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 
@@ -134,7 +134,6 @@ export default function MinhaRotina() {
                       <div style={styles.itemMeta}>
                         {item.start_time && <span>{item.start_time.slice(0, 5)}</span>}
                         {atrasada && <span style={{ color: '#dc2626', fontWeight: 700 }}>Atrasada</span>}
-                        {item.nota && <span>💬 tem relato</span>}
                       </div>
                     </div>
                   </button>
@@ -225,39 +224,6 @@ function PainelEstatisticas({ stats }) {
 }
 
 function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
-  const [nota, setNota] = useState(item.nota || '');
-  const [salvandoNota, setSalvandoNota] = useState(false);
-  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
-  const fileInputRef = useRef(null);
-
-  async function salvarNota() {
-    setSalvandoNota(true);
-    try {
-      await gestaoApi.marcarRotina(item.id, { done: item.done, nota });
-      onAtualizado({ nota });
-    } catch (err) {
-      alert(err.message || 'Não consegui salvar o relato.');
-    } finally {
-      setSalvandoNota(false);
-    }
-  }
-
-  async function escolherArquivo(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setEnviandoArquivo(true);
-    try {
-      const { url, name } = await gestaoApi.uploadRoutineFile(file);
-      await gestaoApi.marcarRotina(item.id, { done: item.done, anexo_url: url, anexo_nome: name });
-      onAtualizado({ anexo_url: url, anexo_nome: name });
-    } catch (err) {
-      alert(err.message || 'Não consegui enviar o arquivo.');
-    } finally {
-      setEnviandoArquivo(false);
-      e.target.value = '';
-    }
-  }
-
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -271,29 +237,6 @@ function DetalheRotinaModal({ item, onClose, onMarcarFeito, onAtualizado }) {
           <h2 style={styles.modalTitulo}>{item.title}</h2>
           {item.description && <p style={styles.modalDescricao}>{item.description}</p>}
           {item.start_time && <p style={styles.modalHorario}>🕐 {item.start_time.slice(0, 5)}</p>}
-
-          <label style={styles.modalLabel}>Relato (opcional)</label>
-          <textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            onBlur={salvarNota}
-            placeholder="Escreva algo sobre essa rotina hoje..."
-            style={styles.modalTextarea}
-            rows={3}
-          />
-          {salvandoNota && <div style={styles.hintPequeno}>Salvando...</div>}
-
-          <label style={styles.modalLabel}>Anexo (opcional)</label>
-          {item.anexo_url ? (
-            <a href={item.anexo_url} target="_blank" rel="noreferrer" style={styles.anexoLink}>
-              📎 {item.anexo_nome || 'Ver arquivo'}
-            </a>
-          ) : (
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={enviandoArquivo} style={styles.anexoBtn}>
-              {enviandoArquivo ? 'Enviando...' : '+ Anexar arquivo'}
-            </button>
-          )}
-          <input ref={fileInputRef} type="file" onChange={escolherArquivo} style={{ display: 'none' }} />
 
           <button
             onClick={() => {
