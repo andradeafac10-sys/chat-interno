@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { X, Users, Building2 } from 'lucide-react';
 import { api } from '../../api';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const LEMBRETES = [
   { minutos: 0, label: 'No dia' },
@@ -121,7 +121,7 @@ export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClo
         <form onSubmit={submit}>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Título</label>
           <input value={titulo} onChange={(e) => setTitulo(e.target.value)} required
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
 
           <label className="text-xs font-medium text-slate-500 mb-1.5 block">Tipo</label>
           <div className="flex gap-2 mb-3">
@@ -207,11 +207,11 @@ export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClo
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Local ou link (opcional)</label>
           <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="meet.google.com/... ou sala de reunião"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Pauta (opcional)</label>
           <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Participantes</label>
           {escolhidos.length > 0 && (
@@ -225,7 +225,7 @@ export default function ReuniaoFormModal({ dataInicial, reuniaoParaEditar, onClo
             </div>
           )}
           <input value={filtroPessoa} onChange={(e) => setFiltroPessoa(e.target.value)} placeholder="Buscar pessoa..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" />
           {filtroPessoa && (
             <div className="max-h-28 overflow-y-auto border border-slate-100 rounded-lg mb-3 divide-y divide-slate-50">
               {filtrados.slice(0, 20).map((u) => (

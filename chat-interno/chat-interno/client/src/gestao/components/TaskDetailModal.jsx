@@ -172,7 +172,7 @@ function describeAction(h) {
   }
 }
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 const styles = {
   overlay: {

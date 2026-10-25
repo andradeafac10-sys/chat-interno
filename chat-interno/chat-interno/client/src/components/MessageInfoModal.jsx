@@ -31,7 +31,7 @@ export default function MessageInfoModal({ messageId, onClose }) {
           {dados && (
             <>
               <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-700 mb-2">
-                <CheckCheck size={16} className="text-[#2563EB]" /> Lido ({dados.lido_por.length})
+                <CheckCheck size={16} className="text-[#7C3AED]" /> Lido ({dados.lido_por.length})
               </div>
               {dados.lido_por.length === 0 ? (
                 <p className="text-xs text-slate-400 mb-4">Ninguém leu ainda.</p>
@@ -39,7 +39,7 @@ export default function MessageInfoModal({ messageId, onClose }) {
                 <div className="flex flex-col gap-2 mb-4">
                   {dados.lido_por.map((p) => (
                     <div key={p.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2563EB" }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#7C3AED" }}>
                         {p.avatar_url ? <img src={fileUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : p.name?.[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ export default function MessageInfoModal({ messageId, onClose }) {
                 <div className="flex flex-col gap-2">
                   {dados.nao_lido_por.map((p) => (
                     <div key={p.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#2563EB" }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden" style={{ background: p.color || "#7C3AED" }}>
                         {p.avatar_url ? <img src={fileUrl(p.avatar_url)} alt={p.name} className="w-full h-full object-cover" /> : p.name?.[0]?.toUpperCase()}
                       </div>
                       <div className="text-[13px] text-slate-700 truncate">{p.name}</div>

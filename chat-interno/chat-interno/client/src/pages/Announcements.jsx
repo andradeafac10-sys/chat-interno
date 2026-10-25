@@ -17,7 +17,7 @@ function formatarTexto(texto) {
   while ((m = regex.exec(texto)) !== null) {
     if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
     if (m[1]) {
-      partes.push(<span key={key++} className="font-semibold text-[#2563EB]">{m[1]}</span>);
+      partes.push(<span key={key++} className="font-semibold text-[#7C3AED]">{m[1]}</span>);
     } else if (m[2] !== undefined) {
       partes.push(<strong key={key++}>{m[2]}</strong>);
     } else if (m[3] !== undefined) {
@@ -37,7 +37,7 @@ function formatarTexto(texto) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="underline text-[#2563EB] break-all"
+          className="underline text-[#7C3AED] break-all"
         >
           {url}
         </a>
@@ -127,13 +127,13 @@ export default function Announcements({ onBack }) {
           <ArrowLeft size={20} />
         </button>
         <div className="text-slate-800 text-sm font-semibold flex items-center gap-2">
-          <Megaphone size={16} className="text-[#2563EB]" /> Comunicados
+          <Megaphone size={16} className="text-[#7C3AED]" /> Comunicados
         </div>
         {isAdm && (
           <button
             onClick={() => setShowNew(true)}
             className="ml-auto flex items-center gap-1.5 text-sm font-medium rounded-lg px-3 py-2 text-white"
-            style={{ background: "#2563EB" }}
+            style={{ background: "#7C3AED" }}
           >
             <Plus size={15} /> Novo comunicado
           </button>
@@ -170,7 +170,7 @@ export default function Announcements({ onBack }) {
                 </button>
                 {isAdm && (
                   <div className="px-3 sm:px-4 pb-3 flex items-center gap-2">
-                    <span className="text-[12px] font-medium text-[#2563EB] flex items-center gap-1">
+                    <span className="text-[12px] font-medium text-[#7C3AED] flex items-center gap-1">
                       <Check size={13} /> {a.ack_count} de {a.target_count}
                     </span>
                     <button
@@ -243,7 +243,7 @@ export default function Announcements({ onBack }) {
                         return (
                           <div key={g.id} className="flex items-center gap-2 text-xs text-slate-700">
                             <span className="w-28 sm:w-40 truncate">{g.name}</span>
-                            <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#2563EB]" style={{ width: `${pct}%` }} /></div>
+                            <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#7C3AED]" style={{ width: `${pct}%` }} /></div>
                             <span className="w-20 text-right text-slate-500">{g.confirmaram}/{g.total} · {pct}%</span>
                           </div>
                         );
@@ -265,7 +265,7 @@ export default function Announcements({ onBack }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filtro !== "pendentes" && (
                     <div className="bg-white rounded-xl border border-[#D1D7DB] p-4">
-                      <div className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><Check size={12} className="text-[#2563EB]" /> Confirmaram ({dados.acked.length})</div>
+                      <div className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><Check size={12} className="text-[#7C3AED]" /> Confirmaram ({dados.acked.length})</div>
                       <div className="flex flex-col gap-1.5">
                         {dados.acked.filter(passa).map((u) => (
                           <div key={u.id} className="text-xs text-slate-700 flex items-center justify-between gap-2 min-w-0">
@@ -289,7 +289,7 @@ export default function Announcements({ onBack }) {
                         {dados.pending.length === 0 && <div className="text-xs text-slate-400">Todo mundo já confirmou!</div>}
                       </div>
                       {dados.pending.length > 0 && (
-                        <button onClick={copiarPendentes} className="mt-3 flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-1.5 border border-[#2563EB] text-[#2563EB]">
+                        <button onClick={copiarPendentes} className="mt-3 flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-1.5 border border-[#7C3AED] text-[#7C3AED]">
                           <Copy size={12} /> Copiar lista de pendentes
                         </button>
                       )}

@@ -4,7 +4,7 @@ import { X, Search, Plus } from 'lucide-react';
 import { gestaoApi } from '../gestaoApi';
 import RecurrenceFormModal from './RecurrenceFormModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const DIAS_SEMANA_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
 const LABEL_PRIORIDADE = { high: 'Alta', medium: 'Média', low: 'Baixa' };
@@ -111,7 +111,7 @@ export default function TodasRotinasModal({ onClose, onChanged }) {
               value={filtroNome}
               onChange={(e) => setFiltroNome(e.target.value)}
               placeholder="Filtrar por pessoa ou nome da rotina..."
-              className="w-full border rounded-lg pl-7 pr-3 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="w-full border rounded-lg pl-7 pr-3 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
               style={{ borderColor: 'var(--pagina-borda)' }}
             />
           </div>

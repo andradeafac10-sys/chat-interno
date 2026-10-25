@@ -46,7 +46,7 @@ export default function TrilhaConhecimento({ onBack }) {
                   key={m.id}
                   disabled={status === "bloqueado"}
                   onClick={() => setModuloAberto(m.id)}
-                  className="bg-white rounded-xl border overflow-hidden text-left flex flex-col disabled:opacity-60 disabled:cursor-not-allowed hover:border-[#2563EB] transition-colors relative"
+                  className="bg-white rounded-xl border overflow-hidden text-left flex flex-col disabled:opacity-60 disabled:cursor-not-allowed hover:border-[#7C3AED] transition-colors relative"
                   style={{ borderColor: status === "concluido" ? "#86EFAC" : "#E4E8EE" }}
                 >
                   {status === "concluido" && (
@@ -64,7 +64,7 @@ export default function TrilhaConhecimento({ onBack }) {
                     <div className="text-[13px] font-semibold text-slate-800 mb-0.5 line-clamp-2">{m.title}</div>
                     {m.description && <div className="text-[11.5px] text-slate-500 line-clamp-2 mb-1">{m.description}</div>}
                     {status === "bloqueado" && <div className="text-[11px] text-slate-400 mt-1">Termine o anterior pra liberar</div>}
-                    {status === "disponivel" && <div className="text-[11px] font-medium mt-1" style={{ color: "#2563EB" }}>Disponível agora</div>}
+                    {status === "disponivel" && <div className="text-[11px] font-medium mt-1" style={{ color: "#7C3AED" }}>Disponível agora</div>}
                     {status === "concluido" && (
                       <div className="text-[11px] text-emerald-600 font-medium mt-1">
                         Concluído {m.progresso.ultima_nota != null ? `— nota ${m.progresso.ultima_nota}%` : ""}
@@ -97,11 +97,11 @@ function ResumoTrilha({ modulos }) {
         <span className="text-[12px] text-slate-500">{concluidos} de {total} treinamentos concluídos</span>
       </div>
       <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-3">
-        <div className="h-full" style={{ width: `${percentual}%`, background: "#2563EB" }} />
+        <div className="h-full" style={{ width: `${percentual}%`, background: "#7C3AED" }} />
       </div>
       <div className="flex items-center gap-4">
         <div className="text-[12px] text-slate-500">
-          <span className="font-semibold" style={{ color: "#2563EB" }}>{percentual}%</span> concluído
+          <span className="font-semibold" style={{ color: "#7C3AED" }}>{percentual}%</span> concluído
         </div>
         {mediaGeral != null && (
           <div className="text-[12px] text-slate-500">
@@ -135,7 +135,7 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3" style={{ background: "var(--pagina-fundo)" }}>
         <p className="text-sm text-red-500">{erro}</p>
-        <button onClick={onVoltar} className="text-sm text-[#2563EB] font-medium">Voltar</button>
+        <button onClick={onVoltar} className="text-sm text-[#7C3AED] font-medium">Voltar</button>
       </div>
     );
   }
@@ -148,7 +148,7 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
         <div className="text-slate-800 text-sm font-semibold truncate flex-1">{dados.modulo.title}</div>
         <button
           onClick={() => setMostrarAnotacao(true)}
-          className="flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-[#2563EB] shrink-0"
+          className="flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 hover:text-[#7C3AED] shrink-0"
         >
           <StickyNote size={16} /> Anotação
         </button>
@@ -184,7 +184,7 @@ function ModuloView({ moduloId, onVoltar, onConcluido }) {
               <button
                 onClick={async () => { await api.post(`/trilha/modulos/${moduloId}/concluir`); onConcluido(); }}
                 className="rounded-lg py-2 px-5 text-sm font-semibold text-white"
-                style={{ background: "#2563EB" }}
+                style={{ background: "#7C3AED" }}
               >
                 Marcar como concluído
               </button>
@@ -386,7 +386,7 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
         <div className="text-[13px] text-slate-600 mt-1">
           Nota final: <b>{resultadoFinal.nota}%</b> ({resultadoFinal.acertos} certas, {resultadoFinal.erros} erradas)
         </div>
-        <button onClick={onConcluido} className="mt-4 rounded-lg py-2 px-5 text-sm font-semibold text-white" style={{ background: "#2563EB" }}>
+        <button onClick={onConcluido} className="mt-4 rounded-lg py-2 px-5 text-sm font-semibold text-white" style={{ background: "#7C3AED" }}>
           Continuar
         </button>
       </div>
@@ -407,7 +407,7 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
             key={o.id}
             className="flex items-center gap-2 text-[13px] text-slate-700 border rounded-lg px-3 py-2 cursor-pointer"
             style={{
-              borderColor: opcaoSelecionada === o.id ? "#2563EB" : "var(--pagina-borda)",
+              borderColor: opcaoSelecionada === o.id ? "#7C3AED" : "var(--pagina-borda)",
               background: opcaoSelecionada === o.id ? "rgba(37,99,235,0.15)" : "var(--pagina-borda-suave)",
               color: "var(--pagina-texto-1)",
               opacity: feedback ? 0.7 : 1,
@@ -419,7 +419,7 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
               name={`pergunta-${perguntaAtual.id}`}
               checked={opcaoSelecionada === o.id}
               onChange={() => setOpcaoSelecionada(o.id)}
-              className="accent-[#2563EB]"
+              className="accent-[#7C3AED]"
             />
             {o.text}
           </label>
@@ -444,7 +444,7 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
           onClick={responder}
           disabled={opcaoSelecionada == null || respondendo}
           className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
-          style={{ background: "#2563EB" }}
+          style={{ background: "#7C3AED" }}
         >
           {respondendo ? "Enviando..." : "Responder"}
         </button>
@@ -455,7 +455,7 @@ function Prova({ moduloId, perguntasIniciais, onConcluido }) {
         </button>
       )}
       {feedback && feedback.finalizada && (
-        <button onClick={proxima} disabled={concluindo} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40" style={{ background: "#2563EB" }}>
+        <button onClick={proxima} disabled={concluindo} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40" style={{ background: "#7C3AED" }}>
           {concluindo ? "Enviando..." : indice + 1 < perguntas.length ? "Próxima pergunta" : "Concluir treinamento"}
         </button>
       )}
@@ -500,10 +500,10 @@ function AnotacaoModal({ moduloId, onClose }) {
             onChange={(e) => setTexto(e.target.value)}
             rows={6}
             placeholder="Escreva livremente suas observações sobre esse treinamento..."
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-3"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED] mb-3"
           />
         )}
-        <button onClick={salvar} disabled={salvando || carregando} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: "#2563EB" }}>
+        <button onClick={salvar} disabled={salvando || carregando} className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40" style={{ background: "#7C3AED" }}>
           {salvando ? "Salvando..." : "Salvar anotação"}
         </button>
       </div>

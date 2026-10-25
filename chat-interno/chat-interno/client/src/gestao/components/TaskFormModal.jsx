@@ -139,7 +139,7 @@ export default function TaskFormModal({ task, onClose, onSaved }) {
   );
 }
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 const styles = {
   overlay: {

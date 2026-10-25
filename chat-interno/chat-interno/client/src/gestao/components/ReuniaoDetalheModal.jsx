@@ -4,7 +4,7 @@ import { X, Trash2, Pencil, CheckCircle2, History } from 'lucide-react';
 import { api } from '../../api';
 import ReuniaoFormModal from './ReuniaoFormModal';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 
 export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
   const [reuniao, setReuniao] = useState(null);
@@ -145,7 +145,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
               </button>
             )}
             {souDono && (
-              <button onClick={() => setEditando(true)} className="text-slate-400 hover:text-[#2563EB]" title="Editar reunião">
+              <button onClick={() => setEditando(true)} className="text-slate-400 hover:text-[#7C3AED]" title="Editar reunião">
                 <Pencil size={15} />
               </button>
             )}
@@ -197,7 +197,7 @@ export default function ReuniaoDetalheModal({ reuniaoId, onClose, onChanged }) {
               onChange={(e) => setAtaHoje(e.target.value)}
               rows={4}
               placeholder="Escreva o que foi conversado hoje..."
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-2"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-[12.5px] resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED] mb-2"
             />
             <button onClick={salvarAta} disabled={salvando || !ataHoje.trim()}
               className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40 mb-4" style={{ background: NAVY }}>

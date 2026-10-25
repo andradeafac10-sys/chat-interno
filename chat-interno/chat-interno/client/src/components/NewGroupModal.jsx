@@ -46,7 +46,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ex: Equipe Carteira X"
-          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
         />
 
         <div className="flex items-center justify-between mb-1.5">
@@ -62,7 +62,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
                   : [...new Set([...prev, ...idsVisiveis])] // marca todos os que estão sendo mostrados agora
               );
             }}
-            className="text-[11.5px] font-medium text-[#2563EB] hover:underline"
+            className="text-[11.5px] font-medium text-[#7C3AED] hover:underline"
           >
             {filteredOperators.length > 0 && filteredOperators.every((op) => memberIds.includes(op.id))
               ? "Desmarcar todos"
@@ -75,13 +75,13 @@ export default function NewGroupModal({ onClose, onCreated }) {
             value={memberFilter}
             onChange={(e) => setMemberFilter(e.target.value)}
             placeholder="Buscar pessoa..."
-            className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
           />
         </div>
         <div className="flex flex-col gap-1 mb-5 max-h-40 overflow-y-auto">
           {filteredOperators.map((op) => (
             <label key={op.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
-              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#2563EB]" />
+              <input type="checkbox" checked={memberIds.includes(op.id)} onChange={() => toggle(op.id)} className="accent-[#7C3AED]" />
               <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-semibold overflow-hidden shrink-0" style={{ background: op.color }}>
                 {op.avatar_url ? (
                   <img src={fileUrl(op.avatar_url)} alt={op.name} className="w-full h-full object-cover" />
@@ -91,7 +91,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
               </div>
               <span className="text-sm text-slate-700 flex items-center gap-1">
                 {op.name}
-                {op.role === "admin" && <ShieldCheck size={12} className="text-[#2563EB]" />}
+                {op.role === "admin" && <ShieldCheck size={12} className="text-[#7C3AED]" />}
               </span>
             </label>
           ))}
@@ -106,7 +106,7 @@ export default function NewGroupModal({ onClose, onCreated }) {
           onClick={create}
           disabled={!name.trim() || memberIds.length === 0 || saving}
           className="w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-40"
-          style={{ background: "#2563EB" }}
+          style={{ background: "#7C3AED" }}
         >
           {saving ? "Criando..." : "Criar grupo"}
         </button>

@@ -4,7 +4,7 @@ import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 import { fileUrl } from '../../api';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const PERIODOS = [
   { value: 'day', label: 'Hoje' },
   { value: 'week', label: 'Últimos 7 dias' },

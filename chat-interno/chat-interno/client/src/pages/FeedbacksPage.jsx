@@ -39,7 +39,7 @@ export default function FeedbacksPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200 bg-white shrink-0">
-        <MessageSquareText size={18} className="text-[#2563EB]" />
+        <MessageSquareText size={18} className="text-[#7C3AED]" />
         <div className="text-slate-800 text-sm font-semibold">Alinhamento</div>
       </div>
 
@@ -86,7 +86,7 @@ export default function FeedbacksPage() {
                             href={fileUrl(f.attachment_url)}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[12px] text-[#2563EB] font-medium mt-2 underline"
+                            className="inline-flex items-center gap-1 text-[12px] text-[#7C3AED] font-medium mt-2 underline"
                           >
                             📎 {f.attachment_name || "Ver anexo"}
                           </a>
@@ -101,7 +101,7 @@ export default function FeedbacksPage() {
                                 type="checkbox"
                                 checked={!!lidos[f.id]}
                                 onChange={(e) => setLidos((prev) => ({ ...prev, [f.id]: e.target.checked }))}
-                                className="mt-0.5 accent-[#2563EB]"
+                                className="mt-0.5 accent-[#7C3AED]"
                               />
                               <span className="text-[12px] text-slate-600">Li e estou ciente do conteúdo deste feedback</span>
                             </label>
@@ -109,7 +109,7 @@ export default function FeedbacksPage() {
                               onClick={() => confirmarCiente(f.id)}
                               disabled={!lidos[f.id] || confirmando === f.id}
                               className="rounded-lg py-2 px-5 text-[12.5px] font-semibold text-white mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                              style={{ background: "#2563EB" }}
+                              style={{ background: "#7C3AED" }}
                             >
                               {confirmando === f.id ? "Confirmando..." : "✓ OK, CIENTE"}
                             </button>

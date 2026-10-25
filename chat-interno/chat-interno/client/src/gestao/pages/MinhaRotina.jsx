@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import PageHeader from '../PageHeader';
 import { gestaoApi } from '../gestaoApi';
 
-const NAVY = '#2563EB';
+const NAVY = '#7C3AED';
 const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const CORES_PRIORIDADE = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };
 const LABEL_PRIORIDADE = { high: 'Alta', medium: 'Média', low: 'Baixa' };

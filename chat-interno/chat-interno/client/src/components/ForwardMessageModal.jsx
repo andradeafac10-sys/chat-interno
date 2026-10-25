@@ -48,7 +48,7 @@ export default function ForwardMessageModal({ message, onClose, onSent }) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-base">
-            <Forward size={17} className="text-[#2563EB]" /> Reencaminhar mensagem
+            <Forward size={17} className="text-[#7C3AED]" /> Reencaminhar mensagem
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={19} />
@@ -62,7 +62,7 @@ export default function ForwardMessageModal({ message, onClose, onSent }) {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Buscar pessoa ou grupo..."
-              className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+              className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             />
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function ForwardMessageModal({ message, onClose, onSent }) {
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
-                    style={{ background: c.color || "#2563EB" }}
+                    style={{ background: c.color || "#7C3AED" }}
                   >
                     {c.type === "group" ? <UsersIcon size={14} /> : (c.title?.[0] || "?").toUpperCase()}
                   </div>
@@ -91,8 +91,8 @@ export default function ForwardMessageModal({ message, onClose, onSent }) {
                   <div
                     className="w-5 h-5 rounded-full border flex items-center justify-center shrink-0"
                     style={{
-                      borderColor: marcado ? "#2563EB" : "#CBD5E1",
-                      background: marcado ? "#2563EB" : "transparent",
+                      borderColor: marcado ? "#7C3AED" : "#CBD5E1",
+                      background: marcado ? "#7C3AED" : "transparent",
                     }}
                   >
                     {marcado && <Check size={12} color="white" />}
@@ -110,7 +110,7 @@ export default function ForwardMessageModal({ message, onClose, onSent }) {
             onClick={enviar}
             disabled={selected.length === 0 || sending}
             className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ background: "#2563EB" }}
+            style={{ background: "#7C3AED" }}
           >
             {sending ? "Enviando..." : selected.length > 0 ? `Reencaminhar para ${selected.length}` : "Reencaminhar"}
           </button>
