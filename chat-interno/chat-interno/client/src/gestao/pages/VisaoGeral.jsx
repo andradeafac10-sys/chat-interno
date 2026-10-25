@@ -28,6 +28,8 @@ function fmtRelativo(iso) {
   return new Date(iso).toLocaleDateString('pt-BR');
 }
 
+const ROTULO_PERIODO = { day: 'hoje', week: 'na semana', month: 'no mês', custom: 'no período' };
+
 export default function VisaoGeral() {
   const [periodo, setPeriodo] = useState('day');
   const [dataDe, setDataDe] = useState(hojeISO());
@@ -56,7 +58,7 @@ export default function VisaoGeral() {
     if (admFiltro) paramsRanking.set('assignee_id', admFiltro);
 
     Promise.all([
-      gestaoApi.visaoGeralHoje(admFiltro || undefined),
+      gestaoApi.visaoGeralPeriodo(paramsRanking.toString()),
       gestaoApi.rankingComParams(paramsRanking.toString()),
     ])
       .then(([dadosHoje, dadosRanking]) => {
@@ -73,7 +75,7 @@ export default function VisaoGeral() {
       icon: Target, corIcone: '#7C3AED', corFundo: '#EDE9FE', corNumero: '#7C3AED',
     },
     {
-      label: 'Rotinas planejadas', valor: hoje.planejadas, sub: 'Total de rotinas para hoje',
+      label: 'Rotinas planejadas', valor: hoje.planejadas, sub: `Total de rotinas ${periodo === 'day' ? 'para hoje' : ROTULO_PERIODO[periodo]}`,
       icon: Calendar, corIcone: '#7C3AED', corFundo: '#EDE9FE', corNumero: '#7C3AED',
     },
     {
@@ -99,7 +101,8 @@ export default function VisaoGeral() {
   ] : [];
 
   return (
-    <div style={{ background: 'var(--pagina-fundo)', minHeight: '100%', padding: '24px 28px 30px' }}>
+    <div className="vg-pad" style={{ background: 'var(--pagina-fundo)', minHeight: '100%' }}>
+      <style>{CSS_RESPONSIVO}</style>
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--pagina-texto-1)' }}>Dashboard Rotinas</div>
         <div style={{ fontSize: 14, color: 'var(--pagina-texto-2)', marginTop: 2 }}>Cumprimento de rotinas da equipe</div>
@@ -151,15 +154,15 @@ export default function VisaoGeral() {
 
       {!loading && !error && hoje && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
+          <div className="vg-kpis">
             {kpis.map((k) => (
               <div key={k.label} style={styles.kpiCard}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: k.corFundo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div className="vg-ico" style={{ borderRadius: '50%', background: k.corFundo, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <k.icon size={28} color={k.corIcone} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: 'var(--pagina-texto-2)', marginBottom: 4 }}>{k.label}</div>
-                  <div style={{ fontSize: 34, fontWeight: 700, color: k.corNumero, lineHeight: 1 }}>{k.valor}</div>
+                  <div className="vg-num" style={{ fontWeight: 700, color: k.corNumero, lineHeight: 1 }}>{k.valor}</div>
                   <div style={{ fontSize: 12, color: 'var(--pagina-texto-2)', marginTop: 4 }}>{k.sub}</div>
                 </div>
               </div>
@@ -168,7 +171,7 @@ export default function VisaoGeral() {
 
           <div style={styles.progressCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' }}>Progresso do dia</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--pagina-texto-1)' }}>{periodo === 'day' ? 'Progresso do dia' : periodo === 'week' ? 'Progresso da semana' : periodo === 'month' ? 'Progresso do mês' : 'Progresso do período'}</span>
               <span style={{ fontSize: 13, color: 'var(--pagina-texto-2)' }}>
                 <b style={{ color: '#7C3AED' }}>{hoje.concluidas}</b> de {hoje.planejadas} rotinas concluídas
               </span>
@@ -178,7 +181,7 @@ export default function VisaoGeral() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
+          <div className="vg-2col" style={{ marginBottom: 16 }}>
             <div style={styles.listCard}>
               <div style={styles.listCardHeader}>
                 <Clock size={15} color="#EA4E1B" />
@@ -220,7 +223,7 @@ export default function VisaoGeral() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+          <div className="vg-2col">
             <div style={styles.listCard}>
               <div style={styles.listCardHeader}>
                 <Users size={15} color="#7C3AED" />
@@ -260,7 +263,7 @@ export default function VisaoGeral() {
                 <span style={styles.listCardTitulo}>Atividade recente</span>
               </div>
               <div style={{ borderTop: '1px solid #EEF1F4' }}>
-                {hoje.recentes.length === 0 && <div style={styles.listaVazia}>Nenhuma rotina concluída ainda hoje.</div>}
+                {hoje.recentes.length === 0 && <div style={styles.listaVazia}>Nenhuma rotina concluída ainda.</div>}
                 {hoje.recentes.map((r) => (
                   <div key={r.id} style={styles.listItem}>
                     <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#ECFDF3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -290,6 +293,25 @@ export default function VisaoGeral() {
     </div>
   );
 }
+
+const CSS_RESPONSIVO = `
+.vg-pad { padding: 24px 28px 30px; }
+.vg-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.vg-2col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.vg-ico { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.vg-num { font-size: 34px; }
+@media (max-width: 1100px) { .vg-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .vg-pad { padding: 16px 14px 24px; }
+  .vg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .vg-2col { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .vg-kpi { flex-direction: column; align-items: flex-start !important; text-align: left; padding: 14px !important; gap: 10px !important; min-width: 0; }
+  .vg-ico { width: 40px; height: 40px; }
+  .vg-ico svg { width: 20px; height: 20px; }
+  .vg-num { font-size: 26px; }
+  .vg-kpi { min-height: 0 !important; }
+}
+`;
 
 const PRIORIDADE_LABEL = { high: 'Alta', medium: 'Média', low: 'Baixa' };
 const PRIORIDADE_COR = { high: '#dc2626', medium: '#f59e0b', low: '#16a34a' };

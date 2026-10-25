@@ -27,6 +27,21 @@ function somarDias(date, n) {
   return d;
 }
 
+// Intervalo [inicio, fim] do filtro de período: day = hoje, week = segunda até hoje,
+// month = dia 1 até hoje, ou datas específicas (de/ate).
+function intervaloPeriodo(query, padrao = 'day') {
+  const hoje = new Date();
+  const fim = query.ate || chaveDia(hoje);
+  if (query.de) return { inicio: query.de, fim, periodo: 'custom' };
+  const periodo = ['day', 'week', 'month'].includes(query.periodo) ? query.periodo : padrao;
+  if (periodo === 'day') return { inicio: chaveDia(hoje), fim, periodo };
+  if (periodo === 'week') {
+    const dow = hoje.getDay(); // 0=domingo
+    return { inicio: chaveDia(somarDias(hoje, -((dow + 6) % 7))), fim, periodo };
+  }
+  return { inicio: chaveDia(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), fim, periodo };
+}
+
 // A rotina "bate" com esse dia?
 function diaCombina(recorrencia, date) {
   const diaSemana = date.getDay(); // 0=domingo ... 6=sábado
@@ -422,9 +437,14 @@ router.get('/equipe-hoje', async (req, res) => {
 
     // "Atrasada" é a que já passou do horário marcado e continua sem fazer
     const agora = new Date();
-    const jaPassou = (horaStr) => {
-      if (!horaStr) return false;
-      const [h, m] = horaStr.split(':').map(Number);
+    const hojeChave = chaveDia(agora);
+    const diaDe = (r) => (r.occurrence_date instanceof Date ? chaveDia(r.occurrence_date) : String(r.occurrence_date).slice(0, 10));
+    // Atrasada: dia anterior a hoje não feito, ou hoje depois do horário marcado
+    const jaPassou = (r) => {
+      const dia = diaDe(r);
+      if (dia < hojeChave) return true;
+      if (dia > hojeChave || !r.start_time) return false;
+      const [h, m] = r.start_time.split(':').map(Number);
       const limite = new Date();
       limite.setHours(h, m, 0, 0);
       return agora > limite;
@@ -453,15 +473,16 @@ router.get('/equipe-hoje', async (req, res) => {
 router.get('/visao-geral-hoje', async (req, res) => {
   try {
     const assigneeId = req.query.assignee_id ? Number(req.query.assignee_id) : null;
+    const { inicio, fim, periodo } = intervaloPeriodo(req.query, 'day');
     const { rows } = await pool.query(
-      `SELECT rc.id, rc.done, rc.done_at, r.title, r.start_time, u.id AS user_id, u.name AS user_name, u.avatar_url
+      `SELECT rc.id, rc.done, rc.done_at, rc.occurrence_date, r.title, r.start_time, u.id AS user_id, u.name AS user_name, u.avatar_url
        FROM routine_completions rc
        JOIN task_recurrences r ON r.id = rc.recurrence_id
        JOIN users u ON u.id = rc.user_id
-       WHERE rc.occurrence_date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+       WHERE rc.occurrence_date >= $2::date AND rc.occurrence_date <= $3::date
          AND ($1::int IS NULL OR rc.user_id = $1)
-       ORDER BY r.start_time NULLS LAST, r.title`,
-      [assigneeId]
+       ORDER BY rc.occurrence_date, r.start_time NULLS LAST, r.title`,
+      [assigneeId, inicio, fim]
     );
 
     const agora = new Date();
@@ -475,10 +496,10 @@ router.get('/visao-geral-hoje', async (req, res) => {
 
     const planejadas = rows.length;
     const concluidas = rows.filter((r) => r.done).length;
-    const atrasadasRows = rows.filter((r) => !r.done && jaPassou(r.start_time));
+    const atrasadasRows = rows.filter((r) => !r.done && jaPassou(r));
     const atrasadas = atrasadasRows.length;
 
-    const proximasRows = rows.filter((r) => !r.done && !jaPassou(r.start_time) && r.start_time);
+    const proximasRows = rows.filter((r) => !r.done && !jaPassou(r) && r.start_time && diaDe(r) === hojeChave);
 
     const recentesRows = rows
       .filter((r) => r.done && r.done_at)
@@ -524,6 +545,9 @@ router.get('/visao-geral-hoje', async (req, res) => {
     );
 
     res.json({
+      periodo,
+      inicio,
+      fim,
       planejadas,
       concluidas,
       atrasadas,
@@ -555,16 +579,7 @@ router.get('/pessoa-resumo', async (req, res) => {
     if (!assigneeId) return res.status(400).json({ error: 'Pessoa não informada' });
 
     const hoje = new Date();
-    let dataInicio;
-    let dataFim = req.query.ate || chaveDia(hoje);
-    if (req.query.de) {
-      dataInicio = req.query.de;
-    } else {
-      const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'day';
-      if (periodo === 'day') dataInicio = chaveDia(hoje);
-      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
-      else dataInicio = chaveDia(somarDias(hoje, -29));
-    }
+    const { inicio: dataInicio, fim: dataFim } = intervaloPeriodo(req.query, 'day');
 
     const { rows } = await pool.query(
       `SELECT rc.id, rc.done, rc.done_at, rc.occurrence_date,
@@ -607,18 +622,7 @@ router.get('/pessoa-resumo', async (req, res) => {
 // -------------------------------------------------------------
 router.get('/ranking/dados', async (req, res) => {
   try {
-    const hoje = new Date();
-    let dataInicio;
-    let dataFim = req.query.ate || chaveDia(hoje);
-
-    if (req.query.de) {
-      dataInicio = req.query.de;
-    } else {
-      const periodo = ['day', 'week', 'month'].includes(req.query.periodo) ? req.query.periodo : 'week';
-      if (periodo === 'day') dataInicio = chaveDia(hoje);
-      else if (periodo === 'week') dataInicio = chaveDia(somarDias(hoje, -6));
-      else dataInicio = chaveDia(somarDias(hoje, -29));
-    }
+    const { inicio: dataInicio, fim: dataFim } = intervaloPeriodo(req.query, 'week');
 
     const filtroAssignee = req.query.assignee_id ? 'AND u.id = $3' : '';
     const params = [dataInicio, dataFim];

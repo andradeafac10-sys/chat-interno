@@ -93,4 +93,5 @@ export const gestaoApi = {
   rankingComParams: (queryString) => request(`/recurrences/ranking/dados?${queryString}`),
   pessoaResumo: (queryString) => request(`/recurrences/pessoa-resumo?${queryString}`),
   visaoGeralHoje: (assigneeId) => request(`/recurrences/visao-geral-hoje${assigneeId ? `?assignee_id=${assigneeId}` : ''}`),
+  visaoGeralPeriodo: (params) => request(`/recurrences/visao-geral-hoje?${params}`),
 };
