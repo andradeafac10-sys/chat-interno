@@ -123,7 +123,7 @@ export default function Demandas() {
     const q = busca.toLowerCase();
     return lista.filter((d) => (concl || !d.concluida) &&
       (!quem || d.responsaveis.some((r) => String(r.id) === quem)) &&
-      (!q || `${d.demanda} ${d.obs} ${d.responsaveis.map((r) => r.name).join(" ")}`.toLowerCase().includes(q)));
+      (!q || `${d.demanda} ${d.obs} ${d.responsaveis.map((r) => r.name).join(" ")} ${d.resp_texto || ""}`.toLowerCase().includes(q)));
   }, [lista, busca, quem, concl]);
 
   const abertas = lista.filter((d) => !d.concluida).length;
@@ -167,7 +167,7 @@ export default function Demandas() {
                 const atras = !d.concluida && d.prazo && d.prazo < hoje();
                 return (
                   <tr key={d.id} style={{ borderTop: "1px solid var(--pagina-borda-suave)", background: d.destaque && !d.concluida ? "rgba(124,58,237,.10)" : undefined, opacity: d.concluida ? 0.55 : 1 }}>
-                    <td className="px-3 py-2.5 font-medium">{d.responsaveis.length ? d.responsaveis.map((r) => r.name).join(" / ") : <span className="opacity-40">—</span>}</td>
+                    <td className="px-3 py-2.5 font-medium">{d.responsaveis.length ? d.responsaveis.map((r) => r.name).join(" / ") : <span className="opacity-40">—</span>}{d.resp_texto && <span className="ml-1 text-[11.5px] rounded-full px-2 py-0.5" style={{ background: "rgba(245,158,11,.18)", color: "#D97706" }} title="Sem usuário com esse nome — edite para escolher o responsável">{d.resp_texto}</span>}</td>
                     <td className="px-3 py-2.5"><span className={d.concluida ? "line-through" : ""}>{d.destaque && <Star size={12} className="inline mr-1 -mt-0.5" fill={P} color={P} />}{d.demanda}</span></td>
                     <td className="px-3 py-2.5" style={{ color: "var(--pagina-texto-2)" }}>{d.obs}</td>
                     <td className="px-3 py-2.5" style={{ color: atras ? "#dc2626" : undefined, fontWeight: atras ? 600 : undefined }}>{fmt(d.prazo)}</td>

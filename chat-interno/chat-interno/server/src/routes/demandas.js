@@ -18,6 +18,7 @@ async function garantir() {
     created_by INTEGER, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
   await pool.query(`CREATE TABLE IF NOT EXISTS demanda_responsaveis (
     demanda_id INTEGER NOT NULL REFERENCES demandas(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, PRIMARY KEY (demanda_id, user_id))`);
+  await pool.query("ALTER TABLE demandas ADD COLUMN IF NOT EXISTS resp_texto TEXT NOT NULL DEFAULT ''");
   pronta = true;
 }
 
@@ -36,7 +37,7 @@ function soEditor(req, res, next) {
   next();
 }
 
-const SELECT = `SELECT d.id, d.demanda, d.obs, to_char(d.prazo,'YYYY-MM-DD') AS prazo, d.concluida, d.concluida_em, d.destaque, d.created_at,
+const SELECT = `SELECT d.id, d.demanda, d.obs, to_char(d.prazo,'YYYY-MM-DD') AS prazo, d.concluida, d.concluida_em, d.destaque, d.created_at, d.resp_texto,
   COALESCE((SELECT json_agg(json_build_object('id',u.id,'name',u.name,'color',u.color) ORDER BY u.name)
     FROM demanda_responsaveis r JOIN users u ON u.id=r.user_id WHERE r.demanda_id=d.id), '[]'::json) AS responsaveis
   FROM demandas d`;
@@ -110,15 +111,15 @@ router.post("/importar", soEditor, async (req, res) => {
     let prazo = null;
     const m = prazoTxt.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
     if (m) prazo = `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-    const ids = [];
+    const ids = []; const nomesSem = [];
     for (const p of resp.split(/[\/,;&]| e /i).map((x) => norm(x)).filter(Boolean)) {
       const u = users.find((x) => norm(x.name) === p) || users.find((x) => norm(x.name).split(" ")[0] === p.split(" ")[0] && (p.split(" ").length === 1 || norm(x.name).startsWith(p)));
-      if (u) ids.push(u.id); else semMatch.add(p);
+      if (u) ids.push(u.id); else { semMatch.add(p); nomesSem.push(p); }
     }
     const feita = /^(sim|s|x|ok|feito|conclu)/i.test(conc);
     const { rows } = await pool.query(
-      "INSERT INTO demandas(demanda,obs,prazo,concluida,concluida_em,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
-      [demanda, obs, prazo, feita, feita ? new Date() : null, req.user.id]);
+      "INSERT INTO demandas(demanda,obs,prazo,concluida,concluida_em,created_by,resp_texto) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+      [demanda, obs, prazo, feita, feita ? new Date() : null, req.user.id, resp.split(/[\/,;&]| e /i).map((x) => x.trim()).filter((x) => nomesSem.includes(norm(x))).join(" / ")]);
     await setResp(rows[0].id, ids);
     criadas++;
   }
