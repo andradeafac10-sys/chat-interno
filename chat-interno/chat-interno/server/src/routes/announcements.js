@@ -29,7 +29,7 @@ router.get("/latest", requireAuth, async (req, res) => {
     res.json({ announcement: rows[0] || null });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao buscar a notificação." });
+    res.status(500).json({ error: "Erro ao buscar o comunicado." });
   }
 });
 
@@ -77,26 +77,64 @@ router.get("/", requireAuth, async (req, res) => {
     res.json({ announcements: rows, totalActive });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erro ao listar notificações." });
+    res.status(500).json({ error: "Erro ao listar comunicados." });
   }
 });
 
-// GET /api/announcements/:id/acks -> quem já confirmou e quem ainda não (só ADM)
+// GET /api/announcements/:id/acks -> dados do comunicado (só ADM): quem confirmou,
+// quem falta (só entre os destinatários) e a taxa de confirmação por grupo.
 router.get("/:id/acks", requireAuth, requireAdmin, async (req, res) => {
   try {
+    const id = Number(req.params.id);
+    const { rows: ann } = await pool.query("SELECT id, audience, created_at FROM announcements WHERE id = $1", [id]);
+    if (!ann[0]) return res.status(404).json({ error: "Comunicado não encontrado." });
+    const audience = ann[0].audience;
+
+    // Destinatários de verdade (ativos), respeitando o público escolhido
+    const alvoSql =
+      audience === "users"
+        ? `SELECT DISTINCT u.id, u.name, u.role FROM announcement_targets t
+           JOIN users u ON u.id = t.user_id AND u.active = true
+           WHERE t.announcement_id = $1 AND t.user_id IS NOT NULL`
+        : audience === "groups"
+        ? `SELECT DISTINCT u.id, u.name, u.role FROM announcement_targets t
+           JOIN group_members gm ON gm.group_id = t.group_id
+           JOIN users u ON u.id = gm.user_id AND u.active = true
+           WHERE t.announcement_id = $1 AND t.group_id IS NOT NULL`
+        : `SELECT id, name, role FROM users WHERE active = true AND $1::int IS NOT NULL`;
+    const { rows: alvo } = await pool.query(alvoSql, [id]);
+
     const { rows: acked } = await pool.query(
       `SELECT u.id, u.name, u.role, ak.acked_at
        FROM announcement_acks ak JOIN users u ON u.id = ak.user_id
        WHERE ak.announcement_id = $1 ORDER BY ak.acked_at`,
-      [req.params.id]
+      [id]
     );
-    const { rows: pending } = await pool.query(
-      `SELECT id, name, role FROM users
-       WHERE active = true AND id NOT IN (SELECT user_id FROM announcement_acks WHERE announcement_id = $1)
-       ORDER BY name`,
-      [req.params.id]
-    );
-    res.json({ acked, pending });
+    const ackedIds = new Set(acked.map((u) => u.id));
+    const pending = alvo.filter((u) => !ackedIds.has(u.id)).sort((x, y) => x.name.localeCompare(y.name, "pt-BR"));
+
+    // Por grupo (somente quando o comunicado vai para todos ou para grupos escolhidos)
+    let grupos = [];
+    if (audience !== "users") {
+      const filtro = audience === "groups" ? "AND g.id IN (SELECT group_id FROM announcement_targets WHERE announcement_id = $1 AND group_id IS NOT NULL)" : "AND $1::int IS NOT NULL";
+      const { rows } = await pool.query(
+        `SELECT g.id, g.name,
+                COUNT(DISTINCT u.id)::int AS total,
+                COUNT(DISTINCT ak.user_id)::int AS confirmaram
+         FROM groups g
+         JOIN group_members gm ON gm.group_id = g.id
+         JOIN users u ON u.id = gm.user_id AND u.active = true
+         LEFT JOIN announcement_acks ak ON ak.user_id = u.id AND ak.announcement_id = $1
+         WHERE true ${filtro}
+         GROUP BY g.id, g.name
+         HAVING COUNT(DISTINCT u.id) > 0
+         ORDER BY g.name`,
+        [id]
+      );
+      grupos = rows;
+    }
+
+    res.json({ acked, pending, grupos, total: alvo.length, created_at: ann[0].created_at });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao buscar confirmações." });
@@ -118,7 +156,7 @@ router.post("/:id/ack", requireAuth, async (req, res) => {
     // recebia resposta e o botão "ESTOU CIENTE" ficava preso em "Enviando..."
     // pra sempre, só saindo com F5. Agora sempre responde, mesmo em erro.
     console.error(err);
-    res.status(500).json({ error: "Erro ao confirmar a notificação." });
+    res.status(500).json({ error: "Erro ao confirmar o comunicado." });
   }
 });
 
@@ -126,7 +164,7 @@ router.post("/:id/ack", requireAuth, async (req, res) => {
 // body: message, audience ('all' | 'users' | 'groups'), userIds[], groupIds[], image (arquivo)
 router.post("/", requireAuth, requireAdmin, upload.single("image"), async (req, res) => {
   const { message, audience } = req.body || {};
-  if (!message || !message.trim()) return res.status(400).json({ error: "Escreva o texto da notificação." });
+  if (!message || !message.trim()) return res.status(400).json({ error: "Escreva o texto do comunicado." });
 
   const aud = ["all", "users", "groups"].includes(audience) ? audience : "all";
   const parseIds = (v) => {
@@ -180,7 +218,7 @@ router.post("/", requireAuth, requireAdmin, upload.single("image"), async (req, 
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Erro ao criar notificação." });
+    res.status(500).json({ error: "Erro ao criar comunicado." });
   } finally {
     client.release();
   }

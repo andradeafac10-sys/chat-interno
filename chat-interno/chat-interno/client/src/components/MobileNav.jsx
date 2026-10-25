@@ -23,7 +23,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
 
   const abas = [
     { id: "chat", label: "Chat", icon: MessageCircle, badge: unreadTotal, ativo: view === "chat", acao: () => ir("/") },
-    { id: "avisos", label: "Avisos", icon: Bell, ativo: view === "notificacoes", acao: () => ir("/?view=notificacoes") },
+    { id: "avisos", label: "Comunicados", icon: Bell, ativo: view === "notificacoes", acao: () => ir("/?view=notificacoes") },
     { id: "treinos", label: "Treinos", icon: GraduationCap, badge: pendingTrilha, ativo: view === "trilha", acao: () => ir("/?view=trilha") },
     isAdm
       ? { id: "gestao", label: "Gestão", icon: LayoutDashboard, badge: gestaoBadge, ativo: noGestao, acao: () => ir("/gestao/minha-rotina") }

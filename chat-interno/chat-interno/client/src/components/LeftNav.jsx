@@ -175,7 +175,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
       </div>
 
       <ItemChat view="chat" icon={MessageCircle} label="Chat" badge={unreadTotal} />
-      <ItemChat view="notificacoes" icon={Bell} label="Notificação" />
+      <ItemChat view="notificacoes" icon={Bell} label="Comunicados" />
       <ItemChat view="feedbacks" icon={MessageSquareText} label="Alinhamento" badge={pendingFeedback} />
       <ItemChat view="trilha" icon={GraduationCap} label="Treinamentos" badge={pendingTrilha} />
 
