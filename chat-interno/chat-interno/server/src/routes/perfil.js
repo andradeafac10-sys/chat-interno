@@ -27,6 +27,9 @@ function ultimoDia11() {
   return new Date(Date.UTC(ano, mes - 1, 11, 3, 0, 0));
 }
 
+// Todo operador precisa preencher o cadastro uma vez a partir desta data/hora (24/10/2026 21:30, Brasília)
+const CADASTRO_OBRIGATORIO_DESDE = new Date("2026-10-25T00:30:00Z");
+
 function separarNome(nomeCompleto) {
   const partes = String(nomeCompleto || "").trim().split(/\s+/);
   return { nome: partes[0] || "", sobrenome: partes.slice(1).join(" ") };
@@ -36,11 +39,12 @@ function separarNome(nomeCompleto) {
 router.get("/status", requireAuth, async (req, res) => {
   try {
     await garantirColuna();
-    const { rows } = await pool.query("SELECT name, profile_updated_at FROM users WHERE id = $1", [req.user.id]);
+    const { rows } = await pool.query("SELECT name, role, profile_updated_at FROM users WHERE id = $1", [req.user.id]);
     if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado." });
     const ultima = rows[0].profile_updated_at ? new Date(rows[0].profile_updated_at) : null;
-    const due = !ultima || ultima < ultimoDia11();
-    res.json({ due, ...separarNome(rows[0].name) });
+    const due = !ultima || ultima < ultimoDia11() || (rows[0].role === "operator" && ultima < CADASTRO_OBRIGATORIO_DESDE);
+    // Nome e sobrenome vão vazios de propósito: a pessoa digita os dela
+    res.json({ due, nome: "", sobrenome: "" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao verificar o cadastro." });

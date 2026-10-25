@@ -8,7 +8,13 @@ import { api } from "../api";
  * texto digitado num campo (pra ninguém perder mensagem); tenta de novo em
  * 1 minuto.
  */
+const DOIS_MIN = 2 * 60 * 1000;
 const CINCO_MIN = 5 * 60 * 1000;
+
+// Dia de hoje em Brasília (AAAA-MM-DD) — o painel recarrega do zero a cada dia novo
+const diaHoje = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+const DIA_DO_CARREGAMENTO = diaHoje();
+const VERSAO_DO_CODIGO = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : null;
 
 function digitandoAlgo() {
   const el = document.activeElement;
@@ -29,8 +35,23 @@ export default function UpdateBanner() {
     };
 
     const checar = async () => {
-      let proximo = CINCO_MIN;
+      let proximo = DOIS_MIN;
       try {
+        // 1) Saiu versão nova do painel (compara o código carregado com o version.json publicado)
+        let precisaRecarregar = diaHoje() !== DIA_DO_CARREGAMENTO; // 2) virou o dia
+        if (VERSAO_DO_CODIGO) {
+          try {
+            const r = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+            if (r.ok) {
+              const v = await r.json();
+              if (v.version && v.version !== VERSAO_DO_CODIGO) precisaRecarregar = true;
+            }
+          } catch {}
+        }
+        if (precisaRecarregar) {
+          if (digitandoAlgo()) proximo = 60 * 1000;
+          else { window.location.reload(); return; }
+        }
         const { data } = await api.get("/version");
         if (cancelado) return;
         if (versaoInicialRef.current === null) {
@@ -50,7 +71,11 @@ export default function UpdateBanner() {
     };
 
     checar();
-    return () => { cancelado = true; clearTimeout(timer); };
+    // Ao voltar pra aba/janela, confere na hora
+    const aoVoltar = () => { if (document.visibilityState === "visible" && !cancelado) { clearTimeout(timer); checar(); } };
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    return () => { cancelado = true; clearTimeout(timer); document.removeEventListener("visibilitychange", aoVoltar); window.removeEventListener("focus", aoVoltar); };
   }, []);
 
   return null;

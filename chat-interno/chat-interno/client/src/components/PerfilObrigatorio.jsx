@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Camera } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -14,6 +14,8 @@ export default function PerfilObrigatorio() {
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [foto, setFoto] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -23,14 +25,14 @@ export default function PerfilObrigatorio() {
         if (cancelado) return;
         if (data.due) {
           setDue((antes) => {
-            if (!antes) { setNome(data.nome || ""); setSobrenome(data.sobrenome || ""); }
+            if (!antes) { setNome(""); setSobrenome(""); }
             return true;
           });
         }
       }).catch(() => {});
     };
     checar();
-    const intervalo = setInterval(checar, 10 * 60 * 1000);
+    const intervalo = setInterval(checar, 60 * 1000);
     const aoVoltar = () => { if (document.visibilityState === "visible") checar(); };
     document.addEventListener("visibilitychange", aoVoltar);
     return () => { cancelado = true; clearInterval(intervalo); document.removeEventListener("visibilitychange", aoVoltar); };
@@ -47,7 +49,17 @@ export default function PerfilObrigatorio() {
     setSalvando(true);
     try {
       const { data } = await api.post("/perfil/atualizar", { nome, sobrenome, newPassword: senha });
-      updateUser({ name: data.user.name });
+      let avatar = data.user.avatar_url;
+      if (foto) {
+        try {
+          const form = new FormData();
+          form.append("file", foto);
+          const r = await api.post("/auth/avatar", form, { headers: { "Content-Type": "multipart/form-data" } });
+          avatar = r.data.avatar_url;
+        } catch {}
+      }
+      updateUser({ name: data.user.name, avatar_url: avatar });
+      setFoto(null); setFotoPreview("");
       setSenha("");
       setConfirmar("");
       setDue(false);
@@ -65,16 +77,26 @@ export default function PerfilObrigatorio() {
       <form onSubmit={salvar} className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
         <div className="flex items-center gap-2 mb-1" style={{ color: "#5B21B6" }}>
           <ShieldCheck size={20} />
-          <h2 className="text-[17px] font-semibold">Atualização mensal obrigatória</h2>
+          <h2 className="text-[17px] font-semibold">Atualize seu cadastro</h2>
         </div>
         <p className="text-[12.5px] text-slate-500 mb-4">
-          Todo dia 11 é preciso confirmar seu nome e sobrenome e criar uma nova senha. Depois disso o sistema é liberado.
+          Digite seu nome e sobrenome e crie uma nova senha, diferente da que você usa hoje. A foto é opcional. Depois disso o sistema é liberado.
         </p>
 
+        <div className="flex items-center gap-3 mb-4">
+          <label className="w-14 h-14 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center overflow-hidden cursor-pointer shrink-0">
+            {fotoPreview ? <img src={fotoPreview} alt="" className="w-full h-full object-cover" /> : <Camera size={22} />}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) { setFoto(f); setFotoPreview(URL.createObjectURL(f)); }
+            }} />
+          </label>
+          <div className="text-[12px]"><b className="text-[#7C3AED] block text-[13px]">Adicionar foto</b><span className="text-slate-400">Opcional</span></div>
+        </div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Nome</label>
-        <input value={nome} onChange={(e) => setNome(e.target.value)} className={campo + " mb-3"} autoFocus />
+        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Digite seu nome" className={campo + " mb-3"} autoFocus />
         <label className="text-xs font-medium text-slate-500 mb-1 block">Sobrenome</label>
-        <input value={sobrenome} onChange={(e) => setSobrenome(e.target.value)} className={campo + " mb-3"} />
+        <input value={sobrenome} onChange={(e) => setSobrenome(e.target.value)} placeholder="Digite seu sobrenome" className={campo + " mb-3"} />
         <label className="text-xs font-medium text-slate-500 mb-1 block">Nova senha</label>
         <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} className={campo + " mb-3"} autoComplete="new-password" />
         <label className="text-xs font-medium text-slate-500 mb-1 block">Confirmar nova senha</label>
