@@ -6,6 +6,7 @@ import AnnouncementOverlay from "./AnnouncementOverlay";
 import ReuniaoAlertOverlay from "./ReuniaoAlertOverlay";
 import AvisosPendentesBanner from "./AvisosPendentesBanner";
 import PerfilObrigatorio from "./PerfilObrigatorio";
+import AlinhamentoBloqueio from "./AlinhamentoBloqueio";
 
 const DISMISSED_KEY = "chatinterno_dismissed_announcement";
 
@@ -68,6 +69,7 @@ export function AlertasTelaCheia() {
 
   return (
     <>
+      <AlinhamentoBloqueio />
       <PerfilObrigatorio />
       <AnnouncementOverlay
         key={announcement?.id || "nenhum"}
