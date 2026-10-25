@@ -81,7 +81,7 @@ router.get("/", requireAuth, requireAdmin, async (req, res) => {
     const { rows: destinatarios } = await pool.query(
       `SELECT fr.feedback_id, fr.user_id, fr.acknowledged_at, u.name AS user_name, u.avatar_url AS user_avatar_url
        FROM feedback_recipients fr
-       JOIN users u ON u.id = fr.user_id
+       JOIN users u ON u.id = fr.user_id AND u.active = true
        WHERE fr.feedback_id = ANY($1::int[])`,
       [feedbacks.map((f) => f.id)]
     );
@@ -181,7 +181,7 @@ router.get("/ranking", requireAuth, requireAdmin, async (req, res) => {
       `SELECT u.id, u.name, u.avatar_url, u.color, COUNT(fr.feedback_id)::int AS total
        FROM feedback_recipients fr
        JOIN feedbacks f ON f.id = fr.feedback_id
-       JOIN users u ON u.id = fr.user_id
+       JOIN users u ON u.id = fr.user_id AND u.active = true
        WHERE 1=1 ${filtroData}
        GROUP BY u.id, u.name, u.avatar_url, u.color
        ORDER BY total DESC, u.name`,

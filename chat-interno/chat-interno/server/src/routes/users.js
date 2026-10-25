@@ -8,7 +8,7 @@ const router = express.Router();
 // GET /api/users -> lista todos os operadores (usado pelo ADM p/ montar grupos e ver a lista de conversas)
 router.get("/", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, name, username, role, color, avatar_url, active FROM users WHERE role = 'operator' ORDER BY name"
+    "SELECT id, name, username, role, color, avatar_url, active FROM users WHERE role = 'operator' AND active = true ORDER BY name"
   );
   res.json({ users: rows });
 });
@@ -26,7 +26,7 @@ router.get("/directory", requireAuth, async (req, res) => {
 // GET /api/users/manage -> lista TODOS os usuários (admins + operadores) para a tela de gestão de acessos
 router.get("/manage", requireAuth, requireAdmin, async (req, res) => {
   const { rows } = await pool.query(
-    "SELECT id, name, username, role, color, avatar_url, active, created_at FROM users ORDER BY role DESC, name"
+    "SELECT id, name, username, role, color, avatar_url, active, created_at, last_seen_at, auto_inativado_em FROM users ORDER BY role DESC, name"
   );
   res.json({ users: rows });
 });
@@ -93,7 +93,11 @@ router.patch("/:id/active", requireAuth, requireAdmin, async (req, res) => {
   if (Number(req.params.id) === req.user.id && !active) {
     return res.status(400).json({ error: "Você não pode desativar a si mesmo." });
   }
-  await pool.query("UPDATE users SET active = $1 WHERE id = $2", [!!active, req.params.id]);
+  // Ao reativar, o prazo de inatividade recomeça a contar a partir de agora
+  await pool.query(
+    "UPDATE users SET active = $1, last_seen_at = CASE WHEN $1 THEN now() ELSE last_seen_at END, auto_inativado_em = NULL WHERE id = $2",
+    [!!active, req.params.id]
+  );
   res.json({ ok: true });
 });
 

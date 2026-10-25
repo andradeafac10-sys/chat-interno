@@ -106,7 +106,7 @@ router.get("/:id/acks", requireAuth, requireAdmin, async (req, res) => {
 
     const { rows: acked } = await pool.query(
       `SELECT u.id, u.name, u.role, ak.acked_at
-       FROM announcement_acks ak JOIN users u ON u.id = ak.user_id
+       FROM announcement_acks ak JOIN users u ON u.id = ak.user_id AND u.active = true
        WHERE ak.announcement_id = $1 ORDER BY ak.acked_at`,
       [id]
     );

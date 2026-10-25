@@ -402,7 +402,7 @@ router.get("/messages/:msgId/reads", requireAuth, async (req, res) => {
   if (outrosIds.length === 0) return res.json({ lido_por: [], nao_lido_por: [] });
 
   const { rows: pessoas } = await pool.query(
-    "SELECT id, name, avatar_url, color FROM users WHERE id = ANY($1::int[]) ORDER BY name",
+    "SELECT id, name, avatar_url, color FROM users WHERE id = ANY($1::int[]) AND active = true ORDER BY name",
     [outrosIds]
   );
   const { rows: leituras } = await pool.query(

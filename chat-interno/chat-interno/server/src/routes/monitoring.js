@@ -19,7 +19,7 @@ router.get("/conversations", requireAuth, requireAdmin, async (req, res) => {
   // Conversas privadas: apenas as que envolvem pelo menos um operador
   // (conversa entre dois ADMs continua privada, ninguém audita)
   const { rows: others } = await pool.query(
-    "SELECT id, name, role, color FROM users WHERE id != $1 ORDER BY name",
+    "SELECT id, name, role, color FROM users WHERE id != $1 AND active = true ORDER BY name",
     [userId]
   );
   others

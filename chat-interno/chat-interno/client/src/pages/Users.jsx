@@ -81,7 +81,8 @@ export default function Users({ onBack }) {
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-slate-800 truncate">{u.name}</span>
                     {u.role === "admin" && <ShieldCheck size={13} className="text-[#7C3AED]" />}
-                    {!u.active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Desativado</span>}
+                    {!u.active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{u.auto_inativado_em ? "Inativo (sem acesso)" : "Desativado"}</span>}
+                    {u.last_seen_at && <span className="text-[10px] text-slate-400">Último acesso: {new Date(u.last_seen_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>}
                   </div>
                   <div className="text-[12px] text-slate-500">{u.username} · {u.role === "admin" ? "Administrador" : "Operador"}</div>
                 </div>

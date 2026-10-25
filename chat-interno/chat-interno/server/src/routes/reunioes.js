@@ -123,7 +123,7 @@ router.get("/", async (req, res) => {
 
     const { rows: participantes } = await pool.query(
       `SELECT rp.reuniao_id, rp.user_id, rp.presente, u.name, u.avatar_url, u.color
-       FROM reuniao_participantes rp JOIN users u ON u.id = rp.user_id
+       FROM reuniao_participantes rp JOIN users u ON u.id = rp.user_id AND u.active = true
        WHERE rp.reuniao_id = ANY($1::int[])`,
       [reunioes.map((r) => r.id)]
     );
@@ -154,7 +154,7 @@ router.get("/:id", async (req, res) => {
 
     const { rows: participantes } = await pool.query(
       `SELECT rp.user_id, rp.presente, u.name, u.avatar_url, u.color
-       FROM reuniao_participantes rp JOIN users u ON u.id = rp.user_id
+       FROM reuniao_participantes rp JOIN users u ON u.id = rp.user_id AND u.active = true
        WHERE rp.reuniao_id = $1 ORDER BY u.name`,
       [reuniao.id]
     );
