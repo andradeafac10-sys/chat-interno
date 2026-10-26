@@ -55,7 +55,8 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/pessoas", async (req, res) => {
-  const { rows } = await pool.query("SELECT id, name, color FROM users WHERE active = true ORDER BY name");
+  const soAdm = req.query.adm === "1" ? " AND role = 'admin'" : "";
+  const { rows } = await pool.query("SELECT id, name, color FROM users WHERE active = true" + soAdm + " ORDER BY name");
   res.json(rows);
 });
 

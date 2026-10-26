@@ -95,6 +95,7 @@ function Importar({ onClose, onFeito }) {
 export default function Demandas() {
   const [lista, setLista] = useState([]);
   const [pessoas, setPessoas] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [podeEditar, setPodeEditar] = useState(false);
   const [busca, setBusca] = useState("");
   const [quem, setQuem] = useState("");
@@ -109,6 +110,7 @@ export default function Demandas() {
   useEffect(() => {
     carregar();
     api.get("/demandas/pessoas").then((r) => setPessoas(r.data)).catch(() => {});
+    api.get("/demandas/pessoas?adm=1").then((r) => setAdmins(r.data)).catch(() => {});
     const t = setInterval(carregar, 30000);
     let s; try { s = getSocket(); s?.on("demandas:updated", carregar); } catch {}
     return () => { clearInterval(t); try { s?.off("demandas:updated", carregar); } catch {} };
@@ -140,7 +142,7 @@ export default function Demandas() {
           </div>
           <select value={quem} onChange={(e) => setQuem(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inp}>
             <option value="">Todos os responsáveis</option>
-            {pessoas.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {admins.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <label className="flex items-center gap-1.5 text-sm" style={{ color: "var(--pagina-texto-2)" }}>
             <input type="checkbox" checked={concl} onChange={(e) => setConcl(e.target.checked)} /> Mostrar concluídas
