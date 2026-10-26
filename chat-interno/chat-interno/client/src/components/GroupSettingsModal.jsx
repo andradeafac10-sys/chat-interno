@@ -208,6 +208,19 @@ export default function GroupSettingsModal({ groupId, isAdm, onClose, onUpdated 
                   className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                 />
               </div>
+              {(() => {
+                const visiveis = operators.filter((op) => op.name.toLowerCase().includes(memberFilter.toLowerCase())).map((op) => op.id);
+                const todos = visiveis.length > 0 && visiveis.every((id) => memberIds.includes(id));
+                return (
+                  <div className="flex items-center justify-between mb-1.5 px-1 text-xs">
+                    <span className="text-slate-400">{memberIds.length} selecionado(s)</span>
+                    <div className="flex gap-3">
+                      <button type="button" disabled={visiveis.length === 0 || todos} onClick={() => setMemberIds((prev) => Array.from(new Set([...prev, ...visiveis])))} className="font-medium text-[#7C3AED] disabled:opacity-40">Marcar todos</button>
+                      <button type="button" disabled={!visiveis.some((id) => memberIds.includes(id))} onClick={() => setMemberIds((prev) => prev.filter((id) => !visiveis.includes(id)))} className="font-medium text-[#7C3AED] disabled:opacity-40">Desmarcar todos</button>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="flex flex-col gap-1 mb-5 max-h-48 overflow-y-auto">
                 {operators
                   .filter((op) => op.name.toLowerCase().includes(memberFilter.toLowerCase()))
