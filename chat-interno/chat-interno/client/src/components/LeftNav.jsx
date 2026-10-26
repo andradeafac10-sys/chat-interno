@@ -183,6 +183,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
         <>
           <ItemChat view="users" icon={UserCog} label="Usuários" />
           <ItemChat view="monitoring" icon={Eye} label="Monitoria" />
+          <ItemChat view="chamados" icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} />
 
           {/* A linha separa só a Gestão do resto do menu */}
           <div className="h-px mx-4 my-2.5" style={{ background: colors.sidebarBorder }} />
@@ -197,7 +198,6 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
             <ItemGestao to="/gestao/minha-rotina" icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} />
             <ItemGestao to="/gestao/tarefas" icon={ClipboardList} label="Tarefas" badge={pendingTasks} />
             <ItemGestao to="/gestao/demandas" icon={ListChecks} label="Demandas" />
-            <ItemGestao to="/gestao/chamados" icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} />
             <ItemGestao to="/gestao/tarefas-equipe" icon={Users2} label="Dashboard Tarefas" />
             <ItemGestao to="/gestao/rotinas" icon={Repeat} label="Rotinas" />
             <ItemGestao to="/gestao/feedbacks" icon={MessageSquareText} label="Alinhamento" />

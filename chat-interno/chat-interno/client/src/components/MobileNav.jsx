@@ -17,7 +17,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
   const params = new URLSearchParams(location.search);
   const noGestao = location.pathname.startsWith("/gestao");
   const view = location.pathname === "/" ? params.get("view") || "chat" : null;
-  const gestaoBadge = pendingRoutines + pendingTasks + reunioesHoje + chamadosVencendo;
+  const gestaoBadge = pendingRoutines + pendingTasks + reunioesHoje;
 
   const ir = (destino) => { setMaisAberto(false); navigate(destino); };
 
@@ -59,7 +59,6 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
                   <Botao icon={CalendarCheck} label="Minha Rotina" badge={pendingRoutines} onClick={() => ir("/gestao/minha-rotina")} />
                   <Botao icon={ClipboardList} label="Tarefas" badge={pendingTasks} onClick={() => ir("/gestao/tarefas")} />
                   <Botao icon={ListChecks} label="Demandas" onClick={() => ir("/gestao/demandas")} />
-                  <Botao icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} onClick={() => ir("/gestao/chamados")} />
                   <Botao icon={Users2} label="Dashboard Tarefas" onClick={() => ir("/gestao/tarefas-equipe")} />
                   <Botao icon={Repeat} label="Rotinas" onClick={() => ir("/gestao/rotinas")} />
                   <Botao icon={MessageSquareText} label="Alinhamentos (equipe)" onClick={() => ir("/gestao/feedbacks")} />
@@ -71,6 +70,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
                   <Botao icon={MessageSquareText} label="Meus alinhamentos" badge={pendingFeedback} onClick={() => ir("/?view=feedbacks")} />
                   <Botao icon={UserCog} label="Usuários" onClick={() => ir("/?view=users")} />
                   <Botao icon={Eye} label="Monitoria" onClick={() => ir("/?view=monitoring")} />
+                  <Botao icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} onClick={() => ir("/?view=chamados")} />
                 </div>
               </>
             )}

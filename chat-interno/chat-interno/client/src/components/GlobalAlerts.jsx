@@ -21,7 +21,7 @@ export function AvisosBarra() {
       onVerRotinas={() => navigate("/gestao/minha-rotina")}
       onVerTarefas={() => navigate("/gestao/tarefas")}
       onVerReunioes={() => navigate("/gestao/reuniao")}
-      onVerChamados={() => navigate("/gestao/chamados")}
+      onVerChamados={() => navigate("/?view=chamados")}
     />
   );
 }

@@ -14,6 +14,7 @@ import FeedbacksPage from "./FeedbacksPage";
 import TrilhaConhecimento from "./TrilhaConhecimento";
 import AdminPanel from "./AdminPanel";
 import UsersPage from "./Users";
+import Chamados from "../gestao/pages/Chamados";
 import AnnouncementsPage from "./Announcements";
 import MonitoringPage from "./Monitoring";
 import { AvisosBarra, AlertasTelaCheia } from "../components/GlobalAlerts";
@@ -51,6 +52,7 @@ export default function Chat() {
   const [pendingRoutinesCount, setPendingRoutinesCount] = useState(0);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
+  const [showChamados, setShowChamados] = useState(false);
   const [showHiddenGroups, setShowHiddenGroups] = useState(false);
   const [hiddenGroupsCount, setHiddenGroupsCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
@@ -89,6 +91,7 @@ export default function Chat() {
     setShowTrilha(view === "trilha");
     setShowUsers(view === "users");
     setShowMonitoring(view === "monitoring");
+    setShowChamados(view === "chamados");
     setShowAnnouncements(view === "notificacoes");
   }, [location.search]);
 
@@ -486,15 +489,15 @@ export default function Chat() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || (pendingConversation?.id === activeConvId ? pendingConversation : null);
 
   return (
-    <div className={`app-shell w-screen h-screen flex overflow-hidden p-2 gap-2 ${activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks ? "app-shell-sem-nav" : ""}`} style={{ background: colors.canvas }}>
+    <div className={`app-shell w-screen h-screen flex overflow-hidden p-2 gap-2 ${activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showChamados && !showAdminPanel && !showFeedbacks ? "app-shell-sem-nav" : ""}`} style={{ background: colors.canvas }}>
       <LeftNav
-        escondeNavMobile={!!activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks}
+        escondeNavMobile={!!activeConv && !showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showChamados && !showAdminPanel && !showFeedbacks}
         unreadTotal={Object.values(unreadCounts).reduce((soma, n) => soma + n, 0)}
         onOpenAccount={() => setShowAccount(true)}
       />
       <div className="flex-1 flex flex-col overflow-hidden gap-2">
       {/* A busca é só do Chat — nas outras telas ela não faz sentido e some. */}
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showChamados && !showAdminPanel && !showFeedbacks && (
       <Topbar
         onOpenAccount={() => setShowAccount(true)}
         onOpenAnnouncement={() => setShowAnnouncements(true)}
@@ -516,7 +519,7 @@ export default function Chat() {
       )}
       <AvisosBarra />
       <div className="flex-1 flex overflow-hidden gap-2 min-h-0">
-      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showAdminPanel && !showFeedbacks && (
+      {!showUsers && !showTrilha && !showAnnouncements && !showMonitoring && !showChamados && !showAdminPanel && !showFeedbacks && (
       <Sidebar
         conversations={conversations}
         activeConvId={activeConvId}
@@ -545,6 +548,8 @@ export default function Chat() {
         <div className="flex-1 flex overflow-hidden rounded-2xl"><TrilhaConhecimento onBack={() => setShowTrilha(false)} /></div>
       ) : showAnnouncements ? (
         <div className="flex-1 flex overflow-hidden rounded-2xl"><AnnouncementsPage onBack={() => setShowAnnouncements(false)} /></div>
+      ) : showChamados ? (
+        <div className="flex-1 flex overflow-hidden rounded-2xl" style={{ background: "var(--pagina-fundo)" }}><Chamados /></div>
       ) : showMonitoring ? (
         <div className="flex-1 flex overflow-hidden rounded-2xl"><MonitoringPage onBack={() => setShowMonitoring(false)} /></div>
       ) : showAdminPanel ? (
