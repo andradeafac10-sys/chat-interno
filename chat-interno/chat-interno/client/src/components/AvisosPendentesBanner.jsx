@@ -1,3 +1,4 @@
+import { playChamadoSound } from "../sound";
 import React, { useEffect, useState } from "react";
 import { Bell, Video, MessageSquareText, GraduationCap, Clock, AlertTriangle, LifeBuoy } from "lucide-react";
 import { mostrarNotificacaoDesktop } from "../notifications";
@@ -38,7 +39,7 @@ export default function AvisosPendentesBanner({ onVerTreinamentos, onVerFeedback
     const intervalo = setInterval(carregar, 30000);
     window.addEventListener("rotina:atualizada", carregar);
     window.addEventListener("chamado:atualizado", carregar);
-    let sock; const onNovo = (d) => { carregar(); mostrarNotificacaoDesktop({ titulo: d.titulo, corpo: d.corpo }); };
+    let sock; const onNovo = (d) => { carregar(); playChamadoSound(); mostrarNotificacaoDesktop({ titulo: d.titulo, corpo: d.corpo }); };
     try { sock = getSocket(); sock?.on("chamado:novo", onNovo); } catch {}
     window.addEventListener("feedback:atualizado", carregar);
     return () => {

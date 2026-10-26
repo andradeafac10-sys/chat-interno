@@ -181,3 +181,38 @@ export function playTrilhaSound() {
     // navegador bloqueou áudio automático — sem problema, ignora
   }
 }
+
+// Musiquinha de chamado novo: pequena melodia alegre de 5 notas (onda seno +
+// harmônico suave), bem diferente dos outros avisos — dá pra saber de ouvido
+// que chegou um chamado pra você.
+export function playChamadoSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const melodia = [
+      { freq: 659, inicio: 0.0, duracao: 0.16 },
+      { freq: 784, inicio: 0.16, duracao: 0.16 },
+      { freq: 988, inicio: 0.32, duracao: 0.16 },
+      { freq: 784, inicio: 0.52, duracao: 0.16 },
+      { freq: 1319, inicio: 0.68, duracao: 0.45 },
+    ];
+    melodia.forEach(({ freq, inicio, duracao }) => {
+      [1, 2].forEach((mult) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(freq * mult, ctx.currentTime + inicio);
+        const pico = mult === 1 ? 0.22 : 0.05;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + inicio);
+        g.gain.exponentialRampToValueAtTime(pico, ctx.currentTime + inicio + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + inicio + duracao);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(ctx.currentTime + inicio);
+        o.stop(ctx.currentTime + inicio + duracao + 0.02);
+      });
+    });
+    setTimeout(() => { try { ctx.close(); } catch (e) { /* ignora */ } }, 1800);
+  } catch (err) {
+    // navegador bloqueou áudio automático — sem problema, ignora
+  }
+}
