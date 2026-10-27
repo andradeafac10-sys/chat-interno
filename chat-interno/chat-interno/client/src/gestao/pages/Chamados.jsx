@@ -145,7 +145,7 @@ export default function Chamados() {
   );
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 flex-1 w-full min-w-0">
       <PageHeader icon={LifeBuoy} title="Chamados" subtitle="Visível apenas para administradores · responsável, prioridade, obrigação e prazo" />
       <div className="flex-1 overflow-auto p-5">
         <div className="flex flex-wrap gap-3 mb-4">

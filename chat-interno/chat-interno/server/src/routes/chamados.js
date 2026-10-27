@@ -54,8 +54,8 @@ const STATUS = ["aberto", "andamento", "concluido"];
 
 router.get("/", async (req, res) => {
   const { rows } = await pool.query(
-    SELECT + ` ORDER BY (c.status = 'concluido'),
-      CASE c.prioridade WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, c.prazo NULLS LAST, c.id`);
+    SELECT + ` ORDER BY (c.status = 'concluido'), c.prazo NULLS LAST,
+      CASE c.prioridade WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, c.id`);
   res.json({ chamados: rows });
 });
 
