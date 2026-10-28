@@ -71,6 +71,14 @@ app.use("/api", limiter);
 // imagem toda vez que a tela atualiza.
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"), { maxAge: "7d", immutable: true }));
 
+// Rastreio de links de SMS: /r/:codigo (público, registra clique e redireciona),
+// /rastreio (página do ADM) e /api/rastreio/* (gerar links + relatórios CSV).
+const rastreio = require("./routes/rastreio");
+app.get("/r/:codigo", rastreio.redirecionar);
+app.get("/rastreio", rastreio.pagina);
+app.use("/api/rastreio", rastreio.router);
+rastreio.garantirTabelas().catch((e) => console.error("[rastreio] erro ao criar tabelas:", e.message));
+
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 // Muda toda vez que o servidor reinicia (ou seja, toda vez que sai uma atualização nova).
 // O site usa isso pra avisar a pessoa "tem versão nova" sem precisar dar F5 sozinho.

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rastreio de SMS · Nacional</title>
+<style>
+  :root { --azul:#2563EB; --navy:#081328; --fundo:#F7F9FB; --texto:#101828; --sub:#667085; --borda:#E4E8EE; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Inter,system-ui,sans-serif; background:var(--fundo); color:var(--texto); }
+  header { background:var(--navy); color:#fff; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:18px; margin:0; }
+  header button { background:transparent; color:#fff; border:1px solid #ffffff55; }
+  main { max-width:960px; margin:24px auto; padding:0 16px; display:grid; gap:16px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:20px; }
+  .card h2 { font-size:15px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:var(--sub); margin:10px 0 4px; }
+  input { width:100%; padding:9px 10px; border:1px solid var(--borda); border-radius:8px; font:inherit; }
+  button { background:var(--azul); color:#fff; border:0; border-radius:8px; padding:9px 16px; font:inherit; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .dica { font-size:12px; color:var(--sub); margin-top:8px; }
+  .erro { color:#B42318; font-size:13px; margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--borda); }
+  th { color:var(--sub); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .acoes button { padding:5px 10px; font-size:12px; margin-left:4px; }
+  .sec { background:#fff; color:var(--azul); border:1px solid var(--azul); }
+  #login { max-width:360px; margin:60px auto; }
+  .tabela-wrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<header><h1>Rastreio de SMS</h1><button id="sair" hidden>Sair</button></header>
+
+<div id="login" class="card" hidden>
+  <h2>Entrar (ADM do Painel Nacional)</h2>
+  <label>Usuário</label><input id="usuario" autocomplete="username">
+  <label>Senha</label><input id="senha" type="password" autocomplete="current-password">
+  <div class="row"><button id="entrar">Entrar</button></div>
+  <div id="erroLogin" class="erro"></div>
+</div>
+
+<main id="app" hidden>
+  <div class="card">
+    <h2>1. Gerar links rastreados</h2>
+    <label>Nome da campanha</label><input id="campanha" placeholder="Ex: SMS HAPVIDA 28-10 LINK 1">
+    <label>Link de destino (wa.link)</label><input id="destino" placeholder="https://wa.link/8rm3do">
+    <label>CSV do disparo (precisa ter coluna TELEFONE; CPF e NOME opcionais)</label><input id="arquivo" type="file" accept=".csv,.txt">
+    <div class="dica">Se o CSV tiver uma coluna LINK, cada linha usa o próprio link e o campo acima vira só o padrão. Volta o mesmo CSV com a coluna LINK_RASTREIO — é ela que vai no texto do SMS.</div>
+    <div class="row"><button id="gerar">Gerar e baixar CSV</button></div>
+    <div id="erroGerar" class="erro"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Relatórios de cliques</h2>
+    <div class="row" style="margin-top:0">
+      <button id="relTodas">Relatório geral (todas)</button>
+      <button id="logTodas" class="sec">Log de cada clique</button>
+      <button id="atualizar" class="sec">Atualizar</button>
+    </div>
+    <div class="tabela-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Campanha</th><th>Criada</th><th class="num">Enviados</th><th class="num">Clicaram</th><th class="num">% Clique</th><th class="num">Cliques</th><th></th></tr></thead>
+        <tbody id="lista"><tr><td colspan="7">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="dica">"Clicaram" conta pessoas únicas. Pré-visualizações automáticas (robôs) não entram na conta.</div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let token = null;
+try { token = sessionStorage.getItem("rastreio_token"); } catch (e) {}
+
+function mostrar() {
+  $("login").hidden = !!token; $("app").hidden = !token; $("sair").hidden = !token;
+  if (token) carregar();
+}
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: "Bearer " + token } });
+  if (r.status === 401 || r.status === 403) {
+    token = null; try { sessionStorage.removeItem("rastreio_token"); } catch (e) {}
+    mostrar(); throw new Error("Sessão expirada ou sem permissão de ADM.");
+  }
+  if (!r.ok) { let m = "Erro " + r.status; try { m = (await r.json()).error || m; } catch (e) {} throw new Error(m); }
+  return r;
+}
+
+async function baixar(url) {
+  const r = await api(url);
+  const blob = await r.blob();
+  const nome = (r.headers.get("Content-Disposition") || "").match(/filename="(.+?)"/)?.[1] || "rastreio.csv";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+$("entrar").onclick = async () => {
+  $("erroLogin").textContent = "";
+  try {
+    const r = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: $("usuario").value, password: $("senha").value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Falha no login.");
+    if (d.user?.role !== "admin") throw new Error("Apenas ADMs podem acessar o rastreio.");
+    token = d.token; try { sessionStorage.setItem("rastreio_token", token); } catch (e) {}
+    mostrar();
+  } catch (e) { $("erroLogin").textContent = e.message; }
+};
+$("senha").onkeydown = (e) => { if (e.key === "Enter") $("entrar").click(); };
+$("sair").onclick = () => { token = null; try { sessionStorage.removeItem("rastreio_token"); } catch (e) {} mostrar(); };
+
+$("gerar").onclick = async () => {
+  $("erroGerar").textContent = "";
+  const f = $("arquivo").files[0];
+  if (!f) return ($("erroGerar").textContent = "Escolha o CSV do disparo.");
+  const fd = new FormData();
+  fd.append("campanha", $("campanha").value); fd.append("destino", $("destino").value); fd.append("arquivo", f);
+  $("gerar").disabled = true; $("gerar").textContent = "Gerando...";
+  try {
+    const r = await api("/api/rastreio/gerar", { method: "POST", body: fd });
+    const blob = await r.blob();
+    const nome = (r.headers.get("Content-Disposition") || "").match(/filename="(.+?)"/)?.[1] || "links.csv";
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome; a.click();
+    carregar();
+  } catch (e) { $("erroGerar").textContent = e.message; }
+  $("gerar").disabled = false; $("gerar").textContent = "Gerar e baixar CSV";
+};
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+async function carregar() {
+  try {
+    const lista = await (await api("/api/rastreio/campanhas")).json();
+    $("lista").innerHTML = lista.length ? lista.map((c, i) => {
+      const pct = c.enviados > 0 ? ((c.clicaram / c.enviados) * 100).toFixed(1).replace(".", ",") + "%" : "-";
+      return `<tr><td>${esc(c.campanha)}</td><td>${new Date(c.criada_em).toLocaleString("pt-BR")}</td>
+        <td class="num">${c.enviados}</td><td class="num">${c.clicaram}</td><td class="num">${pct}</td><td class="num">${c.cliques}</td>
+        <td class="acoes"><button data-rel="${i}">Relatório</button><button class="sec" data-log="${i}">Log</button></td></tr>`;
+    }).join("") : `<tr><td colspan="7">Nenhuma campanha ainda.</td></tr>`;
+    $("lista").querySelectorAll("button").forEach((b) => {
+      const c = lista[b.dataset.rel ?? b.dataset.log].campanha;
+      b.onclick = () => baixar((b.dataset.rel !== undefined ? "/api/rastreio/relatorio" : "/api/rastreio/cliques") + "?campanha=" + encodeURIComponent(c)).catch((e) => alert(e.message));
+    });
+  } catch (e) { $("lista").innerHTML = `<tr><td colspan="7" class="erro">${esc(e.message)}</td></tr>`; }
+}
+$("relTodas").onclick = () => baixar("/api/rastreio/relatorio").catch((e) => alert(e.message));
+$("logTodas").onclick = () => baixar("/api/rastreio/cliques").catch((e) => alert(e.message));
+$("atualizar").onclick = carregar;
+mostrar();
+</script>
+</body>
+</html>
