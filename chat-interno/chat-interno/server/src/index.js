@@ -113,7 +113,6 @@ setInterval(() => {
     .catch((err) => console.error("[rotinas] erro ao gerar ocorrências:", err));
 }, 6 * 60 * 60 * 1000);
 
-// Inativa quem ficou 3 dias úteis sem acessar (confere a cada hora)
 
 // Faxina das rotinas a cada 10 min: tira "a fazer" de quem saiu da rotina, de rotinas
 // desativadas e de usuários inativos (só o que ainda não foi feito).
