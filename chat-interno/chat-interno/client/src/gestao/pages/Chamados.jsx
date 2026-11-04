@@ -138,7 +138,7 @@ export default function Chamados() {
   const concluidosMes = lista.filter((c) => c.status === "concluido" && c.concluido_em && new Date(c.concluido_em) >= mes).length;
 
   const Card = ({ n, t, cor }) => (
-    <div className="flex-1 min-w-[140px] rounded-2xl p-3.5" style={{ border: "1px solid var(--pagina-borda-suave)", background: "var(--pagina-cartao)" }}>
+    <div className="flex-1 min-w-[calc(50%-6px)] md:min-w-[140px] rounded-2xl p-3.5" style={{ border: "1px solid var(--pagina-borda-suave)", background: "var(--pagina-cartao)" }}>
       <div className="text-[22px] font-bold" style={{ color: cor || "var(--pagina-texto-1)" }}>{n}</div>
       <div className="text-[11.5px]" style={{ color: "var(--pagina-texto-2)" }}>{t}</div>
     </div>
@@ -147,7 +147,7 @@ export default function Chamados() {
   return (
     <div className="flex flex-col h-full min-h-0 flex-1 w-full min-w-0">
       <PageHeader icon={LifeBuoy} title="Chamados" subtitle="Visível apenas para administradores · responsável, prioridade, obrigação e prazo" />
-      <div className="flex-1 overflow-auto p-5">
+      <div className="flex-1 overflow-auto p-3 md:p-5">
         <div className="flex flex-wrap gap-3 mb-4">
           <Card n={abertos.length} t="Em aberto" />
           <Card n={altas} t="Prioridade alta" cor="#DC2626" />
@@ -155,9 +155,9 @@ export default function Chamados() {
           <Card n={concluidosMes} t="Concluídos no mês" cor="#16A34A" />
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <Search size={14} className="absolute left-2.5 top-2.5 opacity-50" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar chamado…" className="pl-8 pr-3 py-2 rounded-lg text-sm" style={inp} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar chamado…" className="pl-8 pr-3 py-2 rounded-lg text-sm w-full md:w-auto" style={inp} />
           </div>
           <select value={quem} onChange={(e) => setQuem(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inp}>
             <option value="">Todos os responsáveis</option>
@@ -174,7 +174,7 @@ export default function Chamados() {
           <button onClick={() => setModal({ t: "novo" })} className="px-3 py-2 rounded-lg text-sm text-white font-medium flex items-center gap-1.5" style={{ background: P }}><Plus size={14} /> Novo chamado</button>
         </div>
         {erro && <p className="text-red-500 text-sm mb-3">{erro}</p>}
-        <div className="rounded-2xl overflow-x-auto" style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)" }}>
+        <div className="hidden md:block rounded-2xl overflow-x-auto" style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)" }}>
           <table className="w-full text-sm min-w-[860px]" style={{ color: "var(--pagina-texto-1)" }}>
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide" style={{ background: "#5B21B6", color: "#fff" }}>
@@ -209,6 +209,36 @@ export default function Chamados() {
               {!vis.length && <tr><td colSpan={7} className="px-3 py-10 text-center opacity-50">Nenhum chamado por aqui.</td></tr>}
             </tbody>
           </table>
+        </div>
+        {/* Celular: cada chamado vira um cartão, sem tabela com rolagem lateral */}
+        <div className="md:hidden flex flex-col gap-3">
+          {vis.map((c) => {
+            const pz = formatarPrazo(c.prazo), feito = c.status === "concluido", pr = PRIO[c.prioridade];
+            return (
+              <div key={c.id} className="rounded-2xl p-3.5" style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", opacity: feito ? 0.55 : 1, borderLeft: c.prioridade === "alta" && !feito ? "4px solid #7C3AED" : undefined }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className={`font-semibold text-[15px] leading-snug ${feito ? "line-through" : ""}`} style={{ color: "var(--pagina-texto-1)" }}>{c.titulo}</div>
+                  <span className="text-[11px] font-bold rounded-full px-2.5 py-1 shrink-0" style={{ background: pr.bg, color: pr.cor }}>{pr.label}</span>
+                </div>
+                {c.criado_por && <div className="text-[11.5px] mt-0.5" style={{ color: "var(--pagina-texto-2)" }}>Aberto por {c.criado_por}</div>}
+                {c.obrigacao && <p className="text-[13px] mt-2 whitespace-pre-wrap break-words" style={{ color: "var(--pagina-texto-2)" }}>{c.obrigacao}</p>}
+                <div className="flex flex-wrap gap-1 mt-2.5">{c.responsaveis.map((r) => <span key={r.id} className="text-[11.5px] rounded-full px-2 py-0.5" style={{ background: "rgba(124,58,237,.15)", color: "var(--pagina-texto-1)" }}>{r.name}</span>)}</div>
+                <div className="flex items-center justify-between gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--pagina-borda-suave)" }}>
+                  <div className="text-[13px]" style={{ color: pz.urgente && !feito ? "#DC2626" : "var(--pagina-texto-1)", fontWeight: pz.urgente && !feito ? 700 : 500 }}>
+                    {pz.texto}{pz.vencido && !feito ? " (vencido)" : ""}
+                  </div>
+                  <select value={c.status} onChange={(e) => patch(c.id, { status: e.target.value })} className="rounded-lg px-2 py-1.5 text-xs" style={inp}>
+                    {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center justify-end gap-4 mt-2.5">
+                  <button className="text-xs underline" style={{ color: P }} onClick={() => setModal({ t: "edit", c })}>Editar</button>
+                  <button onClick={() => remover(c)} title="Excluir"><Trash2 size={15} className="opacity-60" /></button>
+                </div>
+              </div>
+            );
+          })}
+          {!vis.length && <div className="py-10 text-center opacity-50 text-sm">Nenhum chamado por aqui.</div>}
         </div>
       </div>
       {modal?.t === "novo" && <Form pessoas={pessoas} onSalvar={criar} onClose={() => setModal(null)} />}
