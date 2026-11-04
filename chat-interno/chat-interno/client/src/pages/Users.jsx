@@ -124,7 +124,6 @@ export default function Users({ onBack }) {
 
 function EditUserModal({ user, currentUserId, onClose, onSaved }) {
   const [name, setName] = useState(user.name);
-  const [username, setUsername] = useState(user.username);
   const [role, setRole] = useState(user.role);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -135,7 +134,7 @@ function EditUserModal({ user, currentUserId, onClose, onSaved }) {
     setError("");
     setSaving(true);
     try {
-      await api.patch(`/users/${user.id}`, { name, username, role: souEuMesmo ? undefined : role });
+      await api.patch(`/users/${user.id}`, { name, role: souEuMesmo ? undefined : role });
       onSaved();
     } catch (err) {
       setError(err.response?.data?.error || "Não foi possível salvar.");
@@ -155,8 +154,8 @@ function EditUserModal({ user, currentUserId, onClose, onSaved }) {
           <label className="text-xs font-medium text-slate-500 mb-1 block">Nome completo</label>
           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" required />
 
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]" required />
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Usuário de login (fixo, não pode ser alterado)</label>
+          <input value={user.username} readOnly disabled className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-4 bg-slate-100 text-slate-500 cursor-not-allowed" />
 
           <label className="text-xs font-medium text-slate-500 mb-1 block">Tipo de usuário</label>
           {souEuMesmo ? (

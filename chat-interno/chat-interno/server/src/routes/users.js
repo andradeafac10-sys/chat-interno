@@ -55,7 +55,8 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 
 // PATCH /api/users/:id -> ADM edita o nome (e opcionalmente usuário/cor) de qualquer pessoa, inclusive a si mesmo
 router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
-  const { name, username, color, role } = req.body || {};
+  // O usuário de login é fixo: não pode ser alterado depois de criado (ignora qualquer "username" enviado)
+  const { name, color, role } = req.body || {};
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "O nome não pode ficar vazio." });
   }
@@ -71,12 +72,11 @@ router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE users SET
          name = $1,
-         username = COALESCE(NULLIF($2, ''), username),
-         color = COALESCE(NULLIF($3, ''), color),
-         role = COALESCE(NULLIF($4, ''), role)
-       WHERE id = $5
+         color = COALESCE(NULLIF($2, ''), color),
+         role = COALESCE(NULLIF($3, ''), role)
+       WHERE id = $4
        RETURNING id, name, username, role, color, active`,
-      [name.trim(), username ? username.trim().toLowerCase() : null, color || null, role || null, req.params.id]
+      [name.trim(), color || null, role || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Usuário não encontrado." });
     res.json({ user: rows[0] });
