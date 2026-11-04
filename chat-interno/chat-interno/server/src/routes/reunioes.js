@@ -309,6 +309,11 @@ router.patch("/:id", async (req, res) => {
           fim ? new Date(fim).toTimeString().slice(0, 8) : null,
         ]
       );
+      // A data (e hora) escolhida vale exatamente para ESTA ocorrência —
+      // antes só a hora era aplicada e a mudança de data se perdia.
+      if (inicio && fim) {
+        await client.query(`UPDATE reunioes SET inicio = $2, fim = $3 WHERE id = $1`, [req.params.id, inicio, fim]);
+      }
     } else {
       await client.query(
         `UPDATE reunioes SET
