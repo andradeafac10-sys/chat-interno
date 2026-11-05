@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { LifeBuoy, Plus, Trash2, Search, X } from "lucide-react";
+import { LifeBuoy, Plus, Trash2, Search, X, Star } from "lucide-react";
 import PageHeader from "../PageHeader";
 import { api } from "../../api";
 import { getSocket } from "../../socket";
+import { useAuth } from "../../context/AuthContext";
 
 const P = "#7C3AED";
 const PRIO = {
@@ -103,6 +104,9 @@ export default function Chamados() {
   const [quem, setQuem] = useState("");
   const [prio, setPrio] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("abertos"); // abertos | todos | concluido
+  const { user } = useAuth();
+  const [soMeus, setSoMeus] = useState(() => { try { return localStorage.getItem("chamados:soMeus") === "1"; } catch { return false; } });
+  const alternarMeus = () => setSoMeus((v) => { const n = !v; try { localStorage.setItem("chamados:soMeus", n ? "1" : "0"); } catch {} return n; });
   const [modal, setModal] = useState(null);
   const [erro, setErro] = useState("");
 
@@ -126,11 +130,13 @@ export default function Chamados() {
     const q = busca.toLowerCase();
     return lista.filter((c) =>
       (filtroStatus === "todos" || (filtroStatus === "concluido" ? c.status === "concluido" : c.status !== "concluido")) &&
+      (!soMeus || c.responsaveis.some((r) => r.id === user.id)) &&
       (!quem || c.responsaveis.some((r) => String(r.id) === quem)) &&
       (!prio || c.prioridade === prio) &&
       (!q || `${c.titulo} ${c.obrigacao} ${c.responsaveis.map((r) => r.name).join(" ")}`.toLowerCase().includes(q)));
-  }, [lista, busca, quem, prio, filtroStatus]);
+  }, [lista, busca, quem, prio, filtroStatus, soMeus, user.id]);
 
+  const meusAbertos = lista.filter((c) => c.status !== "concluido" && c.responsaveis.some((r) => r.id === user.id)).length;
   const abertos = lista.filter((c) => c.status !== "concluido");
   const altas = abertos.filter((c) => c.prioridade === "alta").length;
   const vencendo = abertos.filter((c) => c.prazo && new Date(c.prazo) <= new Date(Date.now() + 2 * 86400000)).length;
@@ -155,6 +161,11 @@ export default function Chamados() {
           <Card n={concluidosMes} t="Concluídos no mês" cor="#16A34A" />
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button onClick={alternarMeus} className="px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5"
+            style={soMeus ? { background: P, color: "#fff", boxShadow: "0 0 0 3px rgba(124,58,237,.25)" } : { ...inp, color: P }}>
+            <Star size={14} /> Meus chamados
+            <span className="text-[11px] rounded-full px-1.5" style={soMeus ? { background: "#fff", color: P } : { background: "rgba(124,58,237,.15)", color: P }}>{meusAbertos}</span>
+          </button>
           <div className="relative w-full md:w-auto">
             <Search size={14} className="absolute left-2.5 top-2.5 opacity-50" />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar chamado…" className="pl-8 pr-3 py-2 rounded-lg text-sm w-full md:w-auto" style={inp} />
