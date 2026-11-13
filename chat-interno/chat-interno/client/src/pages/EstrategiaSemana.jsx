@@ -231,6 +231,8 @@ export default function EstrategiaSemana() {
   );
 }
 
+const L = ({ t, children }) => <label className="block text-xs font-medium mb-3" style={{ color: "var(--pagina-texto-2)" }}>{t}<div className="mt-1">{children}</div></label>;
+
 function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   const a = modal.acao;
   const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "" });
@@ -240,7 +242,6 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
     e.preventDefault(); setSalvando(true); setErro("");
     try { await onSalvar(f); } catch (err) { setErro(err.message); } finally { setSalvando(false); }
   };
-  const L = ({ t, children }) => <label className="block text-xs font-medium mb-3" style={{ color: "var(--pagina-texto-2)" }}>{t}<div className="mt-1">{children}</div></label>;
   const cls = "w-full rounded-lg px-3 py-2 text-sm";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.45)" }} onClick={onClose}>
