@@ -9,7 +9,7 @@ const CANAIS = {
   discador: { nome: "Discador", cor: "#2563EB" },
   sms: { nome: "SMS", cor: "#D97706" },
   email: { nome: "E-mail", cor: "#DB2777" },
-  fila: { nome: "Fila/Proposta", cor: "#7C3AED" },
+  fila: { nome: "Fila", cor: "#7C3AED" },
 };
 const STATUS = {
   planejada: { nome: "Planejada", bg: "rgba(124,58,237,.14)", cor: "#7C3AED", icone: "○" },
