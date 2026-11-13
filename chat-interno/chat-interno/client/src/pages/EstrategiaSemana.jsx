@@ -38,6 +38,8 @@ export default function EstrategiaSemana() {
   const [erro, setErro] = useState("");
   const [modal, setModal] = useState(null); // { acao?, carteira, dia }
   const [novaCarteira, setNovaCarteira] = useState("");
+  const [vista, setVista] = useState("semana"); // semana | dia
+  const [diaSel, setDiaSel] = useState(() => { const d = (new Date().getDay() + 6) % 7; return d > 4 ? 0 : d; });
   const semana = chave(inicio);
 
   const carregar = useCallback(async () => {
@@ -88,6 +90,17 @@ export default function EstrategiaSemana() {
     setDados((d) => ({ ...d, acoes: d.acoes.map((x) => (x.id === a.id ? data.acao : x)) }));
   };
 
+  const renderAcao = (a) => {
+    const s = STATUS[statusEfetivo(a)], ca = CANAIS[a.canal];
+    return (
+      <div key={a.id} className="rounded-lg px-2 py-1.5 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
+        style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", borderLeft: `4px solid ${ca.cor}`, color: "var(--pagina-texto-1)" }}>
+        <div className="font-semibold leading-snug">{a.titulo}</div>
+        <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-0.5 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
+      </div>
+    );
+  };
+
   const rotuloSemana = `${pad(datas[0].getDate())}/${pad(datas[0].getMonth() + 1)} a ${pad(datas[4].getDate())}/${pad(datas[4].getMonth() + 1)}`;
   const mover = (n) => setInicio((i) => { const d = new Date(i); d.setDate(d.getDate() + 7 * n); return d; });
 
@@ -101,6 +114,14 @@ export default function EstrategiaSemana() {
           <div className="px-3 py-2 rounded-lg text-sm font-semibold" style={{ ...card, color: "var(--pagina-texto-1)" }}>Semana {rotuloSemana}</div>
           <button onClick={() => mover(1)} className="p-2 rounded-lg" style={inp} aria-label="Próxima semana"><ChevronRight size={16} /></button>
           <button onClick={() => setInicio(segundaDe(new Date()))} className="px-3 py-2 rounded-lg text-sm" style={{ ...inp, color: P }}>Esta semana</button>
+          <div className="flex rounded-lg overflow-hidden ml-2" style={{ border: "1px solid var(--pagina-borda)" }}>
+            {[["semana", "Semana"], ["dia", "Dia"]].map(([k, t]) => (
+              <button key={k} onClick={() => setVista(k)} className="px-3 py-2 text-sm font-medium" style={vista === k ? { background: P, color: "#fff" } : { background: "var(--pagina-fundo)", color: P }}>{t}</button>
+            ))}
+          </div>
+          {vista === "dia" && DIAS.map((d, i) => (
+            <button key={d} onClick={() => setDiaSel(i)} className="px-2.5 py-2 rounded-lg text-sm font-medium" style={diaSel === i ? { background: "#5B21B6", color: "#fff" } : { ...inp, color: P }}>{d} {pad(datas[i].getDate())}</button>
+          ))}
           <div className="flex-1" />
           <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: "rgba(22,163,74,.16)", color: "#16A34A" }}>{feitas} de {acoes.length} ações feitas</span>
           <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: atrasadas ? "rgba(220,38,38,.16)" : "rgba(124,58,237,.14)", color: atrasadas ? "#DC2626" : P }}>{atrasadas} atrasada(s)</span>
@@ -140,6 +161,7 @@ export default function EstrategiaSemana() {
             </div>
 
             <div className="rounded-2xl p-2 overflow-x-auto" style={card}>
+              {vista === "semana" ? (
               <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
                 <thead>
                   <tr>
@@ -152,29 +174,61 @@ export default function EstrategiaSemana() {
                   </tr>
                 </thead>
                 <tbody>
+                  {dados.carteiras.map((c) => {
+                    const canaisUsados = Object.keys(CANAIS).filter((k) => acoes.some((a) => a.carteira === c && a.canal === k));
+                    return [
+                      <tr key={c + "h"}>
+                        <td colSpan={6} className="pt-3">
+                          <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-bold" style={{ background: "rgba(124,58,237,.10)", color: "var(--pagina-texto-1)" }}>
+                            <span className="flex-1">{c}</span>
+                            <button title="Remover carteira" className="opacity-40 hover:opacity-100" onClick={() => { if (window.confirm(`Remover a carteira "${c}" do quadro?`)) salvarSemana({ ...dados, carteiras: dados.carteiras.filter((x) => x !== c) }); }}><X size={13} /></button>
+                          </div>
+                        </td>
+                      </tr>,
+                      ...canaisUsados.map((k) => (
+                        <tr key={c + k}>
+                          <td className="align-top w-[120px] pt-2 text-[12px] font-semibold whitespace-nowrap" style={{ color: CANAIS[k].cor }}>
+                            <i className="inline-block w-2.5 h-2.5 rounded-sm mr-1.5" style={{ background: CANAIS[k].cor }} />{CANAIS[k].nome}
+                          </td>
+                          {DIAS.map((_, dia) => (
+                            <td key={dia} className="align-top" style={chave(datas[dia]) === hoje ? { background: "rgba(124,58,237,.07)", borderRadius: 10 } : undefined}>
+                              <div className="flex flex-col gap-1 p-0.5">
+                                {acoes.filter((a) => a.carteira === c && a.dia === dia && a.canal === k).map(renderAcao)}
+                                <button onClick={() => setModal({ carteira: c, dia, canal: k })} className="rounded-md text-xs opacity-30 hover:opacity-100 flex items-center justify-center" style={{ color: P }}><Plus size={12} /></button>
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      )),
+                      <tr key={c + "+"}>
+                        <td className="text-[11.5px] opacity-60 pt-1" style={{ color: P }}>+ nova ação</td>
+                        {DIAS.map((_, dia) => (
+                          <td key={dia}>
+                            <button onClick={() => setModal({ carteira: c, dia })} className="w-full rounded-md py-1 text-xs opacity-40 hover:opacity-100 flex items-center justify-center" style={{ border: "1px dashed var(--pagina-borda)", color: P }}><Plus size={13} /></button>
+                          </td>
+                        ))}
+                      </tr>,
+                    ];
+                  })}
+                </tbody>
+              </table>
+              ) : (
+              <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
+                <thead>
+                  <tr>
+                    <th />
+                    {Object.entries(CANAIS).map(([k, v]) => <th key={k} className="text-xs uppercase tracking-wide py-2 rounded-lg text-white" style={{ background: v.cor }}>{v.nome}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
                   {dados.carteiras.map((c) => (
                     <tr key={c}>
-                      <td className="align-top w-[140px] pt-2">
-                        <div className="text-[13px] font-bold flex items-start gap-1" style={{ color: "var(--pagina-texto-1)" }}>
-                          <span className="flex-1">{c}</span>
-                          <button title="Remover carteira" className="opacity-40 hover:opacity-100" onClick={() => { if (window.confirm(`Remover a carteira "${c}" do quadro?`)) salvarSemana({ ...dados, carteiras: dados.carteiras.filter((x) => x !== c) }); }}><X size={12} /></button>
-                        </div>
-                      </td>
-                      {DIAS.map((_, dia) => (
-                        <td key={dia} className="align-top" style={chave(datas[dia]) === hoje ? { background: "rgba(124,58,237,.07)", borderRadius: 10 } : undefined}>
-                          <div className="flex flex-col gap-1.5 p-1">
-                            {acoes.filter((a) => a.carteira === c && a.dia === dia).map((a) => {
-                              const s = STATUS[statusEfetivo(a)], ca = CANAIS[a.canal];
-                              return (
-                                <div key={a.id} className="rounded-lg p-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
-                                  style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", borderLeft: `4px solid ${ca.cor}`, color: "var(--pagina-texto-1)" }}>
-                                  <div className="font-semibold leading-snug">{a.titulo}</div>
-                                  <div className="text-[11px] font-semibold" style={{ color: ca.cor }}>{ca.nome}</div>
-                                  <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-1 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
-                                </div>
-                              );
-                            })}
-                            <button onClick={() => setModal({ carteira: c, dia })} className="rounded-lg py-1 text-xs opacity-40 hover:opacity-100 flex items-center justify-center" style={{ border: "1px dashed var(--pagina-borda)", color: P }}><Plus size={13} /></button>
+                      <td className="align-top w-[140px] pt-2 text-[13px] font-bold" style={{ color: "var(--pagina-texto-1)" }}>{c}</td>
+                      {Object.keys(CANAIS).map((k) => (
+                        <td key={k} className="align-top">
+                          <div className="flex flex-col gap-1 p-0.5">
+                            {acoes.filter((a) => a.carteira === c && a.dia === diaSel && a.canal === k).map(renderAcao)}
+                            <button onClick={() => setModal({ carteira: c, dia: diaSel, canal: k })} className="rounded-md text-xs opacity-30 hover:opacity-100 flex items-center justify-center" style={{ color: P }}><Plus size={12} /></button>
                           </div>
                         </td>
                       ))}
@@ -182,6 +236,7 @@ export default function EstrategiaSemana() {
                   ))}
                 </tbody>
               </table>
+              )}
               <form className="flex gap-2 p-2" onSubmit={(e) => { e.preventDefault(); const n = novaCarteira.trim(); if (n && !dados.carteiras.includes(n)) salvarSemana({ ...dados, carteiras: [...dados.carteiras, n] }); setNovaCarteira(""); }}>
                 <input value={novaCarteira} onChange={(e) => setNovaCarteira(e.target.value)} placeholder="Adicionar carteira…" className="px-3 py-1.5 rounded-lg text-sm" style={inp} />
                 <button className="px-3 py-1.5 rounded-lg text-sm text-white font-medium" style={{ background: P }}>Adicionar</button>
@@ -201,7 +256,7 @@ export default function EstrategiaSemana() {
 
 function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   const a = modal.acao;
-  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: "whatsapp", titulo: "", responsavel: "", status: "planejada" });
+  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada" });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const submit = async (e) => {
