@@ -1,0 +1,238 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarRange, ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
+import { api } from "../api";
+import PageHeader from "../gestao/PageHeader";
+
+const P = "#7C3AED";
+const CANAIS = {
+  whatsapp: { nome: "WhatsApp", cor: "#16A34A" },
+  discador: { nome: "Discador", cor: "#2563EB" },
+  sms: { nome: "SMS", cor: "#D97706" },
+  email: { nome: "E-mail", cor: "#DB2777" },
+  fila: { nome: "Fila/Proposta", cor: "#7C3AED" },
+};
+const STATUS = {
+  planejada: { nome: "Planejada", bg: "rgba(124,58,237,.14)", cor: "#7C3AED", icone: "○" },
+  andamento: { nome: "Em andamento", bg: "rgba(217,119,6,.16)", cor: "#D97706", icone: "●" },
+  feita: { nome: "Feita", bg: "rgba(22,163,74,.16)", cor: "#16A34A", icone: "✔" },
+  atrasada: { nome: "Atrasada", bg: "rgba(220,38,38,.16)", cor: "#DC2626", icone: "!" },
+};
+const INDICADORES = [
+  { k: "acionamentos", nome: "Acionamentos", moeda: false },
+  { k: "cpc", nome: "CPC (contatos)", moeda: false },
+  { k: "acordos", nome: "Acordos", moeda: false },
+  { k: "recebimento", nome: "Recebimento", moeda: true },
+];
+const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex"];
+const inp = { background: "var(--pagina-fundo)", border: "1px solid var(--pagina-borda)", color: "var(--pagina-texto-1)" };
+const card = { background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)" };
+
+const pad = (n) => String(n).padStart(2, "0");
+const chave = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function segundaDe(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+const fmtNum = (v, moeda) => (moeda ? "R$ " : "") + Number(v || 0).toLocaleString("pt-BR");
+
+export default function EstrategiaSemana() {
+  const [inicio, setInicio] = useState(() => segundaDe(new Date()));
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState("");
+  const [modal, setModal] = useState(null); // { acao?, carteira, dia }
+  const [novaCarteira, setNovaCarteira] = useState("");
+  const semana = chave(inicio);
+
+  const carregar = useCallback(async () => {
+    try { const { data } = await api.get("/estrategia", { params: { semana } }); setDados(data); setErro(""); }
+    catch (e) { setErro(e.response?.data?.error || "Não foi possível carregar a estratégia."); }
+  }, [semana]);
+  useEffect(() => { setDados(null); carregar(); }, [carregar]);
+
+  const salvarSemana = async (novo) => {
+    setDados(novo);
+    try { await api.put("/estrategia/semana", { semana, foco: novo.foco, metas: novo.metas, realizados: novo.realizados, carteiras: novo.carteiras }); }
+    catch { setErro("Não foi possível salvar."); }
+  };
+
+  const datas = useMemo(() => DIAS.map((_, i) => { const d = new Date(inicio); d.setDate(d.getDate() + i); return d; }), [inicio]);
+  const hoje = chave(new Date());
+
+  const statusEfetivo = (a) => {
+    if (a.status === "feita") return "feita";
+    return chave(datas[a.dia]) < hoje ? "atrasada" : a.status;
+  };
+
+  const acoes = dados?.acoes || [];
+  const feitas = acoes.filter((a) => a.status === "feita").length;
+  const atrasadas = acoes.filter((a) => statusEfetivo(a) === "atrasada").length;
+
+  const salvarAcao = async (f) => {
+    try {
+      if (f.id) {
+        const { data } = await api.patch(`/estrategia/acoes/${f.id}`, { carteira: f.carteira, dia: f.dia, canal: f.canal, titulo: f.titulo, responsavel: f.responsavel, status: f.status });
+        setDados((d) => ({ ...d, acoes: d.acoes.map((a) => (a.id === f.id ? data.acao : a)) }));
+      } else {
+        const { data } = await api.post("/estrategia/acoes", { semana, ...f });
+        setDados((d) => ({ ...d, acoes: [...d.acoes, data.acao] }));
+      }
+      setModal(null);
+    } catch (e) { throw new Error(e.response?.data?.error || "Não foi possível salvar a ação."); }
+  };
+  const excluirAcao = async (id) => {
+    if (!window.confirm("Excluir esta ação?")) return;
+    await api.delete(`/estrategia/acoes/${id}`);
+    setDados((d) => ({ ...d, acoes: d.acoes.filter((a) => a.id !== id) }));
+    setModal(null);
+  };
+  const ciclar = async (a) => {
+    const prox = { planejada: "andamento", andamento: "feita", feita: "planejada" }[a.status];
+    const { data } = await api.patch(`/estrategia/acoes/${a.id}`, { status: prox });
+    setDados((d) => ({ ...d, acoes: d.acoes.map((x) => (x.id === a.id ? data.acao : x)) }));
+  };
+
+  const rotuloSemana = `${pad(datas[0].getDate())}/${pad(datas[0].getMonth() + 1)} a ${pad(datas[4].getDate())}/${pad(datas[4].getMonth() + 1)}`;
+  const mover = (n) => setInicio((i) => { const d = new Date(i); d.setDate(d.getDate() + 7 * n); return d; });
+
+  return (
+    <div className="flex flex-col h-full min-h-0 flex-1 w-full min-w-0">
+      <PageHeader icon={CalendarRange} title="Estratégia da semana" subtitle="Visível apenas para André Andrade · cronograma e acompanhamento da cobrança" />
+      <div className="flex-1 overflow-auto p-3 md:p-5">
+        {erro && <p className="text-red-500 text-sm mb-3">{erro}</p>}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button onClick={() => mover(-1)} className="p-2 rounded-lg" style={inp} aria-label="Semana anterior"><ChevronLeft size={16} /></button>
+          <div className="px-3 py-2 rounded-lg text-sm font-semibold" style={{ ...card, color: "var(--pagina-texto-1)" }}>Semana {rotuloSemana}</div>
+          <button onClick={() => mover(1)} className="p-2 rounded-lg" style={inp} aria-label="Próxima semana"><ChevronRight size={16} /></button>
+          <button onClick={() => setInicio(segundaDe(new Date()))} className="px-3 py-2 rounded-lg text-sm" style={{ ...inp, color: P }}>Esta semana</button>
+          <div className="flex-1" />
+          <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: "rgba(22,163,74,.16)", color: "#16A34A" }}>{feitas} de {acoes.length} ações feitas</span>
+          <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: atrasadas ? "rgba(220,38,38,.16)" : "rgba(124,58,237,.14)", color: atrasadas ? "#DC2626" : P }}>{atrasadas} atrasada(s)</span>
+        </div>
+
+        {!dados ? <p className="opacity-60 text-sm">Carregando…</p> : (
+          <>
+            <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3" style={{ ...card, borderLeft: `6px solid ${P}` }}>
+              <b className="text-sm shrink-0" style={{ color: "var(--pagina-texto-1)" }}>Foco da semana:</b>
+              <input defaultValue={dados.foco} key={semana + "foco"} placeholder="Ex.: campanha de desconto Nossa Saúde + reativação"
+                onBlur={(e) => e.target.value !== dados.foco && salvarSemana({ ...dados, foco: e.target.value })}
+                className="flex-1 min-w-0 bg-transparent outline-none text-sm" style={{ color: "var(--pagina-texto-1)" }} />
+            </div>
+
+            <div className="flex flex-wrap gap-3 mb-4">
+              {INDICADORES.map((ind) => {
+                const meta = Number(dados.metas[ind.k] || 0), real = Number(dados.realizados[ind.k] || 0);
+                const pct = meta > 0 ? Math.min(100, (real / meta) * 100) : 0;
+                const cor = meta === 0 ? "#9CA3AF" : pct >= 90 ? "#16A34A" : pct >= 60 ? "#D97706" : "#DC2626";
+                const edita = (campo) => (e) => {
+                  const v = Number(String(e.target.value).replace(/\./g, "").replace(",", ".")) || 0;
+                  if (v !== Number(dados[campo][ind.k] || 0)) salvarSemana({ ...dados, [campo]: { ...dados[campo], [ind.k]: v } });
+                };
+                return (
+                  <div key={ind.k} className="flex-1 min-w-[calc(50%-6px)] md:min-w-[200px] rounded-2xl p-3.5" style={card}>
+                    <div className="text-[11.5px]" style={{ color: "var(--pagina-texto-2)" }}>{ind.nome}</div>
+                    <div className="text-[22px] font-bold" style={{ color: "var(--pagina-texto-1)" }}>{fmtNum(real, ind.moeda)}</div>
+                    <div className="h-2 rounded-full overflow-hidden my-1.5" style={{ background: "rgba(124,58,237,.12)" }}><div className="h-full rounded-full" style={{ width: `${pct}%`, background: cor }} /></div>
+                    <div className="text-[11.5px] font-semibold mb-2" style={{ color: cor }}>{meta > 0 ? `${pct.toFixed(0)}% da meta` : "defina a meta"}</div>
+                    <div className="flex gap-2 text-[11px]" style={{ color: "var(--pagina-texto-2)" }}>
+                      <label className="flex-1">Realizado<input defaultValue={real || ""} key={semana + ind.k + "r" + real} onBlur={edita("realizados")} inputMode="numeric" className="w-full rounded-md px-2 py-1 mt-0.5 text-xs" style={inp} /></label>
+                      <label className="flex-1">Meta<input defaultValue={meta || ""} key={semana + ind.k + "m" + meta} onBlur={edita("metas")} inputMode="numeric" className="w-full rounded-md px-2 py-1 mt-0.5 text-xs" style={inp} /></label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="rounded-2xl p-2 overflow-x-auto" style={card}>
+              <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
+                <thead>
+                  <tr>
+                    <th />
+                    {datas.map((d, i) => (
+                      <th key={i} className="text-xs uppercase tracking-wide py-2 rounded-lg text-white" style={{ background: chave(d) === hoje ? P : "#5B21B6" }}>
+                        {DIAS[i]} {pad(d.getDate())}/{pad(d.getMonth() + 1)}{chave(d) === hoje ? " · hoje" : ""}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.carteiras.map((c) => (
+                    <tr key={c}>
+                      <td className="align-top w-[140px] pt-2">
+                        <div className="text-[13px] font-bold flex items-start gap-1" style={{ color: "var(--pagina-texto-1)" }}>
+                          <span className="flex-1">{c}</span>
+                          <button title="Remover carteira" className="opacity-40 hover:opacity-100" onClick={() => { if (window.confirm(`Remover a carteira "${c}" do quadro?`)) salvarSemana({ ...dados, carteiras: dados.carteiras.filter((x) => x !== c) }); }}><X size={12} /></button>
+                        </div>
+                      </td>
+                      {DIAS.map((_, dia) => (
+                        <td key={dia} className="align-top" style={chave(datas[dia]) === hoje ? { background: "rgba(124,58,237,.07)", borderRadius: 10 } : undefined}>
+                          <div className="flex flex-col gap-1.5 p-1">
+                            {acoes.filter((a) => a.carteira === c && a.dia === dia).map((a) => {
+                              const s = STATUS[statusEfetivo(a)], ca = CANAIS[a.canal];
+                              return (
+                                <div key={a.id} className="rounded-lg p-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
+                                  style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", borderLeft: `4px solid ${ca.cor}`, color: "var(--pagina-texto-1)" }}>
+                                  <div className="font-semibold leading-snug">{a.titulo}</div>
+                                  <div className="text-[11px] font-semibold" style={{ color: ca.cor }}>{ca.nome}{a.responsavel ? <span style={{ color: "var(--pagina-texto-2)", fontWeight: 400 }}> · {a.responsavel}</span> : null}</div>
+                                  <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-1 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
+                                </div>
+                              );
+                            })}
+                            <button onClick={() => setModal({ carteira: c, dia })} className="rounded-lg py-1 text-xs opacity-40 hover:opacity-100 flex items-center justify-center" style={{ border: "1px dashed var(--pagina-borda)", color: P }}><Plus size={13} /></button>
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <form className="flex gap-2 p-2" onSubmit={(e) => { e.preventDefault(); const n = novaCarteira.trim(); if (n && !dados.carteiras.includes(n)) salvarSemana({ ...dados, carteiras: [...dados.carteiras, n] }); setNovaCarteira(""); }}>
+                <input value={novaCarteira} onChange={(e) => setNovaCarteira(e.target.value)} placeholder="Adicionar carteira…" className="px-3 py-1.5 rounded-lg text-sm" style={inp} />
+                <button className="px-3 py-1.5 rounded-lg text-sm text-white font-medium" style={{ background: P }}>Adicionar</button>
+              </form>
+            </div>
+            <div className="flex flex-wrap gap-4 text-xs mt-3" style={{ color: "var(--pagina-texto-2)" }}>
+              {Object.values(CANAIS).map((c) => <span key={c.nome}><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1.5" style={{ background: c.cor }} />{c.nome}</span>)}
+              <span className="ml-auto">Clique no status para avançar · dias passados sem “Feita” ficam como atrasada</span>
+            </div>
+          </>
+        )}
+      </div>
+      {modal && dados && <FormAcao modal={modal} carteiras={dados.carteiras} onSalvar={salvarAcao} onExcluir={excluirAcao} onClose={() => setModal(null)} />}
+    </div>
+  );
+}
+
+function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
+  const a = modal.acao;
+  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: "whatsapp", titulo: "", responsavel: "", status: "planejada" });
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault(); setSalvando(true); setErro("");
+    try { await onSalvar(f); } catch (err) { setErro(err.message); } finally { setSalvando(false); }
+  };
+  const L = ({ t, children }) => <label className="block text-xs font-medium mb-3" style={{ color: "var(--pagina-texto-2)" }}>{t}<div className="mt-1">{children}</div></label>;
+  const cls = "w-full rounded-lg px-3 py-2 text-sm";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.45)" }} onClick={onClose}>
+      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl p-5 max-h-[90vh] overflow-auto" style={{ background: "var(--pagina-cartao)", color: "var(--pagina-texto-1)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">{a ? "Editar ação" : "Nova ação"}</h3>
+          <button type="button" onClick={onClose}><X size={18} /></button>
+        </div>
+        <L t="O que será feito"><input autoFocus required value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} className={cls} style={inp} placeholder="Ex.: Preventivo WhatsApp" /></L>
+        <div className="grid grid-cols-2 gap-3">
+          <L t="Carteira"><select value={f.carteira} onChange={(e) => setF({ ...f, carteira: e.target.value })} className={cls} style={inp}>{carteiras.map((c) => <option key={c}>{c}</option>)}</select></L>
+          <L t="Dia"><select value={f.dia} onChange={(e) => setF({ ...f, dia: Number(e.target.value) })} className={cls} style={inp}>{DIAS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select></L>
+          <L t="Canal"><select value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })} className={cls} style={inp}>{Object.entries(CANAIS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}</select></L>
+          <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="andamento">Em andamento</option><option value="feita">Feita</option></select></L>
+        </div>
+        <L t="Responsável (opcional)"><input value={f.responsavel} onChange={(e) => setF({ ...f, responsavel: e.target.value })} className={cls} style={inp} /></L>
+        {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
+        <div className="flex items-center gap-2">
+          {a && <button type="button" onClick={() => onExcluir(a.id)} className="p-2 rounded-lg" style={inp} title="Excluir"><Trash2 size={16} /></button>}
+          <div className="flex-1" />
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm" style={inp}>Cancelar</button>
+          <button disabled={salvando} className="px-4 py-2 rounded-lg text-sm text-white font-medium" style={{ background: P }}>{salvando ? "Salvando…" : "Salvar"}</button>
+        </div>
+      </form>
+    </div>
+  );
+}

@@ -3,7 +3,7 @@ import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   MessageCircle, Bell, MessageSquareText, GraduationCap, UserCog, Eye,
   ListChecks, LifeBuoy, LayoutDashboard, LayoutGrid, CalendarCheck, ClipboardList, Repeat, Trophy, Users2,
-  Video, Settings, LogOut, ShieldCheck, Sun, Moon, ChevronLeft, ChevronRight,
+  Video, CalendarRange, Settings, LogOut, ShieldCheck, Sun, Moon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api, fileUrl } from "../api";
@@ -24,6 +24,8 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
   const navigate = useNavigate();
   const location = useLocation();
   const isAdm = user.role === "admin";
+  // Estratégia da semana: só o ADM master (André Andrade) enxerga
+  const ehMaster = isAdm && String(user.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().startsWith("andre andrade");
 
   const [pendingFeedback, setPendingFeedback] = useState(0);
   const [pendingRoutines, setPendingRoutines] = useState(0);
@@ -154,7 +156,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
     <>
     <MobileNav
       isAdm={isAdm} unreadTotal={unreadTotal} pendingFeedback={pendingFeedback} pendingTrilha={pendingTrilha}
-      pendingRoutines={pendingRoutines} pendingTasks={pendingTasks} reunioesHoje={reunioesHoje} chamadosVencendo={chamadosVencendo}
+      pendingRoutines={pendingRoutines} pendingTasks={pendingTasks} reunioesHoje={reunioesHoje} chamadosVencendo={chamadosVencendo} ehMaster={ehMaster}
       onOpenAccount={onOpenAccount} onLogout={logout} escondido={escondeNavMobile}
     />
     <div className={colapsado ? "w-[64px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl" : "w-[210px] h-full shrink-0 hidden md:flex flex-col overflow-y-auto transition-all rounded-2xl"} style={{ background: colors.sidebarBg }}>
@@ -184,6 +186,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
           <ItemChat view="users" icon={UserCog} label="Usuários" />
           <ItemChat view="monitoring" icon={Eye} label="Monitoria" />
           <ItemChat view="chamados" icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} />
+          {ehMaster && <ItemChat view="estrategia" icon={CalendarRange} label="Estratégia da semana" />}
 
           {/* A linha separa só a Gestão do resto do menu */}
           <div className="h-px mx-4 my-2.5" style={{ background: colors.sidebarBorder }} />

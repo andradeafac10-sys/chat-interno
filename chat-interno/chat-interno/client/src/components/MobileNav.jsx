@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   MessageCircle, Bell, MessageSquareText, GraduationCap, UserCog, Eye, LayoutGrid, CalendarCheck,
-  ClipboardList, ListChecks, LifeBuoy, Users2, Repeat, Video, Settings, LogOut, Sun, Moon, X, MoreHorizontal, LayoutDashboard,
+  ClipboardList, ListChecks, LifeBuoy, CalendarRange, Users2, Repeat, Video, Settings, LogOut, Sun, Moon, X, MoreHorizontal, LayoutDashboard,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 // Navegação do CELULAR: barra fixa embaixo + folha "Mais" com todos os itens
 // da lateral. No computador isso não aparece (o LeftNav normal continua igual).
-export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pendingTrilha, pendingRoutines, pendingTasks, reunioesHoje, chamadosVencendo = 0, onOpenAccount, onLogout, escondido }) {
+export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pendingTrilha, pendingRoutines, pendingTasks, reunioesHoje, chamadosVencendo = 0, ehMaster = false, onOpenAccount, onLogout, escondido }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -71,6 +71,7 @@ export default function MobileNav({ isAdm, unreadTotal, pendingFeedback, pending
                   <Botao icon={UserCog} label="Usuários" onClick={() => ir("/?view=users")} />
                   <Botao icon={Eye} label="Monitoria" onClick={() => ir("/?view=monitoring")} />
                   <Botao icon={LifeBuoy} label="Chamados" badge={chamadosVencendo} onClick={() => ir("/?view=chamados")} />
+                  {ehMaster && <Botao icon={CalendarRange} label="Estratégia" onClick={() => ir("/?view=estrategia")} />}
                 </div>
               </>
             )}
