@@ -12,6 +12,8 @@ const CARTEIRAS_PADRAO = ["Hapvida Cancelado", "Qualicorp", "Unimed", "Nossa Sa�
 const CANAIS = ["whatsapp", "discador", "sms", "email", "fila"];
 const STATUS = ["planejada", "andamento", "feita"];
 
+const EXTRAS = ["loja", "valores", "acionado", "situacoes", "indicadores", "observacao"];
+const COLS = "id, carteira, dia, canal, titulo, responsavel, status, " + EXTRAS.join(", ");
 let pronta = false;
 async function garantir() {
   if (pronta) return;
@@ -23,6 +25,7 @@ async function garantir() {
     id SERIAL PRIMARY KEY, semana DATE NOT NULL, carteira TEXT NOT NULL, dia INTEGER NOT NULL CHECK (dia BETWEEN 0 AND 4),
     canal TEXT NOT NULL DEFAULT 'whatsapp', titulo TEXT NOT NULL, responsavel TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'planejada', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  for (const c of EXTRAS) await pool.query(`ALTER TABLE estrategia_acoes ADD COLUMN IF NOT EXISTS ${c} TEXT NOT NULL DEFAULT ''`);
   await pool.query(`CREATE INDEX IF NOT EXISTS estrategia_acoes_semana_idx ON estrategia_acoes(semana)`);
   pronta = true;
 }
@@ -52,7 +55,7 @@ router.get("/", async (req, res) => {
       carteiras = ant[0]?.carteiras || CARTEIRAS_PADRAO;
     }
     const { rows: acoes } = await pool.query(
-      "SELECT id, carteira, dia, canal, titulo, responsavel, status FROM estrategia_acoes WHERE semana = $1::date ORDER BY dia, id", [semana]);
+      "SELECT " + COLS + " FROM estrategia_acoes WHERE semana = $1::date ORDER BY dia, id", [semana]);
     res.json({ semana, foco: rows[0]?.foco || "", metas: rows[0]?.metas || {}, realizados: rows[0]?.realizados || {}, carteiras, acoes });
   } catch (e) { console.error(e); res.status(500).json({ error: "Erro ao carregar a semana." }); }
 });
@@ -78,6 +81,7 @@ function validar(b, parcial) {
   if (!parcial || b.carteira !== undefined) o.carteira = String(b.carteira || "").trim().slice(0, 60);
   if (!parcial || b.titulo !== undefined) o.titulo = String(b.titulo || "").trim().slice(0, 120);
   if (!parcial || b.responsavel !== undefined) o.responsavel = String(b.responsavel || "").trim().slice(0, 60);
+  for (const k of EXTRAS) if (!parcial || b[k] !== undefined) o[k] = String(b[k] || "").trim().slice(0, k === "observacao" ? 1000 : 200);
   if (!parcial || b.dia !== undefined) o.dia = Number(b.dia);
   if (!parcial || b.canal !== undefined) o.canal = b.canal;
   if (!parcial || b.status !== undefined) o.status = b.status;
@@ -94,9 +98,9 @@ router.post("/acoes", async (req, res) => {
     const v = validar({ status: "planejada", canal: "whatsapp", ...req.body }, false);
     if (v.erro) return res.status(400).json({ error: v.erro });
     const { rows } = await pool.query(
-      `INSERT INTO estrategia_acoes (semana, carteira, dia, canal, titulo, responsavel, status)
-       VALUES ($1::date, $2, $3, $4, $5, $6, $7) RETURNING id, carteira, dia, canal, titulo, responsavel, status`,
-      [segunda(req.body?.semana), v.o.carteira, v.o.dia, v.o.canal, v.o.titulo, v.o.responsavel, v.o.status]);
+      `INSERT INTO estrategia_acoes (semana, carteira, dia, canal, titulo, responsavel, status, ${EXTRAS.join(", ")})
+       VALUES ($1::date, $2, $3, $4, $5, $6, $7, ${EXTRAS.map((_, i) => "$" + (i + 8)).join(", ")}) RETURNING ${COLS}`,
+      [segunda(req.body?.semana), v.o.carteira, v.o.dia, v.o.canal, v.o.titulo, v.o.responsavel, v.o.status, ...EXTRAS.map((k) => v.o[k])]);
     res.json({ acao: rows[0] });
   } catch (e) { console.error(e); res.status(500).json({ error: "Erro ao criar a ação." }); }
 });
@@ -109,7 +113,7 @@ router.patch("/acoes/:id", async (req, res) => {
     if (!chaves.length) return res.status(400).json({ error: "Nada para atualizar." });
     const sets = chaves.map((k, i) => `${k} = $${i + 1}`);
     const { rows } = await pool.query(
-      `UPDATE estrategia_acoes SET ${sets.join(", ")} WHERE id = $${chaves.length + 1} RETURNING id, carteira, dia, canal, titulo, responsavel, status`,
+      `UPDATE estrategia_acoes SET ${sets.join(", ")} WHERE id = $${chaves.length + 1} RETURNING ${COLS}`,
       [...chaves.map((k) => v.o[k]), req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: "Ação não encontrada." });
     res.json({ acao: rows[0] });
