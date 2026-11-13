@@ -137,30 +137,6 @@ export default function EstrategiaSemana() {
                 className="flex-1 min-w-0 bg-transparent outline-none text-sm" style={{ color: "var(--pagina-texto-1)" }} />
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-4">
-              {INDICADORES.map((ind) => {
-                const meta = Number(dados.metas[ind.k] || 0), real = Number(dados.realizados[ind.k] || 0);
-                const pct = meta > 0 ? Math.min(100, (real / meta) * 100) : 0;
-                const cor = meta === 0 ? "#9CA3AF" : pct >= 90 ? "#16A34A" : pct >= 60 ? "#D97706" : "#DC2626";
-                const edita = (campo) => (e) => {
-                  const v = Number(String(e.target.value).replace(/\./g, "").replace(",", ".")) || 0;
-                  if (v !== Number(dados[campo][ind.k] || 0)) salvarSemana({ ...dados, [campo]: { ...dados[campo], [ind.k]: v } });
-                };
-                return (
-                  <div key={ind.k} className="flex-1 min-w-[calc(50%-6px)] md:min-w-[200px] rounded-2xl p-3.5" style={card}>
-                    <div className="text-[11.5px]" style={{ color: "var(--pagina-texto-2)" }}>{ind.nome}</div>
-                    <div className="text-[22px] font-bold" style={{ color: "var(--pagina-texto-1)" }}>{fmtNum(real, ind.moeda)}</div>
-                    <div className="h-2 rounded-full overflow-hidden my-1.5" style={{ background: "rgba(124,58,237,.12)" }}><div className="h-full rounded-full" style={{ width: `${pct}%`, background: cor }} /></div>
-                    <div className="text-[11.5px] font-semibold mb-2" style={{ color: cor }}>{meta > 0 ? `${pct.toFixed(0)}% da meta` : "defina a meta"}</div>
-                    <div className="flex gap-2 text-[11px]" style={{ color: "var(--pagina-texto-2)" }}>
-                      <label className="flex-1">Realizado<input defaultValue={real || ""} key={semana + ind.k + "r" + real} onBlur={edita("realizados")} inputMode="numeric" className="w-full rounded-md px-2 py-1 mt-0.5 text-xs" style={inp} /></label>
-                      <label className="flex-1">Meta<input defaultValue={meta || ""} key={semana + ind.k + "m" + meta} onBlur={edita("metas")} inputMode="numeric" className="w-full rounded-md px-2 py-1 mt-0.5 text-xs" style={inp} /></label>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
             <div className="rounded-2xl p-2 overflow-x-auto" style={card}>
               {vista === "semana" ? (
               <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
