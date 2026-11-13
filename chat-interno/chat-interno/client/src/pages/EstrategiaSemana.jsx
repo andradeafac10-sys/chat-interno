@@ -169,7 +169,7 @@ export default function EstrategiaSemana() {
                                 <div key={a.id} className="rounded-lg p-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
                                   style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", borderLeft: `4px solid ${ca.cor}`, color: "var(--pagina-texto-1)" }}>
                                   <div className="font-semibold leading-snug">{a.titulo}</div>
-                                  <div className="text-[11px] font-semibold" style={{ color: ca.cor }}>{ca.nome}{a.responsavel ? <span style={{ color: "var(--pagina-texto-2)", fontWeight: 400 }}> · {a.responsavel}</span> : null}</div>
+                                  <div className="text-[11px] font-semibold" style={{ color: ca.cor }}>{ca.nome}</div>
                                   <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-1 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
                                 </div>
                               );
@@ -220,11 +220,9 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
         <L t="O que será feito"><input autoFocus required value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} className={cls} style={inp} placeholder="Ex.: Preventivo WhatsApp" /></L>
         <div className="grid grid-cols-2 gap-3">
           <L t="Carteira"><select value={f.carteira} onChange={(e) => setF({ ...f, carteira: e.target.value })} className={cls} style={inp}>{carteiras.map((c) => <option key={c}>{c}</option>)}</select></L>
-          <L t="Dia"><select value={f.dia} onChange={(e) => setF({ ...f, dia: Number(e.target.value) })} className={cls} style={inp}>{DIAS.map((d, i) => <option key={i} value={i}>{d}</option>)}</select></L>
           <L t="Canal"><select value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })} className={cls} style={inp}>{Object.entries(CANAIS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}</select></L>
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="andamento">Em andamento</option><option value="feita">Feita</option></select></L>
         </div>
-        <L t="Responsável (opcional)"><input value={f.responsavel} onChange={(e) => setF({ ...f, responsavel: e.target.value })} className={cls} style={inp} /></L>
         {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
         <div className="flex items-center gap-2">
           {a && <button type="button" onClick={() => onExcluir(a.id)} className="p-2 rounded-lg" style={inp} title="Excluir"><Trash2 size={16} /></button>}
