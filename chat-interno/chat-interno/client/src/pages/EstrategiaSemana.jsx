@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarRange, ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
 import { api } from "../api";
 import PageHeader from "../gestao/PageHeader";
@@ -41,6 +41,9 @@ export default function EstrategiaSemana() {
   const [vista, setVista] = useState("semana"); // semana | dia
   const [diaSel, setDiaSel] = useState(() => { const d = (new Date().getDay() + 6) % 7; return d > 4 ? 0 : d; });
   const semana = chave(inicio);
+  const focoTimer = useRef(null);
+  const dadosRef = useRef(null);
+  dadosRef.current = dados;
 
   const carregar = useCallback(async () => {
     try { const { data } = await api.get("/estrategia", { params: { semana } }); setDados(data); setErro(""); }
@@ -69,7 +72,8 @@ export default function EstrategiaSemana() {
   const salvarAcao = async (f) => {
     try {
       if (f.id) {
-        const { data } = await api.patch(`/estrategia/acoes/${f.id}`, { carteira: f.carteira, dia: f.dia, canal: f.canal, titulo: f.titulo, responsavel: f.responsavel, status: f.status });
+        const { data } = await api.patch(`/estrategia/acoes/${f.id}`, { carteira: f.carteira, dia: f.dia, canal: f.canal, titulo: f.titulo, responsavel: f.responsavel, status: f.status,
+          loja: f.loja, quantidade: f.quantidade, valores: f.valores, acionado: f.acionado, situacoes: f.situacoes, indicadores: f.indicadores, observacao: f.observacao });
         setDados((d) => ({ ...d, acoes: d.acoes.map((a) => (a.id === f.id ? data.acao : a)) }));
       } else {
         const { data } = await api.post("/estrategia/acoes", { semana, ...f });
@@ -133,7 +137,8 @@ export default function EstrategiaSemana() {
             <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3" style={{ ...card, borderLeft: `6px solid ${P}` }}>
               <b className="text-sm shrink-0" style={{ color: "var(--pagina-texto-1)" }}>Foco da semana:</b>
               <input defaultValue={dados.foco} key={semana + "foco"} placeholder="Ex.: campanha de desconto Nossa Saúde + reativação"
-                onBlur={(e) => e.target.value !== dados.foco && salvarSemana({ ...dados, foco: e.target.value })}
+                onChange={(e) => { const v = e.target.value; clearTimeout(focoTimer.current); focoTimer.current = setTimeout(() => salvarSemana({ ...dadosRef.current, foco: v }), 600); }}
+                onBlur={(e) => { clearTimeout(focoTimer.current); if (e.target.value !== dadosRef.current.foco) salvarSemana({ ...dadosRef.current, foco: e.target.value }); }}
                 className="flex-1 min-w-0 bg-transparent outline-none text-sm" style={{ color: "var(--pagina-texto-1)" }} />
             </div>
 
@@ -244,8 +249,8 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   };
   const cls = "w-full rounded-lg px-3 py-2 text-sm";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.45)" }} onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl p-5 max-h-[90vh] overflow-auto" style={{ background: "var(--pagina-cartao)", color: "var(--pagina-texto-1)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.45)" }}>
+      <form onSubmit={submit} onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); } }} className="w-full max-w-md rounded-2xl p-5 max-h-[90vh] overflow-auto" style={{ background: "var(--pagina-cartao)", color: "var(--pagina-texto-1)" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">{a ? "Editar ação" : "Nova ação"}</h3>
           <button type="button" onClick={onClose}><X size={18} /></button>
