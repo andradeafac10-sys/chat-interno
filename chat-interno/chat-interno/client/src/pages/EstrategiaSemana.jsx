@@ -85,7 +85,7 @@ export default function EstrategiaSemana() {
     setModal(null);
   };
   const ciclar = async (a) => {
-    const prox = { planejada: "andamento", andamento: "feita", feita: "planejada" }[a.status];
+    const prox = { planejada: "feita", andamento: "feita", feita: "planejada" }[a.status];
     const { data } = await api.patch(`/estrategia/acoes/${a.id}`, { status: prox });
     setDados((d) => ({ ...d, acoes: d.acoes.map((x) => (x.id === a.id ? data.acao : x)) }));
   };
@@ -252,7 +252,7 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
         <L t="O que será feito"><input autoFocus required value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} className={cls} style={inp} placeholder="Ex.: Preventivo WhatsApp" /></L>
         <div className="grid grid-cols-2 gap-3">
           <L t="Canal"><select value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })} className={cls} style={inp}>{Object.entries(CANAIS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}</select></L>
-          <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="andamento">Em andamento</option><option value="feita">Feita</option></select></L>
+          <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="feita">Feita</option></select></L>
         </div>
         <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
         <div className="grid grid-cols-3 gap-3">
