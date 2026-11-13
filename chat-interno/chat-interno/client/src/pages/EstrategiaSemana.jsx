@@ -96,7 +96,7 @@ export default function EstrategiaSemana() {
       <div key={a.id} className="rounded-lg px-2 py-1.5 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)", borderLeft: `4px solid ${ca.cor}`, color: "var(--pagina-texto-1)" }}>
         <div className="font-semibold leading-snug">{a.titulo}</div>
-        {(a.loja || a.valores || a.acionado) && <div className="text-[11px] opacity-70 leading-snug">{[a.loja, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`].filter(Boolean).join(" · ")}</div>}
+        {(a.loja || a.quantidade || a.valores || a.acionado) && <div className="text-[11px] opacity-70 leading-snug">{[a.loja, a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`].filter(Boolean).join(" · ")}</div>}
         <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-0.5 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
       </div>
     );
@@ -233,7 +233,7 @@ export default function EstrategiaSemana() {
 
 function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   const a = modal.acao;
-  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "" });
+  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "" });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const submit = async (e) => {
@@ -256,7 +256,8 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="andamento">Em andamento</option><option value="feita">Feita</option></select></L>
         </div>
         <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
+          <L t="Quantidade"><input value={f.quantidade || ""} onChange={(e) => setF({ ...f, quantidade: e.target.value })} className={cls} style={inp} placeholder="Ex.: 500" /></L>
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>
           <L t="Acionado"><input value={f.acionado || ""} onChange={(e) => setF({ ...f, acionado: e.target.value })} className={cls} style={inp} placeholder="Ex.: 1.200" /></L>
         </div>
