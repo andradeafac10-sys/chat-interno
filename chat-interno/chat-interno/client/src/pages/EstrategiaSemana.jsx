@@ -251,7 +251,6 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
         </div>
         <L t="O que será feito"><input autoFocus required value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} className={cls} style={inp} placeholder="Ex.: Preventivo WhatsApp" /></L>
         <div className="grid grid-cols-2 gap-3">
-          <L t="Carteira"><select value={f.carteira} onChange={(e) => setF({ ...f, carteira: e.target.value })} className={cls} style={inp}>{carteiras.map((c) => <option key={c}>{c}</option>)}</select></L>
           <L t="Canal"><select value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })} className={cls} style={inp}>{Object.entries(CANAIS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}</select></L>
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="andamento">Em andamento</option><option value="feita">Feita</option></select></L>
         </div>
