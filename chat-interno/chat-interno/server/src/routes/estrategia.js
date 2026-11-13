@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Estratégia da semana: quadro de acompanhamento visível SÓ para o ADM master (André Andrade).
 const norm = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
-const ehMaster = (u) => u && u.role === "admin" && norm(u.name).startsWith("andre andrade");
+const ehMaster = (u) => u && u.role === "admin";
 
 const CARTEIRAS_PADRAO = ["Hapvida Cancelado", "Qualicorp", "Unimed", "Nossa Saúde", "Clinipam", "Crediffato"];
 const CANAIS = ["whatsapp", "discador", "sms", "email", "fila"];

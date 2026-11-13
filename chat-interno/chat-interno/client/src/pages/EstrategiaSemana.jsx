@@ -107,7 +107,7 @@ export default function EstrategiaSemana() {
 
   return (
     <div className="flex flex-col h-full min-h-0 flex-1 w-full min-w-0">
-      <PageHeader icon={CalendarRange} title="Estratégia da semana" subtitle="Visível apenas para André Andrade · cronograma e acompanhamento da cobrança" />
+      <PageHeader icon={CalendarRange} title="Estratégia da semana" subtitle="Visível para os ADMs · cronograma e acompanhamento da cobrança" />
       <div className="flex-1 overflow-auto p-3 md:p-5">
         {erro && <p className="text-red-500 text-sm mb-3">{erro}</p>}
         <div className="flex flex-wrap items-center gap-2 mb-4">

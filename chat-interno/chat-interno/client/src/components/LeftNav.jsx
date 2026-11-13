@@ -25,7 +25,7 @@ export default function LeftNav({ unreadTotal = 0, onOpenAccount, escondeNavMobi
   const location = useLocation();
   const isAdm = user.role === "admin";
   // Estratégia da semana: só o ADM master (André Andrade) enxerga
-  const ehMaster = isAdm && String(user.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().startsWith("andre andrade");
+  const ehMaster = isAdm;
 
   const [pendingFeedback, setPendingFeedback] = useState(0);
   const [pendingRoutines, setPendingRoutines] = useState(0);
