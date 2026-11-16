@@ -29,7 +29,7 @@ const card = { background: "var(--pagina-cartao)", border: "1px solid var(--pagi
 
 const PALETA = ["#2563EB", "#0891B2", "#D97706", "#DB2777", "#16A34A", "#7C3AED", "#DC2626", "#0D9488", "#9333EA", "#CA8A04", "#4F46E5", "#BE185D"];
 const corDe = (t) => { const x = String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim(); let h = 0; for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) >>> 0; return PALETA[h % PALETA.length]; };
-const lojasDe = (t) => String(t || "").split("+").map((x) => x.trim()).filter(Boolean);
+const lojasDe = (t) => String(t || "").split("+").map((x) => x.trim().toUpperCase()).filter(Boolean);
 
 const pad = (n) => String(n).padStart(2, "0");
 const chave = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -271,7 +271,7 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Canal"><select value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value })} className={cls} style={inp}>{Object.entries(CANAIS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}</select></L>
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="feita">Feita</option></select></L>
         </div>
-        <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
+        <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value.toUpperCase() })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
         <div className="grid grid-cols-3 gap-3">
           <L t="Quantidade"><input value={f.quantidade || ""} onChange={(e) => setF({ ...f, quantidade: e.target.value })} className={cls} style={inp} placeholder="Ex.: 500" /></L>
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>
