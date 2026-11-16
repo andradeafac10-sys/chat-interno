@@ -24,7 +24,7 @@ const INDICADORES = [
   { k: "recebimento", nome: "Recebimento", moeda: true },
 ];
 const SUPERVISORES = ["Jéssica", "Milena"];
-const DONOS = ["André", "Fernando", "Dubiel"];
+const DONOS = ["André", "Fernando", "Dubiel", "Cris"];
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex"];
 const inp = { background: "var(--pagina-fundo)", border: "1px solid var(--pagina-borda)", color: "var(--pagina-texto-1)" };
 const card = { background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)" };
