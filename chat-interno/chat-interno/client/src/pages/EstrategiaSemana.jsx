@@ -145,7 +145,7 @@ export default function EstrategiaSemana() {
             <option value="">Supervisor: todos</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}
           </select>
           <select value={fDono} onChange={salvaF("estr_dono", setFDono)} className="rounded-lg px-3 py-2 text-sm" style={{ ...inp, color: P }}>
-            <option value="">Estratégia: todas</option>{DONOS.map((n) => <option key={n}>{n}</option>)}
+            <option value="">Responsável: todos</option>{DONOS.map((n) => <option key={n}>{n}</option>)}
           </select>
           {(fSup || fDono) && <button onClick={() => { setFSup(""); setFDono(""); try { localStorage.removeItem("estr_sup"); localStorage.removeItem("estr_dono"); } catch { /* ignore */ } }} className="text-xs underline" style={{ color: P }}>limpar filtro</button>}
           <div className="flex-1" />
@@ -285,14 +285,14 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="feita">Feita</option></select></L>
         </div>
         <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value.toUpperCase() })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
+        <div className="grid grid-cols-2 gap-3">
+          <L t="Responsável pela estratégia"><select value={f.dono || ""} onChange={(e) => setF({ ...f, dono: e.target.value })} className={cls} style={inp}><option value="">—</option>{DONOS.map((n) => <option key={n}>{n}</option>)}</select></L>
+          <L t="Supervisor"><select value={f.supervisor || ""} onChange={(e) => setF({ ...f, supervisor: e.target.value })} className={cls} style={inp}><option value="">—</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}</select></L>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <L t="Quantidade"><input value={f.quantidade || ""} onChange={(e) => setF({ ...f, quantidade: e.target.value })} className={cls} style={inp} placeholder="Ex.: 500" /></L>
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>
           <L t="Acionado"><input value={f.acionado || ""} onChange={(e) => setF({ ...f, acionado: e.target.value })} className={cls} style={inp} placeholder="Ex.: 1.200" /></L>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <L t="Estratégia de"><select value={f.dono || ""} onChange={(e) => setF({ ...f, dono: e.target.value })} className={cls} style={inp}><option value="">—</option>{DONOS.map((n) => <option key={n}>{n}</option>)}</select></L>
-          <L t="Supervisor"><select value={f.supervisor || ""} onChange={(e) => setF({ ...f, supervisor: e.target.value })} className={cls} style={inp}><option value="">—</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}</select></L>
         </div>
         <L t="Operador / Equipe"><input value={f.operador || ""} onChange={(e) => setF({ ...f, operador: e.target.value })} className={cls} style={inp} placeholder="Ex.: Equipe Performance / Maria" /></L>
         <L t="Situações"><input value={f.situacoes || ""} onChange={(e) => setF({ ...f, situacoes: e.target.value })} className={cls} style={inp} placeholder="Ex.: Proposta, Promessa, Sem contato" /></L>
