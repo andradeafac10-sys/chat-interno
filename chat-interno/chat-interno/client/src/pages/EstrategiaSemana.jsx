@@ -23,6 +23,8 @@ const INDICADORES = [
   { k: "acordos", nome: "Acordos", moeda: false },
   { k: "recebimento", nome: "Recebimento", moeda: true },
 ];
+const SUPERVISORES = ["Jéssica", "Milena"];
+const DONOS = ["André", "Fernando", "Dubiel"];
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex"];
 const inp = { background: "var(--pagina-fundo)", border: "1px solid var(--pagina-borda)", color: "var(--pagina-texto-1)" };
 const card = { background: "var(--pagina-cartao)", border: "1px solid var(--pagina-borda-suave)" };
@@ -45,6 +47,10 @@ export default function EstrategiaSemana() {
   const [vista, setVista] = useState("semana"); // semana | dia
   const [diaSel, setDiaSel] = useState(() => { const d = (new Date().getDay() + 6) % 7; return d > 4 ? 0 : d; });
   const semana = chave(inicio);
+  const lerF = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+  const [fSup, setFSup] = useState(() => lerF("estr_sup"));
+  const [fDono, setFDono] = useState(() => lerF("estr_dono"));
+  const salvaF = (k, set) => (e) => { set(e.target.value); try { localStorage.setItem(k, e.target.value); } catch { /* ignore */ } };
   const focoTimer = useRef(null);
   const dadosRef = useRef(null);
   dadosRef.current = dados;
@@ -69,7 +75,7 @@ export default function EstrategiaSemana() {
     return chave(datas[a.dia]) < hoje ? "atrasada" : a.status;
   };
 
-  const acoes = dados?.acoes || [];
+  const acoes = (dados?.acoes || []).filter((a) => (!fSup || a.supervisor === fSup) && (!fDono || a.dono === fDono));
   const feitas = acoes.filter((a) => a.status === "feita").length;
   const atrasadas = acoes.filter((a) => statusEfetivo(a) === "atrasada").length;
 
@@ -77,7 +83,7 @@ export default function EstrategiaSemana() {
     try {
       if (f.id) {
         const { data } = await api.patch(`/estrategia/acoes/${f.id}`, { carteira: f.carteira, dia: f.dia, canal: f.canal, titulo: f.titulo, responsavel: f.responsavel, status: f.status,
-          loja: f.loja, quantidade: f.quantidade, valores: f.valores, acionado: f.acionado, situacoes: f.situacoes, indicadores: f.indicadores, observacao: f.observacao, operador: f.operador, mensagem: f.mensagem });
+          loja: f.loja, quantidade: f.quantidade, valores: f.valores, acionado: f.acionado, situacoes: f.situacoes, indicadores: f.indicadores, observacao: f.observacao, operador: f.operador, mensagem: f.mensagem, supervisor: f.supervisor, dono: f.dono });
         setDados((d) => ({ ...d, acoes: d.acoes.map((a) => (a.id === f.id ? data.acao : a)) }));
       } else {
         const { data } = await api.post("/estrategia/acoes", { semana, ...f });
@@ -102,7 +108,7 @@ export default function EstrategiaSemana() {
     const s = STATUS[statusEfetivo(a)];
     const lojas = lojasDe(a.loja);
     const cor = lojas.length ? corDe(lojas[0]) : CANAIS[a.canal].cor;
-    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
+    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.dono && `📋 ${a.dono}`, a.supervisor && `Sup. ${a.supervisor}`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
     return (
       <div key={a.id} className="rounded-lg px-2.5 py-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: cor + "12", border: `1px solid ${cor}44`, borderLeft: `6px solid ${cor}`, color: "var(--pagina-texto-1)" }}>
@@ -135,6 +141,13 @@ export default function EstrategiaSemana() {
           {vista === "dia" && DIAS.map((d, i) => (
             <button key={d} onClick={() => setDiaSel(i)} className="px-2.5 py-2 rounded-lg text-sm font-medium" style={diaSel === i ? { background: "#5B21B6", color: "#fff" } : { ...inp, color: P }}>{d} {pad(datas[i].getDate())}</button>
           ))}
+          <select value={fSup} onChange={salvaF("estr_sup", setFSup)} className="rounded-lg px-3 py-2 text-sm" style={{ ...inp, color: P }}>
+            <option value="">Supervisor: todos</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}
+          </select>
+          <select value={fDono} onChange={salvaF("estr_dono", setFDono)} className="rounded-lg px-3 py-2 text-sm" style={{ ...inp, color: P }}>
+            <option value="">Estratégia: todas</option>{DONOS.map((n) => <option key={n}>{n}</option>)}
+          </select>
+          {(fSup || fDono) && <button onClick={() => { setFSup(""); setFDono(""); try { localStorage.removeItem("estr_sup"); localStorage.removeItem("estr_dono"); } catch { /* ignore */ } }} className="text-xs underline" style={{ color: P }}>limpar filtro</button>}
           <div className="flex-1" />
           <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: "rgba(22,163,74,.16)", color: "#16A34A" }}>{feitas} de {acoes.length} ações feitas</span>
           <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: atrasadas ? "rgba(220,38,38,.16)" : "rgba(124,58,237,.14)", color: atrasadas ? "#DC2626" : P }}>{atrasadas} atrasada(s)</span>
@@ -251,7 +264,7 @@ const L = ({ t, children }) => <label className="block text-xs font-medium mb-3"
 
 function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   const a = modal.acao;
-  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "", operador: "", mensagem: "" });
+  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "", operador: "", mensagem: "", supervisor: "", dono: "" });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const submit = async (e) => {
@@ -276,6 +289,10 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Quantidade"><input value={f.quantidade || ""} onChange={(e) => setF({ ...f, quantidade: e.target.value })} className={cls} style={inp} placeholder="Ex.: 500" /></L>
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>
           <L t="Acionado"><input value={f.acionado || ""} onChange={(e) => setF({ ...f, acionado: e.target.value })} className={cls} style={inp} placeholder="Ex.: 1.200" /></L>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <L t="Estratégia de"><select value={f.dono || ""} onChange={(e) => setF({ ...f, dono: e.target.value })} className={cls} style={inp}><option value="">—</option>{DONOS.map((n) => <option key={n}>{n}</option>)}</select></L>
+          <L t="Supervisor"><select value={f.supervisor || ""} onChange={(e) => setF({ ...f, supervisor: e.target.value })} className={cls} style={inp}><option value="">—</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}</select></L>
         </div>
         <L t="Operador / Equipe"><input value={f.operador || ""} onChange={(e) => setF({ ...f, operador: e.target.value })} className={cls} style={inp} placeholder="Ex.: Equipe Performance / Maria" /></L>
         <L t="Situações"><input value={f.situacoes || ""} onChange={(e) => setF({ ...f, situacoes: e.target.value })} className={cls} style={inp} placeholder="Ex.: Proposta, Promessa, Sem contato" /></L>

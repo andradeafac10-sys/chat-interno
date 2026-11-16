@@ -12,7 +12,7 @@ const CARTEIRAS_PADRAO = ["Hapvida Cancelado", "Qualicorp", "Unimed", "Nossa Sa√
 const CANAIS = ["whatsapp", "discador", "sms", "email", "fila"];
 const STATUS = ["planejada", "andamento", "feita"];
 
-const EXTRAS = ["loja", "quantidade", "valores", "acionado", "situacoes", "indicadores", "observacao", "operador", "mensagem"];
+const EXTRAS = ["loja", "quantidade", "valores", "acionado", "situacoes", "indicadores", "observacao", "operador", "mensagem", "supervisor", "dono"];
 const COLS = "id, carteira, dia, canal, titulo, responsavel, status, " + EXTRAS.join(", ");
 let pronta = false;
 async function garantir() {
