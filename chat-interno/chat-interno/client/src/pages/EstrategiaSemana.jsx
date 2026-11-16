@@ -139,7 +139,9 @@ export default function EstrategiaSemana() {
     return (
       <div key={a.id} className="relative rounded-lg px-2.5 py-2 pr-10 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: cor + "12", border: `1px solid ${cor}44`, borderLeft: `6px solid ${cor}`, color: "var(--pagina-texto-1)" }}>
-        <Icone size={22} className="absolute right-2.5 top-2.5" style={{ color: cor, opacity: 0.85 }} />
+        {a.canal === "fila"
+          ? <span className="absolute right-2.5 top-2.5 block" style={{ width: 24, height: 24, background: cor, WebkitMaskImage: "url(/icone-fila.png)", maskImage: "url(/icone-fila.png)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" }} />
+          : <Icone size={22} className="absolute right-2.5 top-2.5" style={{ color: cor, opacity: 0.85 }} />}
         <div className="font-semibold leading-snug text-[13px]">{a.titulo}</div>
         {lojas.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{lojas.map((l) => <span key={l} className="text-[10.5px] font-bold text-white rounded px-1.5 py-0.5" style={{ background: cor }}>{l}</span>)}</div>}
         {dados2.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{dados2.map((x) => <span key={x} className="text-[11px] rounded px-1.5" style={{ background: "rgba(0,0,0,.07)" }}>{x}</span>)}</div>}
