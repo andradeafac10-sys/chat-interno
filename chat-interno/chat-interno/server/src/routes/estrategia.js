@@ -12,7 +12,7 @@ const CARTEIRAS_PADRAO = ["Hapvida Cancelado", "Qualicorp", "Unimed", "Nossa Sa√
 const CANAIS = ["whatsapp", "discador", "sms", "email", "fila"];
 const STATUS = ["planejada", "andamento", "feita"];
 
-const EXTRAS = ["loja", "quantidade", "valores", "acionado", "situacoes", "indicadores", "observacao"];
+const EXTRAS = ["loja", "quantidade", "valores", "acionado", "situacoes", "indicadores", "observacao", "operador", "mensagem"];
 const COLS = "id, carteira, dia, canal, titulo, responsavel, status, " + EXTRAS.join(", ");
 let pronta = false;
 async function garantir() {
@@ -81,7 +81,7 @@ function validar(b, parcial) {
   if (!parcial || b.carteira !== undefined) o.carteira = String(b.carteira || "").trim().slice(0, 60);
   if (!parcial || b.titulo !== undefined) o.titulo = String(b.titulo || "").trim().slice(0, 120);
   if (!parcial || b.responsavel !== undefined) o.responsavel = String(b.responsavel || "").trim().slice(0, 60);
-  for (const k of EXTRAS) if (!parcial || b[k] !== undefined) { o[k] = String(b[k] || "").trim().slice(0, k === "observacao" ? 1000 : 200); if (k === "loja") o[k] = o[k].toUpperCase(); }
+  for (const k of EXTRAS) if (!parcial || b[k] !== undefined) { o[k] = String(b[k] || "").trim().slice(0, k === "observacao" ? 1000 : k === "mensagem" ? 2000 : 200); if (k === "loja") o[k] = o[k].toUpperCase(); }
   if (!parcial || b.dia !== undefined) o.dia = Number(b.dia);
   if (!parcial || b.canal !== undefined) o.canal = b.canal;
   if (!parcial || b.status !== undefined) o.status = b.status;

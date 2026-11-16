@@ -77,7 +77,7 @@ export default function EstrategiaSemana() {
     try {
       if (f.id) {
         const { data } = await api.patch(`/estrategia/acoes/${f.id}`, { carteira: f.carteira, dia: f.dia, canal: f.canal, titulo: f.titulo, responsavel: f.responsavel, status: f.status,
-          loja: f.loja, quantidade: f.quantidade, valores: f.valores, acionado: f.acionado, situacoes: f.situacoes, indicadores: f.indicadores, observacao: f.observacao });
+          loja: f.loja, quantidade: f.quantidade, valores: f.valores, acionado: f.acionado, situacoes: f.situacoes, indicadores: f.indicadores, observacao: f.observacao, operador: f.operador, mensagem: f.mensagem });
         setDados((d) => ({ ...d, acoes: d.acoes.map((a) => (a.id === f.id ? data.acao : a)) }));
       } else {
         const { data } = await api.post("/estrategia/acoes", { semana, ...f });
@@ -102,7 +102,7 @@ export default function EstrategiaSemana() {
     const s = STATUS[statusEfetivo(a)];
     const lojas = lojasDe(a.loja);
     const cor = lojas.length ? corDe(lojas[0]) : CANAIS[a.canal].cor;
-    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`].filter(Boolean);
+    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
     return (
       <div key={a.id} className="rounded-lg px-2.5 py-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: cor + "12", border: `1px solid ${cor}44`, borderLeft: `6px solid ${cor}`, color: "var(--pagina-texto-1)" }}>
@@ -251,7 +251,7 @@ const L = ({ t, children }) => <label className="block text-xs font-medium mb-3"
 
 function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
   const a = modal.acao;
-  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "" });
+  const [f, setF] = useState(a ? { ...a } : { carteira: modal.carteira, dia: modal.dia, canal: modal.canal || "whatsapp", titulo: "", responsavel: "", status: "planejada", loja: "", quantidade: "", valores: "", acionado: "", situacoes: "", indicadores: "", observacao: "", operador: "", mensagem: "" });
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const submit = async (e) => {
@@ -277,9 +277,11 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>
           <L t="Acionado"><input value={f.acionado || ""} onChange={(e) => setF({ ...f, acionado: e.target.value })} className={cls} style={inp} placeholder="Ex.: 1.200" /></L>
         </div>
+        <L t="Operador / Equipe"><input value={f.operador || ""} onChange={(e) => setF({ ...f, operador: e.target.value })} className={cls} style={inp} placeholder="Ex.: Equipe Performance / Maria" /></L>
         <L t="Situações"><input value={f.situacoes || ""} onChange={(e) => setF({ ...f, situacoes: e.target.value })} className={cls} style={inp} placeholder="Ex.: Proposta, Promessa, Sem contato" /></L>
         <L t="Indicadores"><input value={f.indicadores || ""} onChange={(e) => setF({ ...f, indicadores: e.target.value })} className={cls} style={inp} placeholder="Ex.: CPC 40%, conversão 8%" /></L>
         <L t="Observação"><textarea rows={3} value={f.observacao || ""} onChange={(e) => setF({ ...f, observacao: e.target.value })} className={cls} style={inp} /></L>
+        <L t="Sugestão de mensagem"><textarea rows={4} value={f.mensagem || ""} onChange={(e) => setF({ ...f, mensagem: e.target.value })} className={cls} style={inp} placeholder="Texto sugerido para enviar ao cliente" /></L>
         {erro && <p className="text-red-500 text-sm mb-2">{erro}</p>}
         <div className="flex items-center gap-2">
           {a && <button type="button" onClick={() => onExcluir(a.id)} className="p-2 rounded-lg" style={inp} title="Excluir"><Trash2 size={16} /></button>}
