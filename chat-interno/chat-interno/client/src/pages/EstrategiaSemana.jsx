@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarRange, ChevronLeft, ChevronRight, Plus, X, Trash2 } from "lucide-react";
+import { BarChart3, CalendarRange, ChevronLeft, ChevronRight, Mail, MessageCircle, MessageSquare, Phone, Plus, X, Trash2 } from "lucide-react";
 import { api } from "../api";
 import PageHeader from "../gestao/PageHeader";
 
@@ -9,8 +9,9 @@ const CANAIS = {
   discador: { nome: "Discador", cor: "#2563EB" },
   sms: { nome: "SMS", cor: "#D97706" },
   email: { nome: "E-mail", cor: "#DB2777" },
-  fila: { nome: "Fila", cor: "#7C3AED" },
+  fila: { nome: "Fila", cor: "#CA8A04" },
 };
+const ICONES = { whatsapp: MessageCircle, discador: Phone, fila: BarChart3, sms: MessageSquare, email: Mail };
 const STATUS = {
   planejada: { nome: "Planejada", bg: "rgba(124,58,237,.14)", cor: "#7C3AED", icone: "○" },
   andamento: { nome: "Em andamento", bg: "rgba(217,119,6,.16)", cor: "#D97706", icone: "●" },
@@ -132,13 +133,15 @@ export default function EstrategiaSemana() {
   const renderAcao = (a) => {
     const s = STATUS[statusEfetivo(a)];
     const lojas = lojasDe(a.loja);
-    const cor = lojas.length ? corDe(lojas[0]) : CANAIS[a.canal].cor;
+    const cor = CANAIS[a.canal].cor;
+    const Icone = ICONES[a.canal] || BarChart3;
     const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
     return (
-      <div key={a.id} className="rounded-lg px-2.5 py-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
+      <div key={a.id} className="relative rounded-lg px-2.5 py-2 pr-10 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: cor + "12", border: `1px solid ${cor}44`, borderLeft: `6px solid ${cor}`, color: "var(--pagina-texto-1)" }}>
+        <Icone size={22} className="absolute right-2.5 top-2.5" style={{ color: cor, opacity: 0.85 }} />
         <div className="font-semibold leading-snug text-[13px]">{a.titulo}</div>
-        {lojas.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{lojas.map((l) => <span key={l} className="text-[10.5px] font-bold text-white rounded px-1.5 py-0.5" style={{ background: corDe(l) }}>{l}</span>)}</div>}
+        {lojas.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{lojas.map((l) => <span key={l} className="text-[10.5px] font-bold text-white rounded px-1.5 py-0.5" style={{ background: cor }}>{l}</span>)}</div>}
         {dados2.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{dados2.map((x) => <span key={x} className="text-[11px] rounded px-1.5" style={{ background: "rgba(0,0,0,.07)" }}>{x}</span>)}</div>}
         <button onClick={(e) => { e.stopPropagation(); ciclar(a); }} title="Clique para mudar o status" className="mt-1.5 text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: s.bg, color: s.cor }}>{s.icone} {s.nome}</button>
       </div>
