@@ -75,7 +75,32 @@ export default function EstrategiaSemana() {
     return chave(datas[a.dia]) < hoje ? "atrasada" : a.status;
   };
 
-  const acoes = (dados?.acoes || []).filter((a) => (!fSup || a.supervisor === fSup) && (!fDono || a.dono === fDono));
+  const resp = dados?.responsaveis || {};
+  const carteirasVis = (dados?.carteiras || []).filter((c) => (!fSup || resp[c]?.supervisor === fSup) && (!fDono || resp[c]?.responsavel === fDono));
+  const acoes = (dados?.acoes || []).filter((a) => carteirasVis.includes(a.carteira));
+  const setResp = async (c, campo, valor) => {
+    const novo = { ...(resp[c] || { supervisor: "", responsavel: "" }), [campo]: valor };
+    setDados((d) => ({ ...d, responsaveis: { ...(d.responsaveis || {}), [c]: novo } }));
+    try { await api.put("/estrategia/carteira-resp", { carteira: c, ...novo }); } catch { setErro("Não foi possível salvar o responsável."); }
+  };
+  const selResp = (c) => {
+    const st = { background: "rgba(255,255,255,.2)", color: "#fff", border: "1px solid rgba(255,255,255,.4)" };
+    const op = { color: "#000" };
+    return (
+      <div className="flex items-center gap-2 text-[12px] font-medium" onClick={(e) => e.stopPropagation()}>
+        <label className="flex items-center gap-1">Supervisor
+          <select value={resp[c]?.supervisor || ""} onChange={(e) => setResp(c, "supervisor", e.target.value)} className="rounded-md px-2 py-1" style={st}>
+            <option value="" style={op}>—</option>{SUPERVISORES.map((n) => <option key={n} style={op}>{n}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1">Estratégia
+          <select value={resp[c]?.responsavel || ""} onChange={(e) => setResp(c, "responsavel", e.target.value)} className="rounded-md px-2 py-1" style={st}>
+            <option value="" style={op}>—</option>{DONOS.map((n) => <option key={n} style={op}>{n}</option>)}
+          </select>
+        </label>
+      </div>
+    );
+  };
   const feitas = acoes.filter((a) => a.status === "feita").length;
   const atrasadas = acoes.filter((a) => statusEfetivo(a) === "atrasada").length;
 
@@ -108,7 +133,7 @@ export default function EstrategiaSemana() {
     const s = STATUS[statusEfetivo(a)];
     const lojas = lojasDe(a.loja);
     const cor = lojas.length ? corDe(lojas[0]) : CANAIS[a.canal].cor;
-    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.dono && `📋 ${a.dono}`, a.supervisor && `Sup. ${a.supervisor}`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
+    const dados2 = [a.quantidade && `${a.quantidade} qtd.`, a.valores && `R$ ${a.valores}`, a.acionado && `${a.acionado} acion.`, a.operador && `👤 ${a.operador}`, a.mensagem && "💬 msg"].filter(Boolean);
     return (
       <div key={a.id} className="rounded-lg px-2.5 py-2 text-[12.5px] cursor-pointer" onClick={() => setModal({ acao: a })}
         style={{ background: cor + "12", border: `1px solid ${cor}44`, borderLeft: `6px solid ${cor}`, color: "var(--pagina-texto-1)" }}>
@@ -177,13 +202,14 @@ export default function EstrategiaSemana() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.carteiras.map((c) => {
+                  {carteirasVis.map((c) => {
                     const canaisUsados = Object.keys(CANAIS).filter((k) => acoes.some((a) => a.carteira === c && a.canal === k));
                     return [
                       <tr key={c + "h"}>
                         <td colSpan={6} className="pt-3">
                           <div className="flex items-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-white" style={{ background: corDe(c) }}>
                             <span className="flex-1">{c}</span>
+                            {selResp(c)}
                             <button title="Remover carteira" className="opacity-40 hover:opacity-100" onClick={() => { if (window.confirm(`Remover a carteira "${c}" do quadro?`)) salvarSemana({ ...dados, carteiras: dados.carteiras.filter((x) => x !== c) }); }}><X size={13} /></button>
                           </div>
                         </td>
@@ -223,10 +249,10 @@ export default function EstrategiaSemana() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.carteiras.map((c) => [
+                  {carteirasVis.map((c) => [
                     <tr key={c + "h"}>
                       <td colSpan={5} className="pt-3">
-                        <div className="rounded-xl px-4 py-2 text-[15px] font-bold text-white" style={{ background: corDe(c) }}>{c}</div>
+                        <div className="flex items-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-white" style={{ background: corDe(c) }}><span className="flex-1">{c}</span>{selResp(c)}</div>
                       </td>
                     </tr>,
                     <tr key={c}>
@@ -285,10 +311,6 @@ function FormAcao({ modal, carteiras, onSalvar, onExcluir, onClose }) {
           <L t="Status"><select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className={cls} style={inp}><option value="planejada">Planejada</option><option value="feita">Feita</option></select></L>
         </div>
         <L t="Loja"><input value={f.loja || ""} onChange={(e) => setF({ ...f, loja: e.target.value.toUpperCase() })} className={cls} style={inp} placeholder="Ex.: HAPVIDA NOTREDAME CANCELADO" /></L>
-        <div className="grid grid-cols-2 gap-3">
-          <L t="Responsável pela estratégia"><select value={f.dono || ""} onChange={(e) => setF({ ...f, dono: e.target.value })} className={cls} style={inp}><option value="">—</option>{DONOS.map((n) => <option key={n}>{n}</option>)}</select></L>
-          <L t="Supervisor"><select value={f.supervisor || ""} onChange={(e) => setF({ ...f, supervisor: e.target.value })} className={cls} style={inp}><option value="">—</option>{SUPERVISORES.map((n) => <option key={n}>{n}</option>)}</select></L>
-        </div>
         <div className="grid grid-cols-3 gap-3">
           <L t="Quantidade"><input value={f.quantidade || ""} onChange={(e) => setF({ ...f, quantidade: e.target.value })} className={cls} style={inp} placeholder="Ex.: 500" /></L>
           <L t="Valores (R$)"><input value={f.valores || ""} onChange={(e) => setF({ ...f, valores: e.target.value })} className={cls} style={inp} placeholder="Ex.: 150.000,00" /></L>

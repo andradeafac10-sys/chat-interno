@@ -25,6 +25,7 @@ async function garantir() {
     id SERIAL PRIMARY KEY, semana DATE NOT NULL, carteira TEXT NOT NULL, dia INTEGER NOT NULL CHECK (dia BETWEEN 0 AND 4),
     canal TEXT NOT NULL DEFAULT 'whatsapp', titulo TEXT NOT NULL, responsavel TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'planejada', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS estrategia_carteira_resp (carteira TEXT PRIMARY KEY, supervisor TEXT NOT NULL DEFAULT '', responsavel TEXT NOT NULL DEFAULT '')`);
   for (const c of EXTRAS) await pool.query(`ALTER TABLE estrategia_acoes ADD COLUMN IF NOT EXISTS ${c} TEXT NOT NULL DEFAULT ''`);
   await pool.query(`CREATE INDEX IF NOT EXISTS estrategia_acoes_semana_idx ON estrategia_acoes(semana)`);
   pronta = true;
@@ -56,7 +57,9 @@ router.get("/", async (req, res) => {
     }
     const { rows: acoes } = await pool.query(
       "SELECT " + COLS + " FROM estrategia_acoes WHERE semana = $1::date ORDER BY dia, id", [semana]);
-    res.json({ semana, foco: rows[0]?.foco || "", metas: rows[0]?.metas || {}, realizados: rows[0]?.realizados || {}, carteiras, acoes });
+    const { rows: rs } = await pool.query("SELECT carteira, supervisor, responsavel FROM estrategia_carteira_resp");
+    const responsaveis = Object.fromEntries(rs.map((r) => [r.carteira, { supervisor: r.supervisor, responsavel: r.responsavel }]));
+    res.json({ semana, foco: rows[0]?.foco || "", metas: rows[0]?.metas || {}, realizados: rows[0]?.realizados || {}, carteiras, acoes, responsaveis });
   } catch (e) { console.error(e); res.status(500).json({ error: "Erro ao carregar a semana." }); }
 });
 
@@ -118,6 +121,21 @@ router.patch("/acoes/:id", async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: "Ação não encontrada." });
     res.json({ acao: rows[0] });
   } catch (e) { console.error(e); res.status(500).json({ error: "Erro ao atualizar a ação." }); }
+});
+
+// Supervisor e responsável da estratégia ficam na carteira (valem para todas as semanas)
+router.put("/carteira-resp", async (req, res) => {
+  try {
+    const carteira = String(req.body?.carteira || "").trim().slice(0, 60);
+    if (!carteira) return res.status(400).json({ error: "Informe a carteira." });
+    const supervisor = String(req.body?.supervisor || "").trim().slice(0, 60);
+    const responsavel = String(req.body?.responsavel || "").trim().slice(0, 60);
+    await pool.query(
+      `INSERT INTO estrategia_carteira_resp (carteira, supervisor, responsavel) VALUES ($1, $2, $3)
+       ON CONFLICT (carteira) DO UPDATE SET supervisor = EXCLUDED.supervisor, responsavel = EXCLUDED.responsavel`,
+      [carteira, supervisor, responsavel]);
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: "Erro ao salvar o responsável." }); }
 });
 
 router.delete("/acoes/:id", async (req, res) => {
