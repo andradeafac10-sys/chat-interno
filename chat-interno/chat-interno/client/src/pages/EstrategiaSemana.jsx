@@ -193,10 +193,10 @@ export default function EstrategiaSemana() {
                 className="flex-1 min-w-0 bg-transparent outline-none text-sm" style={{ color: "var(--pagina-texto-1)" }} />
             </div>
 
-            <div className="rounded-2xl p-2 overflow-x-auto" style={card}>
+            <div className="rounded-2xl p-2 overflow-x-auto md:overflow-x-clip" style={card}>
               {vista === "semana" ? (
               <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
-                <thead>
+                <thead style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--pagina-cartao)" }}>
                   <tr>
                     <th />
                     {datas.map((d, i) => (
@@ -248,7 +248,10 @@ export default function EstrategiaSemana() {
               </table>
               ) : (
               <table className="w-full min-w-[900px]" style={{ borderCollapse: "separate", borderSpacing: 6 }}>
-                <thead>
+                <thead style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--pagina-cartao)" }}>
+                  <tr>
+                    <th colSpan={5} className="text-[13px] tracking-wide py-1.5 rounded-lg text-white" style={{ background: "#5B21B6" }}>{DIAS[diaSel]} {pad(datas[diaSel].getDate())}/{pad(datas[diaSel].getMonth() + 1)}{chave(datas[diaSel]) === hoje ? " · HOJE" : ""}</th>
+                  </tr>
                   <tr>
                     {Object.entries(CANAIS).map(([k, v]) => <th key={k} className="text-xs uppercase tracking-wide py-2 rounded-lg text-white" style={{ background: v.cor }}>{v.nome}</th>)}
                   </tr>
