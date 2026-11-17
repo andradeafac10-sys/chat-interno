@@ -5,7 +5,7 @@ const { requireAuth, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
 
 // Só estas pessoas criam/editam demandas. Os demais apenas acompanham.
-const EDITORES = ["kamila eduarda", "andre andrade"];
+const EDITORES = ["kamila", "andre andrade"];
 const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 const ehEditor = (user) => user && (EDITORES.some((n) => norm(user.name).startsWith(n)));
 
@@ -32,7 +32,7 @@ router.use(requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 function soEditor(req, res, next) {
-  if (!req.podeEditar) return res.status(403).json({ error: "Apenas Kamila Eduarda ou André Andrade podem alterar demandas." });
+  if (!req.podeEditar) return res.status(403).json({ error: "Apenas a Kamila ou o André Andrade podem alterar demandas." });
   next();
 }
 
