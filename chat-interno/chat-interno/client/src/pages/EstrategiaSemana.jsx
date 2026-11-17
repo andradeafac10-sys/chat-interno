@@ -50,6 +50,8 @@ export default function EstrategiaSemana() {
   const semana = chave(inicio);
   const lerF = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
   const [fSup, setFSup] = useState(() => lerF("estr_sup"));
+  const [soPend, setSoPend] = useState(() => lerF("estr_pend") === "1");
+  const alternaPend = () => { const v = !soPend; setSoPend(v); try { localStorage.setItem("estr_pend", v ? "1" : "0"); } catch { /* ignore */ } };
   const [fDono, setFDono] = useState(() => lerF("estr_dono"));
   const salvaF = (k, set) => (e) => { set(e.target.value); try { localStorage.setItem(k, e.target.value); } catch { /* ignore */ } };
   const focoTimer = useRef(null);
@@ -78,7 +80,9 @@ export default function EstrategiaSemana() {
 
   const resp = dados?.responsaveis || {};
   const carteirasVis = (dados?.carteiras || []).filter((c) => (!fSup || resp[c]?.supervisor === fSup) && (!fDono || resp[c]?.responsavel === fDono));
-  const acoes = (dados?.acoes || []).filter((a) => carteirasVis.includes(a.carteira));
+  const acoesVis = (dados?.acoes || []).filter((a) => carteirasVis.includes(a.carteira));
+  const totalPend = acoesVis.filter((a) => statusEfetivo(a) !== "feita").length;
+  const acoes = soPend ? acoesVis.filter((a) => statusEfetivo(a) !== "feita") : acoesVis;
   const setResp = async (c, campo, valor) => {
     const novo = { ...(resp[c] || { supervisor: "", responsavel: "" }), [campo]: valor };
     setDados((d) => ({ ...d, responsaveis: { ...(d.responsaveis || {}), [c]: novo } }));
@@ -177,6 +181,7 @@ export default function EstrategiaSemana() {
           <select value={fDono} onChange={salvaF("estr_dono", setFDono)} className="rounded-lg px-3 py-2 text-sm" style={{ ...inp, color: P }}>
             <option value="">Responsável: todos</option>{DONOS.map((n) => <option key={n}>{n}</option>)}
           </select>
+          <button onClick={alternaPend} className="rounded-lg px-3 py-2 text-sm font-semibold" style={soPend ? { background: P, color: "#fff" } : { ...inp, color: P }}>{soPend ? "✓ " : ""}Só pendentes ({totalPend})</button>
           {(fSup || fDono) && <button onClick={() => { setFSup(""); setFDono(""); try { localStorage.removeItem("estr_sup"); localStorage.removeItem("estr_dono"); } catch { /* ignore */ } }} className="text-xs underline" style={{ color: P }}>limpar filtro</button>}
           <div className="flex-1" />
           <span className="text-xs rounded-full px-3 py-1.5 font-semibold" style={{ background: "rgba(22,163,74,.16)", color: "#16A34A" }}>{feitas} de {acoes.length} ações feitas</span>
