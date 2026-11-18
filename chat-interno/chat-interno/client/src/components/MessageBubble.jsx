@@ -332,7 +332,18 @@ function MessageLine({
         )}
 
         {m.type === "audio" && (
-          <div className="flex items-center gap-2.5 rounded-full px-3 py-2 max-w-[260px]" style={{ background: colors.inputFieldBg }}>
+          <div className="flex items-center gap-2.5 rounded-full px-3 py-2 max-w-[300px]" style={{ background: colors.inputFieldBg }}>
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 overflow-hidden"
+              style={{ background: m.sender_color || "#7C3AED" }}
+              title={m.sender_name}
+            >
+              {m.sender_avatar_url ? (
+                <img src={fileUrl(m.sender_avatar_url)} alt={m.sender_name} className="w-full h-full object-cover" />
+              ) : (
+                (m.sender_name || "?").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
+              )}
+            </div>
             <button
               onClick={() => {
                 const el = audioRefs.current[m.id];
@@ -345,10 +356,21 @@ function MessageLine({
             >
               {playingId === m.id ? <Pause size={14} color="#7C3AED" /> : <Play size={14} color="#7C3AED" />}
             </button>
-            <div className="flex items-center gap-[2px] flex-1 h-5">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <span key={i} className="w-[2px] rounded-full" style={{ height: `${6 + ((i * 37) % 14)}px`, background: "#8696A0" }} />
-              ))}
+            <div
+              className="flex items-center gap-[2px] flex-1 h-6 cursor-pointer"
+              onClick={(e) => {
+                const el = audioRefs.current[m.id];
+                if (!el || !audioDuration) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                el.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audioDuration;
+                setAudioElapsed(el.currentTime);
+              }}
+            >
+              {Array.from({ length: 28 }).map((_, i) => {
+                const prog = audioDuration ? audioElapsed / audioDuration : 0;
+                const tocada = (tocandoEsseAudio || audioElapsed > 0) && i / 28 < prog;
+                return <span key={i} className="w-[2px] rounded-full" style={{ height: `${6 + ((i * 37) % 14)}px`, background: tocada ? "#7C3AED" : "#8696A0" }} />;
+              })}
             </div>
             <span className="text-[11px] font-mono" style={{ color: colors.textSecondary }}>
               {fmtDur(tocandoEsseAudio ? audioElapsed : audioDuration)}
