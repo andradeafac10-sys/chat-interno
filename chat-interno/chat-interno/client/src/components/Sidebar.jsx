@@ -15,7 +15,7 @@ const fmtTime = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digi
 export default function Sidebar({ conversations, activeConvId, setActiveConvId, onNewGroup, onOpenUsers, onOpenMonitoring, onlineUsers, unreadCounts, onHideGroup, hiddenGroupsCount, onOpenHiddenGroups, onTogglePinConversation, onCloseConversation, onMarkUnread, escondidoNoMobile }) {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const [tab, setTab] = useState("all"); // all | groups | unread
+  const [tab, setTab] = useState("all"); // all | groups | dm | unread
   const isAdm = user.role === "admin";
   const [menuAberto, setMenuAberto] = useState(null); // { convId, x, y }
   const menuRef = useRef(null);
@@ -34,6 +34,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
   const filtered = conversations
     .filter((c) => {
       if (tab === "groups") return c.type === "group";
+      if (tab === "dm") return c.type === "dm";
       if (tab === "unread") return !!unreadCounts?.[c.id];
       return true;
     })
@@ -56,6 +57,7 @@ export default function Sidebar({ conversations, activeConvId, setActiveConvId, 
         {[
           { id: "all", label: "Todas" },
           { id: "groups", label: "Grupos" },
+          { id: "dm", label: "Pessoas" },
           { id: "unread", label: "Não lidas" },
         ].map((t) => (
           <button
