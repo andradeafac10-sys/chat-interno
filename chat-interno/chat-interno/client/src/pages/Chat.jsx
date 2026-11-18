@@ -69,6 +69,20 @@ export default function Chat() {
   const activeConvIdRef = useRef(activeConvId);
   useEffect(() => { activeConvIdRef.current = activeConvId; }, [activeConvId]);
 
+  // Esc fecha a conversa aberta (só fora de campos de texto e janelas)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape" || !activeConvIdRef.current) return;
+      const t = e.target;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t?.isContentEditable) return;
+      if (document.querySelector('[role="dialog"], .fixed.inset-0')) return;
+      setActiveConvId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const conversationsRef = useRef(conversations);
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
@@ -575,8 +589,14 @@ export default function Chat() {
               onJumpHandled={() => setPendingJumpMessageId(null)}
             />
           ) : (
-            <div className="hidden md:flex flex-1 items-center justify-center text-slate-500 text-sm">
-              {conversations.length === 0 ? "Nenhuma conversa em andamento ainda. Escolha alguém online ao lado pra começar." : "Selecione uma conversa"}
+            <div className="hidden md:flex flex-1 flex-col items-center justify-center text-slate-500 text-sm gap-1.5">
+              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl mb-2" style={{ background: "#F3EEFD" }}>💬</div>
+              <div className="text-[17px] font-semibold" style={{ color: "#5B21B6" }}>
+                {conversations.length === 0 ? "Nenhuma conversa em andamento" : "Nenhuma conversa aberta"}
+              </div>
+              <div className="text-[13px]">
+                {conversations.length === 0 ? "Escolha alguém online ao lado pra começar." : "Clique em uma conversa para iniciar"}
+              </div>
             </div>
           )}
         </>
