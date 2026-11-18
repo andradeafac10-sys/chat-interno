@@ -223,13 +223,16 @@ export default function Feedbacks() {
               return (
               <div key={f.id} className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: 'var(--pagina-borda)' }}>
                 <div className="w-full flex items-center gap-3 p-4">
-                  <button onClick={() => setAbertoId(aberto ? null : f.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <div role="button" tabIndex={0}
+                    onClick={() => { if (window.getSelection()?.toString()) return; setAbertoId(aberto ? null : f.id); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setAbertoId(aberto ? null : f.id); }}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer">
                     {aberto ? <ChevronDown size={15} className="text-slate-400 shrink-0" /> : <ChevronRight size={15} className="text-slate-400 shrink-0" />}
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13.5px] font-semibold text-slate-800 truncate">{f.title}</div>
-                      <div className="text-[11.5px] text-slate-500 truncate">{resumoPessoas}</div>
+                      <div className={`text-[13.5px] font-semibold text-slate-800 select-text ${aberto ? 'whitespace-normal break-words' : 'truncate'}`}>{f.title}</div>
+                      <div className={`text-[11.5px] text-slate-500 ${aberto ? 'whitespace-normal break-words' : 'truncate'}`}>{resumoPessoas}</div>
                     </div>
-                  </button>
+                  </div>
                   <span
                     className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0"
                     style={estaAssinado(f) ? { background: '#F0FDF4', color: '#16A34A' } : { background: '#FEF2F2', color: '#DC2626' }}
