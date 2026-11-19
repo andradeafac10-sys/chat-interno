@@ -492,6 +492,8 @@ function NovaPerguntaModal({ moduloId, perguntaParaEditar, onClose, onSaved }) {
 function AbaAcompanhamento() {
   const [dados, setDados] = useState(null);
   const [moduloSelecionado, setModuloSelecionado] = useState(null); // id ou null (visão geral)
+  const [filtroStatus, setFiltroStatus] = useState('todos'); // todos | concluidos | pendentes
+  const [ordem, setOrdem] = useState('nome'); // nome | data | nota
 
   useEffect(() => {
     api.get('/trilha/admin/progresso').then(({ data }) => setDados(data));
@@ -506,6 +508,15 @@ function AbaAcompanhamento() {
     const linhasDoModulo = dados.linhas
       .map((l) => ({ pessoa: l.pessoa, dado: l.modulos[dados.modulos.findIndex((m) => m.id === moduloSelecionado)] }))
       .filter((l) => l.dado !== null);
+    const qtdConc = linhasDoModulo.filter((l) => l.dado.concluido).length;
+    const qtdPend = linhasDoModulo.length - qtdConc;
+    const linhasVis = linhasDoModulo
+      .filter((l) => filtroStatus === 'todos' || (filtroStatus === 'concluidos' ? l.dado.concluido : !l.dado.concluido))
+      .sort((a, b) => {
+        if (ordem === 'data') return (new Date(b.dado.concluidoEm || 0)) - (new Date(a.dado.concluidoEm || 0));
+        if (ordem === 'nota') return (b.dado.nota ?? -1) - (a.dado.nota ?? -1);
+        return (a.pessoa.name || '').localeCompare(b.pessoa.name || '', 'pt-BR');
+      });
 
     return (
       <div className="max-w-3xl mx-auto">
@@ -514,6 +525,28 @@ function AbaAcompanhamento() {
         <div className="flex gap-4 text-[12px] text-slate-500 mb-4">
           <span>{resumo.concluidos} de {resumo.totalPessoas} concluíram ({resumo.percentualConclusao}%)</span>
           {resumo.mediaNota != null && <span>Média: {resumo.mediaNota}%</span>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {[['todos', `Todos (${linhasDoModulo.length})`], ['pendentes', `Não concluíram (${qtdPend})`], ['concluidos', `Concluíram (${qtdConc})`]].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setFiltroStatus(id)}
+              className="text-[12px] font-medium rounded-full px-3 py-1.5 border"
+              style={filtroStatus === id ? { background: NAVY, color: '#fff', borderColor: NAVY } : { background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-2)', borderColor: 'var(--pagina-borda)' }}
+            >
+              {label}
+            </button>
+          ))}
+          <select
+            value={ordem}
+            onChange={(e) => setOrdem(e.target.value)}
+            className="ml-auto text-[12px] rounded-lg border px-2 py-1.5"
+            style={{ background: 'var(--pagina-cartao)', color: 'var(--pagina-texto-1)', borderColor: 'var(--pagina-borda)' }}
+          >
+            <option value="nome">Ordenar: Nome (A–Z)</option>
+            <option value="data">Ordenar: Conclusão mais recente</option>
+            <option value="nota">Ordenar: Maior nota</option>
+          </select>
         </div>
         <div className="bg-white rounded-xl border overflow-x-auto" style={{ borderColor: 'var(--pagina-borda)' }}>
           <table className="w-full text-[12.5px]">
@@ -528,7 +561,7 @@ function AbaAcompanhamento() {
               </tr>
             </thead>
             <tbody>
-              {linhasDoModulo.map(({ pessoa, dado }) => (
+              {linhasVis.map(({ pessoa, dado }) => (
                 <tr key={pessoa.id} className="border-b last:border-0" style={{ borderColor: 'var(--pagina-borda-suave)' }}>
                   <td className="px-4 py-2.5 font-medium text-slate-700">{pessoa.name}</td>
                   <td className="text-center px-3 py-2.5">
